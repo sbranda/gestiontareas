@@ -92,6 +92,44 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 #input-hora { flex: 0 1 120px; }
 .btn-quitar-limite { height: 40px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
+.repetir-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.dias { display: flex; flex-wrap: wrap; gap: 4px; }
+.editor .dias { width: 100%; }
+.dia { min-width: 44px; height: 38px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 500; }
+.dia[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.dia.todos { border-style: dashed; }
+.rep-ico { display: grid; place-items: center; width: 48px; height: 48px; color: var(--muted); }
+.rep-ico svg { width: 20px; height: 20px; }
+
+.vistas { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 18px; background: var(--tab); border: 1px solid var(--line); border-radius: 10px; }
+.vista { min-height: 40px; padding: 0 18px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 500; }
+.vista[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14); }
+.cal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.cal-nav h2 { flex: 1; min-width: 0; margin: 0; text-align: center; font-family: var(--font-display); font-size: 22px; font-weight: 700; text-transform: capitalize; }
+.cal-nav .mini { min-width: 44px; height: 44px; }
+.cal-filtro { display: flex; gap: 6px; margin-bottom: 12px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-dow { padding: 4px 0; text-align: center; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cal-dia-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 60px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
+.cal-dia-btn .num { font-size: 15px; font-weight: 500; }
+.cal-dia-btn.hoy { border: 2px solid var(--accent); padding: 5px 1px; }
+.cal-dia-btn.sel { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cal-marcas { display: flex; align-items: center; gap: 3px; min-height: 20px; }
+.cal-n { min-width: 22px; padding: 0 6px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 20px; text-align: center; }
+.cal-n.venc { background: var(--danger); color: var(--accent-ink); }
+.cal-ok { font-size: 13px; color: var(--muted); line-height: 20px; }
+.cal-rep { display: inline-grid; place-items: center; color: var(--muted); }
+.cal-rep svg { width: 13px; height: 13px; }
+.cal-dia-btn.sel .cal-n { background: var(--accent-ink); color: var(--accent); }
+.cal-dia-btn.sel .cal-n.venc { background: var(--danger-soft); color: var(--danger); }
+.cal-dia-btn.sel .cal-ok, .cal-dia-btn.sel .cal-rep { color: var(--accent-ink); }
+.cal-leyenda { margin: 10px 2px 0; font-size: 12px; color: var(--muted); }
+.cal-panel h3 { margin: 22px 0 10px; font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+.cal-form { margin-bottom: 12px; }
+.cal-sub { padding: 8px 16px; background: var(--tab); border-bottom: 1px solid var(--line); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.limite.fija { color: var(--muted); }
+.fila.proyectada { opacity: 0.85; }
+
 .solapas { display: flex; gap: 4px; padding-left: 0; }
 .solapa {
   display: inline-flex; align-items: center; gap: 8px;
@@ -194,6 +232,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 }
 @media (max-width: 420px) {
   .btn-agregar { padding: 0 14px; }
+  .solapa { padding: 10px 12px; gap: 6px; }
 }
 </style>
 </head>
@@ -212,30 +251,72 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </header>
 
+  <div class="vistas" role="group" aria-label="Vista">
+    <button type="button" class="vista" data-vista="lista" aria-pressed="true">Lista</button>
+    <button type="button" class="vista" data-vista="calendario" aria-pressed="false">Calendario</button>
+  </div>
+
   <form class="nueva" id="form-nueva" autocomplete="off">
     <div class="nueva-fila">
       <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
       <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
     </div>
     <div class="limite-fila">
-      <span class="limite-rotulo">Fecha límite (opcional)</span>
+      <span class="limite-rotulo" id="rotulo-limite">Fecha límite (opcional)</span>
       <input type="date" id="input-fecha" aria-label="Fecha límite">
       <input type="time" id="input-hora" aria-label="Hora límite">
       <button type="button" class="btn-quitar-limite" id="btn-quitar-limite" hidden>Quitar</button>
+    </div>
+    <div class="repetir-fila">
+      <span class="limite-rotulo">Repetir (opcional)</span>
+      <div class="dias" id="dias" role="group" aria-label="Días en que se repite">
+        <button type="button" class="dia" data-dia="1" aria-pressed="false">Lun</button>
+        <button type="button" class="dia" data-dia="2" aria-pressed="false">Mar</button>
+        <button type="button" class="dia" data-dia="3" aria-pressed="false">Mié</button>
+        <button type="button" class="dia" data-dia="4" aria-pressed="false">Jue</button>
+        <button type="button" class="dia" data-dia="5" aria-pressed="false">Vie</button>
+        <button type="button" class="dia" data-dia="6" aria-pressed="false">Sáb</button>
+        <button type="button" class="dia" data-dia="0" aria-pressed="false">Dom</button>
+        <button type="button" class="dia todos" id="btn-todos" aria-pressed="false">Todos</button>
+      </div>
     </div>
   </form>
 
   <div class="solapas" id="solapas">
     <button type="button" class="solapa" data-hoja="diarias" aria-pressed="true">Diarias <span class="n" id="n-diarias">0</span></button>
     <button type="button" class="solapa" data-hoja="instituto" aria-pressed="false">Instituto <span class="n" id="n-instituto">0</span></button>
+    <button type="button" class="solapa" data-hoja="repetidas" aria-pressed="false">Repetidas <span class="n" id="n-repetidas">0</span></button>
   </div>
 
-  <section class="planilla" aria-label="Planilla de tareas">
-    <div class="cols" aria-hidden="true"><span>Hecha</span><span>Tarea</span><span>Instituto</span><span></span></div>
+  <section class="planilla" id="planilla" aria-label="Planilla de tareas">
+    <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Instituto</span><span></span></div>
     <ul class="lista" id="lista"></ul>
     <div class="pie" id="pie" hidden>
       <span id="pie-texto"></span>
       <button type="button" class="btn-limpiar" id="btn-limpiar">Borrar hechas</button>
+    </div>
+  </section>
+
+  <section id="vista-cal" hidden aria-label="Calendario mensual">
+    <div class="cal-nav">
+      <button type="button" class="mini" id="cal-ant" aria-label="Mes anterior">‹</button>
+      <h2 id="cal-titulo"></h2>
+      <button type="button" class="mini" id="cal-sig" aria-label="Mes siguiente">›</button>
+      <button type="button" class="mini" id="cal-hoy">Hoy</button>
+    </div>
+    <div class="cal-filtro" role="group" aria-label="Qué tareas mostrar">
+      <button type="button" class="dia" data-filtro="todas" aria-pressed="true">Todas</button>
+      <button type="button" class="dia" data-filtro="instituto" aria-pressed="false">Instituto</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <p class="cal-leyenda">El número son las tareas pendientes, en rojo si hay vencidas. La tilde indica todo hecho y la flecha que hay una tarea repetida.</p>
+    <div class="cal-panel">
+      <h3 id="cal-dia-titulo"></h3>
+      <form class="nueva-fila cal-form" id="cal-form" autocomplete="off">
+        <input type="text" id="cal-input" aria-label="Nueva tarea para este día" placeholder="Nueva tarea para este día" maxlength="300">
+        <button type="submit" class="btn-agregar">Agregar</button>
+      </form>
+      <section class="planilla"><ul class="lista" id="cal-lista"></ul></section>
     </div>
   </section>
 
@@ -255,7 +336,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 (function () {
   'use strict';
 
-  var HOJAS = { diarias: 'Diarias', instituto: 'Instituto' };
+  var HOJAS = { diarias: 'Diarias', instituto: 'Instituto', repetidas: 'Repetidas' };
   var LS_TAREAS = 'tareasdiarias.tareas.v1';
   var LS_HOJA = 'tareasdiarias.hoja';
 
@@ -264,6 +345,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var $ = function (id) { return document.getElementById(id); };
   var AHORA = Date.now();
   var EDIT = { id: null, f: '', h: '' };
+  var REP = { id: null };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
   var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
 
@@ -293,13 +375,21 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       instituto: typeof t.instituto === 'boolean' ? t.instituto : t.sheet === 'instituto',
       created: typeof t.created === 'number' ? t.created : 0,
       due: typeof t.due === 'number' ? t.due : null,
-      hora: !!t.hora
+      hora: !!t.hora,
+      plantilla: !!t.plantilla,
+      dias: Array.isArray(t.dias) ? t.dias.filter(function (d) { return d === 0 || (d >= 1 && d <= 6 && d === Math.floor(d)); }) : [],
+      horaStr: typeof t.horaStr === 'string' ? t.horaStr : '',
+      ultima: typeof t.ultima === 'string' ? t.ultima : '',
+      rep: typeof t.rep === 'string' ? t.rep : '',
+      dia: typeof t.dia === 'string' ? t.dia : ''
     };
   }
 
-  function crearTarea(texto, hoja, limite) {
+  function crearTarea(texto, hoja, limite, extra) {
     var datos = { text: texto, done: false, instituto: hoja === 'instituto', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
-    datos.id = idNuevo();
+    var fijo = null;
+    if (extra) { fijo = extra.id || null; Object.keys(extra).forEach(function (k) { if (k !== 'id') datos[k] = extra[k]; }); }
+    datos.id = fijo || idNuevo();
     S.tareas.push(datos); guardarLocal(); render();
   }
 
@@ -314,7 +404,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function restaurarTarea(t) {
-    var datos = { text: t.text, done: t.done, instituto: t.instituto, created: t.created, due: t.due, hora: t.hora };
+    var datos = Object.assign({}, t); delete datos.id;
     S.tareas.push(Object.assign({ id: t.id }, datos)); guardarLocal(); render();
   }
 
@@ -370,6 +460,89 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var prefijo = t.done ? 'Límite ' : (vencida(t) ? 'Venció ' : 'Vence ');
     return prefijo + cuando + hora;
   }
+  var NOMBRE_DIA = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom' };
+  var ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0];
+  function diasTexto(dias) {
+    var set = {};
+    dias.forEach(function (d) { set[d] = true; });
+    var lista = ORDEN_DIAS.filter(function (d) { return set[d]; });
+    if (lista.length === 7) return 'Todos los días';
+    if (lista.length === 5 && !set[6] && !set[0]) return 'Lunes a viernes';
+    if (lista.length === 2 && set[6] && set[0]) return 'Fines de semana';
+    return lista.map(function (d) { return NOMBRE_DIA[d]; }).join(', ');
+  }
+  /* Calendario */
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+  function claveDia(ms) {
+    var d = new Date(ms);
+    return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
+  }
+  function aFecha(clave) { var p = clave.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function diaSemana(clave) { return aFecha(clave).getDay(); }
+  function diasDelMes(y, m) { return new Date(y, m + 1, 0).getDate(); }
+  function offsetMes(y, m) { return (new Date(y, m, 1).getDay() + 6) % 7; }
+  function titulodia(clave) {
+    return aFecha(clave).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+  }
+
+  /* Día al que pertenece una tarea: el agendado, el de su repetición o el de su fecha límite. */
+  function fechaDe(t) {
+    if (typeof t.dia === 'string' && t.dia) return t.dia;
+    if (t.rep) { var m = /_(\d{4}-\d{2}-\d{2})$/.exec(t.id || ''); if (m) return m[1]; }
+    if (t.due != null) return claveDia(t.due);
+    return '';
+  }
+  /* Agendada para un día que todavía no llegó (sin fecha límite): vive en el calendario hasta ese día. */
+  function esFutura(t) {
+    var f = fechaDe(t);
+    return t.due == null && f !== '' && f > claveDia(AHORA);
+  }
+  function textoDia(clave) {
+    var d = aFecha(clave);
+    var h0 = new Date(AHORA); h0.setHours(0, 0, 0, 0);
+    var dias = Math.round((d.getTime() - h0.getTime()) / 86400000);
+    if (dias === 0) return 'hoy';
+    if (dias === 1) return 'mañana';
+    if (dias === -1) return 'ayer';
+    if (dias > 1 && dias < 7) return 'el ' + d.toLocaleDateString('es-AR', { weekday: 'long' });
+    var mismoAnio = d.getFullYear() === new Date(AHORA).getFullYear();
+    return 'el ' + d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: mismoAnio ? undefined : 'numeric' }).replace(/\./g, '');
+  }
+  /* ¿Se va a crear sola la repetición p ese día? */
+  function seCreara(p, c, hoy, tareas) {
+    if (!p.plantilla || c < hoy) return false;
+    if (p.dias.indexOf(diaSemana(c)) < 0) return false;
+    if (c === hoy && p.ultima === hoy) return false;
+    return !tareas.some(function (x) { return x.id === 'r_' + p.id + '_' + c; });
+  }
+  function resumenMes(y, m, tareas, hoy, ahora, filtro) {
+    var res = {}, n = diasDelMes(y, m);
+    var celda = function (c) { return res[c] || (res[c] = { pend: 0, venc: 0, hechas: 0, rep: 0 }); };
+    tareas.forEach(function (t) {
+      if (t.plantilla || (filtro === 'instituto' && !t.instituto)) return;
+      var c = fechaDe(t);
+      if (!c) return;
+      var k = celda(c);
+      if (t.done) k.hechas++;
+      else { k.pend++; if (t.due != null && t.due < ahora) k.venc++; }
+    });
+    tareas.forEach(function (p) {
+      if (!p.plantilla || (filtro === 'instituto' && !p.instituto)) return;
+      for (var d = 1; d <= n; d++) {
+        var c = y + '-' + dos(m + 1) + '-' + dos(d);
+        if (seCreara(p, c, hoy, tareas)) celda(c).rep++;
+      }
+    });
+    return res;
+  }
+  function ordenTareas(a, b) {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    var ad = a.due != null, bd = b.due != null;
+    if (ad && bd && a.due !== b.due) return a.due - b.due;
+    if (ad !== bd) return ad ? -1 : 1;
+    return a.created - b.created;
+  }
   /* --- fin funciones puras --- */
 
   function actualizarQuitar() { btnQuitarLim.hidden = !(inFecha.value || inHora.value); }
@@ -388,14 +561,14 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var c = aCampos(t);
     EDIT.id = t.id; EDIT.f = c.f; EDIT.h = c.h;
     render();
-    var el = lista.querySelector('[data-key="' + t.id + ':fecha"]');
+    var el = document.querySelector('[data-key="' + t.id + ':fecha"]');
     if (el) el.focus();
   }
 
   function cerrarEdicion(id) {
     EDIT.id = null;
     render();
-    var el = lista.querySelector('[data-key="' + id + ':limite"]');
+    var el = document.querySelector('[data-key="' + id + ':limite"]');
     if (el) el.focus();
   }
 
@@ -432,6 +605,300 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     return box;
   }
 
+  /* ---------- Tareas repetidas ---------- */
+  var diasForm = {};
+  function diasElegidos() { return ORDEN_DIAS.filter(function (d) { return diasForm[d]; }); }
+
+  function pintarDias() {
+    var n = diasElegidos().length;
+    Array.prototype.forEach.call($('dias').querySelectorAll('.dia[data-dia]'), function (b) {
+      b.setAttribute('aria-pressed', diasForm[b.getAttribute('data-dia')] ? 'true' : 'false');
+    });
+    $('btn-todos').setAttribute('aria-pressed', n === 7 ? 'true' : 'false');
+    inFecha.disabled = n > 0;
+    if (n > 0) inFecha.value = '';
+    $('rotulo-limite').textContent = n > 0 ? 'Hora de cada vez (opcional)' : 'Fecha límite (opcional)';
+    actualizarQuitar();
+  }
+
+  $('dias').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.dia') : null;
+    if (!b) return;
+    if (b.id === 'btn-todos') {
+      var todos = diasElegidos().length === 7;
+      ORDEN_DIAS.forEach(function (d) { diasForm[d] = !todos; });
+    } else {
+      var k = b.getAttribute('data-dia');
+      diasForm[k] = !diasForm[k];
+    }
+    pintarDias();
+  });
+
+  function hoyStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate());
+  }
+
+  /* Crea la tarea de hoy para cada repetida que toca hoy. Una por día y por repetida;
+     si la anterior sigue sin hacer, no se crea otra. */
+  function generarRepetidas() {
+    if (!S.listo) return;
+    var hoy = hoyStr(), dow = new Date().getDay();
+    S.tareas.filter(function (p) {
+      return p.plantilla && p.dias.indexOf(dow) >= 0 && p.ultima !== hoy;
+    }).forEach(function (p) {
+      var idInst = 'r_' + p.id + '_' + hoy;
+      var yaEsta = S.tareas.some(function (x) {
+        return x.id === idInst || (!x.plantilla && x.rep === p.id && !x.done);
+      });
+      if (!yaEsta) {
+        crearTarea(p.text, p.instituto ? 'instituto' : 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy });
+      }
+      cambiarTarea(p.id, { ultima: hoy });
+    });
+  }
+
+  var SVG_REP = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a5 5 0 0 1 8.5-3.5L13 6"/><path d="M13 3v3h-3"/><path d="M13 8a5 5 0 0 1-8.5 3.5L3 10"/><path d="M3 13v-3h3"/></svg>';
+
+  function crearEditorRep(t) {
+    var box = document.createElement('div');
+    box.className = 'editor';
+    var grupo = document.createElement('div');
+    grupo.className = 'dias';
+    grupo.setAttribute('role', 'group');
+    grupo.setAttribute('aria-label', 'Días en que se repite');
+    ORDEN_DIAS.forEach(function (d) {
+      var on = t.dias.indexOf(d) >= 0;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'dia'; b.textContent = NOMBRE_DIA[d];
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      b.setAttribute('data-key', t.id + ':dia' + d);
+      b.addEventListener('click', function () {
+        var nuevos = on ? t.dias.filter(function (x) { return x !== d; }) : t.dias.concat([d]);
+        if (!nuevos.length) return;
+        cambiarTarea(t.id, { dias: nuevos });
+        setTimeout(generarRepetidas, 800);
+      });
+      grupo.appendChild(b);
+    });
+    var h = document.createElement('input');
+    h.type = 'time'; h.value = t.horaStr;
+    h.setAttribute('aria-label', 'Hora de cada vez (opcional)');
+    h.setAttribute('data-key', t.id + ':horarep');
+    h.addEventListener('change', function () { cambiarTarea(t.id, { horaStr: h.value }); });
+    var listo = boton('Listo', 'primario', function () { REP.id = null; render(); });
+    box.appendChild(grupo); box.appendChild(h); box.appendChild(listo);
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); REP.id = null; render(); }
+    });
+    return box;
+  }
+
+  function crearFilaRep(t) {
+    var li = document.createElement('li');
+    li.className = 'fila';
+
+    var ic = document.createElement('span');
+    ic.className = 'rep-ico'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = SVG_REP;
+
+    var tx = document.createElement('div');
+    tx.className = 'texto';
+    var tt = document.createElement('span');
+    tt.className = 't'; tt.textContent = t.text;
+    tx.appendChild(tt);
+    var resumen = document.createElement('button');
+    resumen.type = 'button'; resumen.className = 'limite';
+    resumen.textContent = diasTexto(t.dias) + (t.horaStr ? ' · ' + t.horaStr : '');
+    resumen.setAttribute('data-key', t.id + ':resumen');
+    resumen.setAttribute('aria-label', resumen.textContent + '. Cambiar días');
+    resumen.addEventListener('click', function () { REP.id = REP.id === t.id ? null : t.id; render(); });
+    tx.appendChild(resumen);
+    if (REP.id === t.id) tx.appendChild(crearEditorRep(t));
+
+    var pase = document.createElement('button');
+    pase.type = 'button'; pase.className = 'pase'; pase.textContent = 'Instituto';
+    pase.setAttribute('data-key', t.id + ':pase');
+    pase.setAttribute('aria-pressed', t.instituto ? 'true' : 'false');
+    pase.setAttribute('aria-label', t.instituto ? 'Quitar de Instituto: ' + t.text : 'Agregar a Instituto: ' + t.text);
+    pase.addEventListener('click', function () {
+      var antes = t.instituto;
+      cambiarTarea(t.id, { instituto: !antes });
+      avisar(!antes ? 'Aparecerá también en Instituto' : 'Ya no aparecerá en Instituto', function () { cambiarTarea(t.id, { instituto: antes }); });
+    });
+
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'borrar'; del.innerHTML = SVG_X;
+    del.setAttribute('data-key', t.id + ':borrar');
+    del.setAttribute('aria-label', 'Borrar repetición: ' + t.text);
+    del.addEventListener('click', function () {
+      quitarTarea(t.id);
+      avisar('Repetición borrada', function () { restaurarTarea(t); });
+    });
+
+    li.appendChild(ic); li.appendChild(tx); li.appendChild(pase); li.appendChild(del);
+    return li;
+  }
+
+  /* ---------- Calendario mensual ---------- */
+  var LS_VISTA = 'tareasdiarias.vista';
+  var VISTA = lsLeer(LS_VISTA) === 'calendario' ? 'calendario' : 'lista';
+  var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
+
+  function crearCeldaDia(d, res, hoy) {
+    var c = CAL.y + '-' + dos(CAL.m + 1) + '-' + dos(d);
+    var k = res[c];
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cal-dia-btn' + (c === hoy ? ' hoy' : '') + (c === CAL.sel ? ' sel' : '');
+    b.setAttribute('data-key', 'cal:' + c);
+    b.setAttribute('aria-pressed', c === CAL.sel ? 'true' : 'false');
+    var num = document.createElement('span');
+    num.className = 'num'; num.textContent = d;
+    b.appendChild(num);
+    var partes = [titulodia(c)];
+    if (k) {
+      var marcas = document.createElement('span');
+      marcas.className = 'cal-marcas';
+      if (k.pend) {
+        var n = document.createElement('span');
+        n.className = 'cal-n' + (k.venc ? ' venc' : ''); n.textContent = k.pend;
+        marcas.appendChild(n);
+        partes.push(k.pend + (k.pend === 1 ? ' pendiente' : ' pendientes'));
+        if (k.venc) partes.push(k.venc + (k.venc === 1 ? ' vencida' : ' vencidas'));
+      } else if (k.hechas) {
+        var ok = document.createElement('span');
+        ok.className = 'cal-ok'; ok.textContent = '✓';
+        marcas.appendChild(ok);
+        partes.push('todo hecho');
+      }
+      if (k.rep) {
+        var r = document.createElement('span');
+        r.className = 'cal-rep'; r.innerHTML = SVG_REP;
+        marcas.appendChild(r);
+        partes.push('se repite');
+      }
+      if (marcas.firstChild) b.appendChild(marcas);
+    }
+    b.setAttribute('aria-label', partes.join(', '));
+    b.addEventListener('click', function () { CAL.sel = c; render(); });
+    return b;
+  }
+
+  function crearFilaProyectada(p) {
+    var li = document.createElement('li');
+    li.className = 'fila proyectada';
+    var ic = document.createElement('span');
+    ic.className = 'rep-ico'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = SVG_REP;
+    var tx = document.createElement('div');
+    tx.className = 'texto';
+    var tt = document.createElement('span');
+    tt.className = 't'; tt.textContent = p.text;
+    var nota = document.createElement('span');
+    nota.className = 'limite fija';
+    nota.textContent = 'Repetida: se crea ese día' + (p.horaStr ? ' · ' + p.horaStr : '');
+    tx.appendChild(tt); tx.appendChild(nota);
+    li.appendChild(ic); li.appendChild(tx);
+    li.appendChild(document.createElement('span')); li.appendChild(document.createElement('span'));
+    return li;
+  }
+
+  function subtitulo(texto) {
+    var li = document.createElement('li');
+    li.className = 'cal-sub'; li.textContent = texto;
+    return li;
+  }
+
+  function renderPanelDia(hoy) {
+    var c = CAL.sel;
+    var ttl = titulodia(c);
+    $('cal-dia-titulo').textContent = ttl.charAt(0).toUpperCase() + ttl.slice(1) + (c === hoy ? ' · Hoy' : '');
+    var cl = $('cal-lista');
+    cl.textContent = '';
+    var pasa = function (t) { return CAL.filtro === 'todas' || t.instituto; };
+    var dadas = S.tareas.filter(function (t) { return !t.plantilla && fechaDe(t) === c && pasa(t); }).sort(ordenTareas);
+    var reps = S.tareas.filter(function (p) { return p.plantilla && pasa(p) && seCreara(p, c, hoy, S.tareas); });
+    var sin = c === hoy
+      ? S.tareas.filter(function (t) { return !t.plantilla && !fechaDe(t) && !t.done && pasa(t); }).sort(ordenTareas)
+      : [];
+    if (!dadas.length && !reps.length && !sin.length) {
+      var v = document.createElement('li');
+      v.className = 'vacio';
+      var st = document.createElement('strong');
+      st.textContent = 'Nada para este día';
+      var p2 = document.createElement('span');
+      p2.textContent = 'Escribí una tarea arriba y tocá Agregar.';
+      v.appendChild(st); v.appendChild(p2); cl.appendChild(v);
+      return;
+    }
+    if (sin.length && (dadas.length || reps.length)) cl.appendChild(subtitulo('Del día'));
+    dadas.forEach(function (t) { cl.appendChild(crearFila(t)); });
+    reps.forEach(function (p) { cl.appendChild(crearFilaProyectada(p)); });
+    if (sin.length) {
+      cl.appendChild(subtitulo('Sin fecha'));
+      sin.forEach(function (t) { cl.appendChild(crearFila(t)); });
+    }
+  }
+
+  function renderCalendario() {
+    var activo = document.activeElement;
+    var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
+    var hoy = hoyStr();
+    var res = resumenMes(CAL.y, CAL.m, S.tareas, hoy, AHORA, CAL.filtro);
+    $('cal-titulo').textContent = MESES[CAL.m] + ' ' + CAL.y;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-filtro') === CAL.filtro ? 'true' : 'false');
+    });
+    var grid = $('cal-grid');
+    grid.textContent = '';
+    ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(function (n) {
+      var e = document.createElement('div');
+      e.className = 'cal-dow'; e.textContent = n;
+      grid.appendChild(e);
+    });
+    var off = offsetMes(CAL.y, CAL.m), total = diasDelMes(CAL.y, CAL.m);
+    for (var i = 0; i < off; i++) grid.appendChild(document.createElement('div'));
+    for (var d = 1; d <= total; d++) grid.appendChild(crearCeldaDia(d, res, hoy));
+    renderPanelDia(hoy);
+    if (clave) {
+      var el = document.querySelector('[data-key="' + clave + '"]');
+      if (el) el.focus();
+    }
+  }
+
+  function irMes(delta) {
+    var d = new Date(CAL.y, CAL.m + delta, 1);
+    CAL.y = d.getFullYear(); CAL.m = d.getMonth();
+    var h = new Date();
+    CAL.sel = (CAL.y === h.getFullYear() && CAL.m === h.getMonth()) ? hoyStr() : CAL.y + '-' + dos(CAL.m + 1) + '-01';
+    render();
+  }
+
+  document.querySelector('.vistas').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.vista') : null;
+    if (!b) return;
+    VISTA = b.getAttribute('data-vista');
+    lsEscribir(LS_VISTA, VISTA);
+    render();
+  });
+  $('cal-ant').addEventListener('click', function () { irMes(-1); });
+  $('cal-sig').addEventListener('click', function () { irMes(1); });
+  $('cal-hoy').addEventListener('click', function () {
+    var h = new Date();
+    CAL.y = h.getFullYear(); CAL.m = h.getMonth(); CAL.sel = hoyStr();
+    render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
+    b.addEventListener('click', function () { CAL.filtro = b.getAttribute('data-filtro'); render(); });
+  });
+  $('cal-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var inp = $('cal-input'), texto = inp.value.trim();
+    if (!texto || !S.listo) return;
+    crearTarea(texto, 'diarias', null, { dia: CAL.sel, instituto: CAL.filtro === 'instituto' });
+    inp.value = '';
+    inp.focus();
+  });
+
   /* ---------- Vista ---------- */
   function mostrarEstado() {
     var el = $('estado');
@@ -446,7 +913,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function tareasDeHoja(h) {
-    return S.tareas.filter(function (t) { return h === 'diarias' || (t.instituto && !t.done); }).sort(function (a, b) {
+    if (h === 'repetidas') return S.tareas.filter(function (t) { return t.plantilla; }).sort(function (a, b) { return a.created - b.created; });
+    return S.tareas.filter(function (t) { return !t.plantilla && !esFutura(t) && (h === 'diarias' || (t.instituto && !t.done)); }).sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
       var ad = a.due != null, bd = b.due != null;
       if (ad && bd && a.due !== b.due) return a.due - b.due;
@@ -471,7 +939,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     cb.setAttribute('aria-label', 'Hecha: ' + t.text);
     cb.addEventListener('change', function () {
       cambiarTarea(t.id, { done: cb.checked });
-      if (S.hoja === 'instituto' && cb.checked) {
+      if (VISTA === 'lista' && S.hoja === 'instituto' && cb.checked) {
         avisar('Hecha: sale de Instituto y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
       }
     });
@@ -484,6 +952,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var tt = document.createElement('span');
     tt.className = 't'; tt.textContent = t.text;
     tx.appendChild(tt);
+    var fd = fechaDe(t);
+    if (VISTA === 'lista' && fd && t.due == null && fd !== claveDia(AHORA)) {
+      var para = document.createElement('span');
+      para.className = 'limite fija';
+      para.textContent = (t.done ? 'Era para ' : 'Para ') + textoDia(fd);
+      tx.appendChild(para);
+    }
     var venc = vencida(t);
     if (venc) li.setAttribute('data-vencida', 'true');
     if (EDIT.id === t.id && !t.done) {
@@ -534,6 +1009,14 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   function render() {
     AHORA = Date.now();
+    var enCal = VISTA === 'calendario';
+    $('vista-cal').hidden = !enCal;
+    ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
+    document.querySelector('.progreso').hidden = enCal;
+    Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-vista') === VISTA ? 'true' : 'false');
+    });
+    if (enCal) { renderCalendario(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
 
@@ -548,7 +1031,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       li.className = 'vacio';
       var st = document.createElement('strong');
       var p = document.createElement('span');
-      if (S.hoja === 'diarias') {
+      if (S.hoja === 'repetidas') {
+        st.textContent = 'No hay tareas repetidas';
+        p.textContent = 'Escribí una tarea, elegí los días en Repetir y tocá Agregar.';
+      } else if (S.hoja === 'diarias') {
         st.textContent = 'No hay tareas en Diarias';
         p.textContent = 'Escribí una arriba y tocá Agregar.';
       } else {
@@ -557,18 +1043,20 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       }
       li.appendChild(st); li.appendChild(p); lista.appendChild(li);
     } else {
-      visibles.forEach(function (t) { lista.appendChild(crearFila(t)); });
+      visibles.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
     }
 
     $('n-diarias').textContent = tareasDeHoja('diarias').filter(function (t) { return !t.done; }).length;
     $('n-instituto').textContent = tareasDeHoja('instituto').filter(function (t) { return !t.done; }).length;
+    $('n-repetidas').textContent = tareasDeHoja('repetidas').length;
     Array.prototype.forEach.call(document.querySelectorAll('.solapa'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-hoja') === S.hoja ? 'true' : 'false');
     });
 
     var enInst = S.hoja === 'instituto';
-    $('progreso-barra').parentNode.hidden = enInst;
-    $('progreso-texto').textContent = visibles.length
+    var enRep = S.hoja === 'repetidas';
+    $('progreso-barra').parentNode.hidden = enInst || enRep;
+    $('progreso-texto').textContent = enRep ? (visibles.length + (visibles.length === 1 ? ' tarea repetida' : ' tareas repetidas')) : visibles.length
       ? (enInst
           ? visibles.length + (visibles.length === 1 ? ' pendiente' : ' pendientes') + ' en Instituto'
           : hechas + ' de ' + visibles.length + (hechas === 1 ? ' hecha' : ' hechas') + ' en ' + HOJAS[S.hoja])
@@ -583,10 +1071,11 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     pie.hidden = hechas === 0;
     $('pie-texto').textContent = hechas + (hechas === 1 ? ' tarea hecha' : ' tareas hechas');
 
-    input.placeholder = 'Nueva tarea en ' + HOJAS[S.hoja];
-    $('ayuda').textContent = (enInst
+    input.placeholder = enRep ? 'Nueva tarea repetida' : 'Nueva tarea en ' + HOJAS[S.hoja];
+    $('col-1').textContent = enRep ? '' : 'Hecha';
+    $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en Instituto si tiene ese botón activado. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, apagá su botón Instituto.'
-      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo.';
+      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -599,7 +1088,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   function avisar(msg, deshacer) {
     $('aviso-texto').textContent = msg;
     aviso.hidden = false;
-    $('aviso-deshacer').onclick = function () { ocultarAviso(); deshacer(); };
+    $('aviso-deshacer').hidden = !deshacer;
+    $('aviso-deshacer').onclick = function () { ocultarAviso(); if (deshacer) deshacer(); };
     clearTimeout(temporizador);
     temporizador = setTimeout(ocultarAviso, 6000);
   }
@@ -610,8 +1100,19 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     e.preventDefault();
     var texto = input.value.trim();
     if (!texto || !S.listo) return;
-    crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value));
-    input.value = ''; inFecha.value = ''; inHora.value = ''; actualizarQuitar();
+    var dias = diasElegidos();
+    if (dias.length) {
+      crearTarea(texto, S.hoja, null, { plantilla: true, dias: dias, horaStr: inHora.value || '', ultima: '' });
+      avisar('Repetida: ' + diasTexto(dias) + (inHora.value ? ' · ' + inHora.value : ''), null);
+      setTimeout(generarRepetidas, 800);
+      diasForm = {};
+    } else if (S.hoja === 'repetidas') {
+      avisar('Elegí al menos un día en Repetir', null);
+      return;
+    } else {
+      crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value));
+    }
+    input.value = ''; inFecha.value = ''; inHora.value = ''; pintarDias();
     input.focus();
   });
 
@@ -636,6 +1137,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   /* ---------- Arranque ---------- */
   function habilitar() {
     S.listo = true;
+    setTimeout(generarRepetidas, 300);
     input.disabled = false; btnAgregar.disabled = false;
     mostrarEstado(); render();
   }
@@ -650,8 +1152,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   mostrarEstado(); render();
 
   /* Refresca las vencidas cada minuto y al volver a la app */
-  setInterval(function () { if (!EDIT.id) render(); }, 60000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && !EDIT.id) render(); });
+  setInterval(function () { generarRepetidas(); if (!EDIT.id && !REP.id) render(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
 
   modoLocal();
 
