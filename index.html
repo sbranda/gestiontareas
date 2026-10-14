@@ -29,6 +29,7 @@
   --accent-ink: #FFFFFF;
   --accent-soft: #DAEDF3;
   --danger: #B3261E;
+  --danger-soft: #FCE9E7;
   --font-display: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -36,13 +37,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
-    --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E;
+    --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
-  --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E;
+  --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224;
   color-scheme: dark;
 }
 
@@ -65,21 +66,31 @@ header { display: grid; gap: 6px; margin-bottom: 20px; }
 .fecha { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 8vw, 40px); line-height: 1.05; letter-spacing: -0.01em; text-wrap: balance; }
 .progreso { display: grid; gap: 8px; margin-top: 10px; }
+.progreso-linea { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.progreso-venc { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--danger); }
 .progreso-texto { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .barra { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
 .barra > span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; }
 
-.nueva { display: flex; gap: 8px; margin-bottom: 22px; }
-.nueva input {
+.nueva { display: grid; gap: 10px; margin-bottom: 22px; }
+.nueva-fila { display: flex; gap: 8px; }
+.nueva-fila input {
   flex: 1; min-width: 0; height: 48px; padding: 0 14px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
 }
-.nueva input::placeholder { color: var(--muted); }
+.nueva-fila input::placeholder { color: var(--muted); }
 .btn-agregar {
   height: 48px; padding: 0 18px; border: 0; border-radius: 8px;
   background: var(--accent); color: var(--accent-ink); font-weight: 600;
 }
 .btn-agregar:disabled, .nueva input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.limite-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.limite-rotulo { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+.limite-fila input { height: 40px; padding: 0 10px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+#input-fecha { flex: 1 1 150px; }
+#input-hora { flex: 0 1 120px; }
+.btn-quitar-limite { height: 40px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
 .solapas { display: flex; gap: 4px; padding-left: 0; }
 .solapa {
@@ -123,8 +134,18 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .tilde input:checked + .caja { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .tilde input:focus-visible + .caja { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.texto { padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
-.fila[data-hecha="true"] .texto { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.texto { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
+.fila[data-hecha="true"] .texto { color: var(--muted); }
+.fila[data-hecha="true"] .t { text-decoration: line-through; text-decoration-thickness: 1px; }
+.fila[data-vencida="true"] { background: var(--danger-soft); }
+.limite { display: inline-block; max-width: 100%; margin: 0; padding: 6px 0; min-height: 32px; border: 0; background: transparent; font-size: 13px; line-height: 1.3; text-align: left; color: var(--muted); font-variant-numeric: tabular-nums; }
+button.limite { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.limite.agregar { text-decoration: none; }
+.limite.vencida { color: var(--danger); font-weight: 600; }
+.editor { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; padding: 4px 0 6px; }
+.editor input { flex: 1 1 130px; min-width: 0; height: 38px; padding: 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.mini { height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; font-weight: 500; }
+.mini.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
 .pase {
   justify-self: center; height: 34px; width: 84px; padding: 0 8px;
@@ -183,14 +204,25 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
     <div class="fecha" id="fecha"></div>
     <h1>Tareas diarias</h1>
     <div class="progreso">
-      <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
+      <div class="progreso-linea">
+        <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
+        <div class="progreso-venc" id="progreso-venc" hidden></div>
+      </div>
       <div class="barra" aria-hidden="true"><span id="progreso-barra"></span></div>
     </div>
   </header>
 
   <form class="nueva" id="form-nueva" autocomplete="off">
-    <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
-    <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
+    <div class="nueva-fila">
+      <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
+      <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
+    </div>
+    <div class="limite-fila">
+      <span class="limite-rotulo">Fecha límite (opcional)</span>
+      <input type="date" id="input-fecha" aria-label="Fecha límite">
+      <input type="time" id="input-hora" aria-label="Hora límite">
+      <button type="button" class="btn-quitar-limite" id="btn-quitar-limite" hidden>Quitar</button>
+    </div>
   </form>
 
   <div class="solapas" id="solapas">
@@ -230,7 +262,10 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
   var S = { tareas: [], hoja: 'diarias', listo: false, error: false };
 
   var $ = function (id) { return document.getElementById(id); };
+  var AHORA = Date.now();
+  var EDIT = { id: null, f: '', h: '' };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
+  var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
 
   function lsLeer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsEscribir(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -256,12 +291,14 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
       text: typeof t.text === 'string' ? t.text : '',
       done: !!t.done,
       instituto: typeof t.instituto === 'boolean' ? t.instituto : t.sheet === 'instituto',
-      created: typeof t.created === 'number' ? t.created : 0
+      created: typeof t.created === 'number' ? t.created : 0,
+      due: typeof t.due === 'number' ? t.due : null,
+      hora: !!t.hora
     };
   }
 
-  function crearTarea(texto, hoja) {
-    var datos = { text: texto, done: false, instituto: hoja === 'instituto', created: Date.now() };
+  function crearTarea(texto, hoja, limite) {
+    var datos = { text: texto, done: false, instituto: hoja === 'instituto', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
     datos.id = idNuevo();
     S.tareas.push(datos); guardarLocal(); render();
   }
@@ -277,8 +314,122 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
   }
 
   function restaurarTarea(t) {
-    var datos = { text: t.text, done: t.done, instituto: t.instituto, created: t.created };
+    var datos = { text: t.text, done: t.done, instituto: t.instituto, created: t.created, due: t.due, hora: t.hora };
     S.tareas.push(Object.assign({ id: t.id }, datos)); guardarLocal(); render();
+  }
+
+  /* ---------- Fecha límite ---------- */
+  function dos(n) { return (n < 10 ? '0' : '') + n; }
+
+  function armarLimite(f, h) {
+    if (!f && !h) return null;
+    var d = new Date();
+    if (f) {
+      var p = f.split('-');
+      d = new Date(+p[0], +p[1] - 1, +p[2]);
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    if (isNaN(d.getTime())) return null;
+    if (h) {
+      var q = h.split(':');
+      d.setHours(+q[0], +q[1], 0, 0);
+      return { due: d.getTime(), hora: true };
+    }
+    d.setHours(23, 59, 59, 999);
+    return { due: d.getTime(), hora: false };
+  }
+
+  function aCampos(t) {
+    if (t.due == null) return { f: '', h: '' };
+    var d = new Date(t.due);
+    return {
+      f: d.getFullYear() + '-' + dos(d.getMonth() + 1) + '-' + dos(d.getDate()),
+      h: t.hora ? dos(d.getHours()) + ':' + dos(d.getMinutes()) : ''
+    };
+  }
+
+  function vencida(t) { return !t.done && t.due != null && t.due < AHORA; }
+
+  function textoVence(t) {
+    var d = new Date(t.due);
+    var h0 = new Date(AHORA); h0.setHours(0, 0, 0, 0);
+    var d0 = new Date(t.due); d0.setHours(0, 0, 0, 0);
+    var dias = Math.round((d0.getTime() - h0.getTime()) / 86400000);
+    var hora = t.hora ? ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes()) : '';
+    var cuando;
+    if (dias === 0) cuando = 'hoy';
+    else if (dias === 1) cuando = 'mañana';
+    else if (dias === -1) cuando = 'ayer';
+    else if (dias < -1 && dias >= -30) cuando = 'hace ' + (-dias) + ' días';
+    else if (dias > 1 && dias < 7) cuando = 'el ' + d.toLocaleDateString('es-AR', { weekday: 'long' });
+    else {
+      var mismoAnio = d.getFullYear() === new Date(AHORA).getFullYear();
+      cuando = 'el ' + d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: mismoAnio ? undefined : 'numeric' }).replace(/\./g, '');
+    }
+    var prefijo = t.done ? 'Límite ' : (vencida(t) ? 'Venció ' : 'Vence ');
+    return prefijo + cuando + hora;
+  }
+  /* --- fin funciones puras --- */
+
+  function actualizarQuitar() { btnQuitarLim.hidden = !(inFecha.value || inHora.value); }
+  inFecha.addEventListener('input', actualizarQuitar);
+  inHora.addEventListener('input', actualizarQuitar);
+  btnQuitarLim.addEventListener('click', function () { inFecha.value = ''; inHora.value = ''; actualizarQuitar(); });
+
+  function boton(texto, clase, fn) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'mini ' + clase; b.textContent = texto;
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function empezarEdicion(t) {
+    var c = aCampos(t);
+    EDIT.id = t.id; EDIT.f = c.f; EDIT.h = c.h;
+    render();
+    var el = lista.querySelector('[data-key="' + t.id + ':fecha"]');
+    if (el) el.focus();
+  }
+
+  function cerrarEdicion(id) {
+    EDIT.id = null;
+    render();
+    var el = lista.querySelector('[data-key="' + id + ':limite"]');
+    if (el) el.focus();
+  }
+
+  function crearEditor(t) {
+    var box = document.createElement('div');
+    box.className = 'editor';
+    var f = document.createElement('input');
+    f.type = 'date'; f.value = EDIT.f;
+    f.setAttribute('aria-label', 'Fecha límite');
+    f.setAttribute('data-key', t.id + ':fecha');
+    f.addEventListener('input', function () { EDIT.f = f.value; });
+    var h = document.createElement('input');
+    h.type = 'time'; h.value = EDIT.h;
+    h.setAttribute('aria-label', 'Hora límite (opcional)');
+    h.setAttribute('data-key', t.id + ':hora');
+    h.addEventListener('input', function () { EDIT.h = h.value; });
+    var guardar = boton('Guardar', 'primario', function () {
+      var l = armarLimite(EDIT.f, EDIT.h);
+      cambiarTarea(t.id, l ? { due: l.due, hora: l.hora } : { due: null, hora: false });
+      cerrarEdicion(t.id);
+    });
+    box.appendChild(f); box.appendChild(h); box.appendChild(guardar);
+    if (t.due != null) {
+      box.appendChild(boton('Quitar', '', function () {
+        cambiarTarea(t.id, { due: null, hora: false });
+        cerrarEdicion(t.id);
+      }));
+    }
+    box.appendChild(boton('Cancelar', '', function () { cerrarEdicion(t.id); }));
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); cerrarEdicion(t.id); }
+      else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); guardar.click(); }
+    });
+    return box;
   }
 
   /* ---------- Vista ---------- */
@@ -297,6 +448,9 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
   function tareasDeHoja(h) {
     return S.tareas.filter(function (t) { return h === 'diarias' || (t.instituto && !t.done); }).sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
+      var ad = a.due != null, bd = b.due != null;
+      if (ad && bd && a.due !== b.due) return a.due - b.due;
+      if (ad !== bd) return ad ? -1 : 1;
       return a.created - b.created;
     });
   }
@@ -325,8 +479,34 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
     caja.className = 'caja'; caja.setAttribute('aria-hidden', 'true'); caja.innerHTML = SVG_TILDE;
     lab.appendChild(cb); lab.appendChild(caja);
 
-    var tx = document.createElement('span');
-    tx.className = 'texto'; tx.textContent = t.text;
+    var tx = document.createElement('div');
+    tx.className = 'texto';
+    var tt = document.createElement('span');
+    tt.className = 't'; tt.textContent = t.text;
+    tx.appendChild(tt);
+    var venc = vencida(t);
+    if (venc) li.setAttribute('data-vencida', 'true');
+    if (EDIT.id === t.id && !t.done) {
+      tx.appendChild(crearEditor(t));
+    } else if (t.due != null) {
+      var chip = document.createElement(t.done ? 'span' : 'button');
+      chip.className = 'limite' + (venc ? ' vencida' : '');
+      chip.textContent = textoVence(t);
+      if (!t.done) {
+        chip.type = 'button';
+        chip.setAttribute('data-key', t.id + ':limite');
+        chip.setAttribute('aria-label', textoVence(t) + '. Cambiar fecha límite');
+        chip.addEventListener('click', function () { empezarEdicion(t); });
+      }
+      tx.appendChild(chip);
+    } else if (!t.done) {
+      var mas = document.createElement('button');
+      mas.type = 'button'; mas.className = 'limite agregar'; mas.textContent = '+ Fecha límite';
+      mas.setAttribute('data-key', t.id + ':limite');
+      mas.setAttribute('aria-label', 'Agregar fecha límite: ' + t.text);
+      mas.addEventListener('click', function () { empezarEdicion(t); });
+      tx.appendChild(mas);
+    }
 
     var pase = document.createElement('button');
     pase.type = 'button'; pase.className = 'pase'; pase.textContent = 'Instituto';
@@ -353,6 +533,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
   }
 
   function render() {
+    AHORA = Date.now();
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
 
@@ -394,13 +575,18 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
       : (S.listo ? 'Sin tareas en ' + HOJAS[S.hoja] : '');
     $('progreso-barra').style.width = visibles.length ? Math.round(hechas / visibles.length * 100) + '%' : '0%';
 
+    var nVenc = visibles.filter(vencida).length;
+    var vEl = $('progreso-venc');
+    vEl.hidden = nVenc === 0;
+    vEl.textContent = nVenc + (nVenc === 1 ? ' vencida' : ' vencidas');
+
     pie.hidden = hechas === 0;
     $('pie-texto').textContent = hechas + (hechas === 1 ? ' tarea hecha' : ' tareas hechas');
 
     input.placeholder = 'Nueva tarea en ' + HOJAS[S.hoja];
-    $('ayuda').textContent = enInst
+    $('ayuda').textContent = (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, apagá su botón Instituto.'
-      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.';
+      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -424,8 +610,8 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
     e.preventDefault();
     var texto = input.value.trim();
     if (!texto || !S.listo) return;
-    crearTarea(texto, S.hoja);
-    input.value = '';
+    crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value));
+    input.value = ''; inFecha.value = ''; inHora.value = ''; actualizarQuitar();
     input.focus();
   });
 
@@ -462,6 +648,10 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
   }
 
   mostrarEstado(); render();
+
+  /* Refresca las vencidas cada minuto y al volver a la app */
+  setInterval(function () { if (!EDIT.id) render(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !EDIT.id) render(); });
 
   modoLocal();
 
