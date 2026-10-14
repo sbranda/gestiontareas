@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tareas diarias</title>
-<meta name="description" content="Planilla de tareas diarias con hoja Instituto. Funciona sin conexión.">
+<meta name="description" content="Planilla de tareas diarias con hojas propias (Instituto, Casa, Proyectos…). Funciona sin conexión.">
 <meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E161C" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
@@ -107,7 +107,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .cal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .cal-nav h2 { flex: 1; min-width: 0; margin: 0; text-align: center; font-family: var(--font-display); font-size: 22px; font-weight: 700; text-transform: capitalize; }
 .cal-nav .mini { min-width: 44px; height: 44px; }
-.cal-filtro { display: flex; gap: 6px; margin-bottom: 12px; }
+.cal-filtro { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal-dow { padding: 4px 0; text-align: center; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .cal-dia-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 60px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -141,7 +141,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .respaldo-confirma { margin-top: 14px; padding: 14px; background: var(--accent-soft); border-radius: 8px; }
 .respaldo-confirma p { color: var(--ink); }
 
-.solapas { display: flex; gap: 4px; padding-left: 0; }
+.solapas { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 0; }
 .solapa {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 10px 16px; min-height: 44px;
@@ -160,6 +160,13 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 }
 .solapa[aria-pressed="true"] .n { background: var(--accent-soft); color: var(--accent); }
 
+.solapa.mas { justify-content: center; min-width: 44px; padding: 10px 14px; border-style: dashed; font-size: 18px; font-weight: 600; color: var(--accent); }
+.solapa.mas[aria-expanded="true"] { background: var(--accent-soft); }
+.form-hoja { display: flex; gap: 8px; margin: 0 0 12px; }
+.form-hoja input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
+.form-hoja .mini { height: 44px; }
+.hoja-acciones { margin-top: 10px; text-align: right; }
+.pase { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .planilla { background: var(--surface); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; overflow: hidden; }
 .fila, .cols { display: grid; grid-template-columns: 48px minmax(0, 1fr) 92px 40px; align-items: center; }
 .cols {
@@ -293,20 +300,26 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </form>
 
-  <div class="solapas" id="solapas">
-    <button type="button" class="solapa" data-hoja="diarias" aria-pressed="true">Diarias <span class="n" id="n-diarias">0</span></button>
-    <button type="button" class="solapa" data-hoja="instituto" aria-pressed="false">Instituto <span class="n" id="n-instituto">0</span></button>
-    <button type="button" class="solapa" data-hoja="repetidas" aria-pressed="false">Repetidas <span class="n" id="n-repetidas">0</span></button>
-  </div>
+  <div class="solapas" id="solapas"></div>
+
+  <form class="form-hoja" id="form-hoja" autocomplete="off" hidden>
+    <input type="text" id="input-hoja" maxlength="20" placeholder="Ej.: Casa, Proyectos" aria-label="Nombre de la hoja nueva">
+    <button type="submit" class="mini primario">Crear</button>
+    <button type="button" class="mini" id="btn-hoja-cancelar">Cancelar</button>
+  </form>
 
   <section class="planilla" id="planilla" aria-label="Planilla de tareas">
-    <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Instituto</span><span></span></div>
+    <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Hoja</span><span></span></div>
     <ul class="lista" id="lista"></ul>
     <div class="pie" id="pie" hidden>
       <span id="pie-texto"></span>
       <button type="button" class="btn-limpiar" id="btn-limpiar">Borrar hechas</button>
     </div>
   </section>
+
+  <div class="hoja-acciones" id="hoja-acciones" hidden>
+    <button type="button" class="btn-limpiar" id="btn-borrar-hoja">Eliminar esta hoja</button>
+  </div>
 
   <section id="vista-cal" hidden aria-label="Calendario mensual">
     <div class="cal-nav">
@@ -316,8 +329,6 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <button type="button" class="mini" id="cal-hoy">Hoy</button>
     </div>
     <div class="cal-filtro" role="group" aria-label="Qué tareas mostrar">
-      <button type="button" class="dia" data-filtro="todas" aria-pressed="true">Todas</button>
-      <button type="button" class="dia" data-filtro="instituto" aria-pressed="false">Instituto</button>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
     <p class="cal-leyenda">El número son las tareas pendientes, en rojo si hay vencidas. La tilde indica todo hecho y la flecha que hay una tarea repetida.</p>
@@ -367,7 +378,29 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 (function () {
   'use strict';
 
-  var HOJAS = { diarias: 'Diarias', instituto: 'Instituto', repetidas: 'Repetidas' };
+  var LS_HOJAS = 'tareasdiarias.hojas';
+  var MAX_HOJAS = 8;
+  var EXTRA = [];          /* hojas propias, además de Diarias y Repetidas */
+  var BORRADAS = {};       /* hojas eliminadas en esta sesión (no se vuelven a crear solas) */
+  var HOJAFORM = false;    /* formulario "hoja nueva" abierto */
+
+  function nombreValido(n) {
+    n = String(n == null ? '' : n).replace(/\s+/g, ' ').trim().slice(0, 20);
+    var l = n.toLowerCase();
+    return (!n || l === 'diarias' || l === 'repetidas') ? '' : n;
+  }
+  function indiceHoja(n) {
+    var l = String(n == null ? '' : n).toLowerCase();
+    for (var i = 0; i < EXTRA.length; i++) if (EXTRA[i].toLowerCase() === l) return i;
+    return -1;
+  }
+  function canon(n) {
+    n = nombreValido(n);
+    if (!n) return '';
+    var i = indiceHoja(n);
+    return i >= 0 ? EXTRA[i] : n;
+  }
+  function nombreHoja(h) { return h === 'diarias' ? 'Diarias' : (h === 'repetidas' ? 'Repetidas' : h); }
   var LS_TAREAS = 'tareasdiarias.tareas.v1';
   var LS_HOJA = 'tareasdiarias.hoja';
 
@@ -383,8 +416,25 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   function lsLeer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsEscribir(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 
+  function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); }
+  function agregarHoja(n) {
+    n = nombreValido(n);
+    if (!n) return '';
+    var i = indiceHoja(n);
+    if (i >= 0) return EXTRA[i];
+    delete BORRADAS[n.toLowerCase()];
+    EXTRA.push(n); guardarHojas();
+    return n;
+  }
+  (function () {
+    var crudo = lsLeer(LS_HOJAS), arr = null;
+    try { arr = crudo ? JSON.parse(crudo) : null; } catch (e) { arr = null; }
+    if (!Array.isArray(arr)) arr = crudo === null ? ['Instituto'] : [];
+    arr.forEach(function (n) { n = nombreValido(n); if (n && indiceHoja(n) < 0) EXTRA.push(n); });
+  })();
   var hojaGuardada = lsLeer(LS_HOJA);
-  if (hojaGuardada && HOJAS[hojaGuardada]) S.hoja = hojaGuardada;
+  if (hojaGuardada === 'diarias' || hojaGuardada === 'repetidas') S.hoja = hojaGuardada;
+  else if (hojaGuardada && indiceHoja(hojaGuardada) >= 0) S.hoja = EXTRA[indiceHoja(hojaGuardada)];
 
   /* ---------- Fecha ---------- */
   try {
@@ -403,7 +453,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       id: t.id,
       text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
       done: !!t.done,
-      instituto: typeof t.instituto === 'boolean' ? t.instituto : t.sheet === 'instituto',
+      dest: typeof t.dest === 'string' ? canon(t.dest) : (t.instituto === true || t.sheet === 'instituto' ? canon('Instituto') : ''),
       created: typeof t.created === 'number' && isFinite(t.created) ? t.created : 0,
       due: typeof t.due === 'number' && isFinite(t.due) ? t.due : null,
       hora: !!t.hora,
@@ -417,7 +467,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function crearTarea(texto, hoja, limite, extra) {
-    var datos = { text: texto, done: false, instituto: hoja === 'instituto', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
+    var datos = { text: texto, done: false, dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
     var fijo = null;
     if (extra) { fijo = extra.id || null; Object.keys(extra).forEach(function (k) { if (k !== 'id') datos[k] = extra[k]; }); }
     datos.id = fijo || idNuevo();
@@ -551,7 +601,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var res = {}, n = diasDelMes(y, m);
     var celda = function (c) { return res[c] || (res[c] = { pend: 0, venc: 0, hechas: 0, rep: 0 }); };
     tareas.forEach(function (t) {
-      if (t.plantilla || (filtro === 'instituto' && !t.instituto)) return;
+      if (t.plantilla || (filtro && filtro !== 'todas' && t.dest !== filtro)) return;
       var c = fechaDe(t);
       if (!c) return;
       var k = celda(c);
@@ -559,7 +609,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       else { k.pend++; if (t.due != null && t.due < ahora) k.venc++; }
     });
     tareas.forEach(function (p) {
-      if (!p.plantilla || (filtro === 'instituto' && !p.instituto)) return;
+      if (!p.plantilla || (filtro && filtro !== 'todas' && p.dest !== filtro)) return;
       for (var d = 1; d <= n; d++) {
         var c = y + '-' + dos(m + 1) + '-' + dos(d);
         if (seCreara(p, c, hoy, tareas)) celda(c).rep++;
@@ -683,7 +733,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         return x.id === idInst || (!x.plantilla && x.rep === p.id && !x.done);
       });
       if (!yaEsta) {
-        crearTarea(p.text, p.instituto ? 'instituto' : 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy });
+        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy });
       }
       cambiarTarea(p.id, { ultima: hoy });
     });
@@ -746,16 +796,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     tx.appendChild(resumen);
     if (REP.id === t.id) tx.appendChild(crearEditorRep(t));
 
-    var pase = document.createElement('button');
-    pase.type = 'button'; pase.className = 'pase'; pase.textContent = 'Instituto';
-    pase.setAttribute('data-key', t.id + ':pase');
-    pase.setAttribute('aria-pressed', t.instituto ? 'true' : 'false');
-    pase.setAttribute('aria-label', t.instituto ? 'Quitar de Instituto: ' + t.text : 'Agregar a Instituto: ' + t.text);
-    pase.addEventListener('click', function () {
-      var antes = t.instituto;
-      cambiarTarea(t.id, { instituto: !antes });
-      avisar(!antes ? 'Aparecerá también en Instituto' : 'Ya no aparecerá en Instituto', function () { cambiarTarea(t.id, { instituto: antes }); });
-    });
+    var pase = crearPase(t);
 
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'borrar'; del.innerHTML = SVG_X;
@@ -845,7 +886,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('cal-dia-titulo').textContent = ttl.charAt(0).toUpperCase() + ttl.slice(1) + (c === hoy ? ' · Hoy' : '');
     var cl = $('cal-lista');
     cl.textContent = '';
-    var pasa = function (t) { return CAL.filtro === 'todas' || t.instituto; };
+    var pasa = function (t) { return CAL.filtro === 'todas' || t.dest === CAL.filtro; };
     var dadas = S.tareas.filter(function (t) { return !t.plantilla && fechaDe(t) === c && pasa(t); }).sort(ordenTareas);
     var reps = S.tareas.filter(function (p) { return p.plantilla && pasa(p) && seCreara(p, c, hoy, S.tareas); });
     var sin = c === hoy
@@ -874,6 +915,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
     var hoy = hoyStr();
+    pintarFiltros();
     var res = resumenMes(CAL.y, CAL.m, S.tareas, hoy, AHORA, CAL.filtro);
     $('cal-titulo').textContent = MESES[CAL.m] + ' ' + CAL.y;
     Array.prototype.forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
@@ -918,14 +960,17 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     CAL.y = h.getFullYear(); CAL.m = h.getMonth(); CAL.sel = hoyStr();
     render();
   });
-  Array.prototype.forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
-    b.addEventListener('click', function () { CAL.filtro = b.getAttribute('data-filtro'); render(); });
+  document.querySelector('.cal-filtro').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-filtro]') : null;
+    if (!b) return;
+    CAL.filtro = b.getAttribute('data-filtro');
+    render();
   });
   $('cal-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var inp = $('cal-input'), texto = inp.value.trim();
     if (!texto || !S.listo) return;
-    crearTarea(texto, 'diarias', null, { dia: CAL.sel, instituto: CAL.filtro === 'instituto' });
+    crearTarea(texto, 'diarias', null, { dia: CAL.sel, dest: CAL.filtro === 'todas' ? '' : CAL.filtro });
     inp.value = '';
     inp.focus();
   });
@@ -935,8 +980,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var RESP = { msg: '', error: false, t: null };
   var PEND = null;
 
-  function armarCopia(tareas) {
-    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), tareas: tareas }, null, 2);
+  function armarCopia(tareas, hojas) {
+    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], tareas: tareas }, null, 2);
   }
 
   /* Lee el texto de un archivo de copia. Devuelve { tareas, omitidas } o { error }. */
@@ -955,7 +1000,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       res.push(limpiar(Object.assign({}, t, { id: id })));
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
-    return { tareas: res, omitidas: arr.length - res.length };
+    var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas };
   }
 
   function contarCopia(arr) {
@@ -1035,6 +1081,11 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var total = PEND.tareas.length;
     var nuevas = PEND.tareas.filter(function (t) { return !existe[t.id]; }).length;
     EDIT.id = null; REP.id = null;
+    BORRADAS = {};
+    if (modo === 'reemplazar') EXTRA = [];
+    PEND.hojas.forEach(function (n) { agregarHoja(n); });
+    PEND.tareas.forEach(function (t) { if (t.dest) agregarHoja(t.dest); });
+    guardarHojas();
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -1047,7 +1098,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas);
+    var texto = armarCopia(S.tareas, EXTRA);
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -1098,9 +1149,92 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     }
   }
 
+  function sincronizarHojas() {
+    var cambio = false;
+    S.tareas.forEach(function (t) {
+      if (!t.dest) return;
+      var i = indiceHoja(t.dest);
+      if (i >= 0) { if (EXTRA[i] !== t.dest) t.dest = EXTRA[i]; }
+      else if (!BORRADAS[t.dest.toLowerCase()]) { EXTRA.push(t.dest); cambio = true; }
+    });
+    if (cambio) guardarHojas();
+    var k = indiceHoja(S.hoja);
+    if (k >= 0) S.hoja = EXTRA[k];
+    else if (S.hoja !== 'diarias' && S.hoja !== 'repetidas') S.hoja = 'diarias';
+  }
+
+  /* El botón de cada tarea pasa por: sin hoja -> cada hoja propia -> sin hoja */
+  function siguienteHoja(actual) {
+    var ops = [''].concat(EXTRA), i = ops.indexOf(actual);
+    return ops[(i + 1) % ops.length];
+  }
+  function crearPase(t) {
+    var pase = document.createElement('button');
+    pase.type = 'button'; pase.className = 'pase';
+    pase.textContent = t.dest || 'Hoja';
+    pase.title = t.dest ? 'Está en la hoja ' + t.dest : 'No está en ninguna hoja propia';
+    pase.setAttribute('data-key', t.id + ':pase');
+    pase.setAttribute('aria-pressed', t.dest ? 'true' : 'false');
+    var sig = siguienteHoja(t.dest);
+    pase.setAttribute('aria-label', (t.dest ? 'En la hoja ' + t.dest : 'Sin hoja propia') + (EXTRA.length ? '. Tocar para pasar a ' + (sig || 'ninguna hoja') : '') + ': ' + t.text);
+    pase.addEventListener('click', function () {
+      if (!EXTRA.length) { avisar('Creá una hoja con el botón + de arriba', null); return; }
+      var antes = t.dest || '', ahora = siguienteHoja(antes);
+      cambiarTarea(t.id, { dest: ahora });
+      avisar(ahora ? 'Agregada a ' + ahora : 'Quitada de ' + antes, function () { cambiarTarea(t.id, { dest: antes }); });
+    });
+    return pase;
+  }
+
+  var solapasClave = null;
+  function pintarSolapas() {
+    var cont = $('solapas'), clave = EXTRA.join('\u0001');
+    if (clave !== solapasClave) {
+      solapasClave = clave;
+      cont.textContent = '';
+      var crear = function (hoja) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'solapa'; b.setAttribute('data-hoja', hoja); b.setAttribute('aria-pressed', 'false');
+        b.appendChild(document.createTextNode(nombreHoja(hoja) + ' '));
+        var n = document.createElement('span');
+        n.className = 'n'; n.textContent = '0';
+        if (hoja === 'diarias' || hoja === 'repetidas') n.id = 'n-' + hoja;
+        b.appendChild(n); cont.appendChild(b);
+      };
+      crear('diarias');
+      EXTRA.forEach(crear);
+      crear('repetidas');
+      var mas = document.createElement('button');
+      mas.type = 'button'; mas.className = 'solapa mas'; mas.id = 'btn-hoja-nueva'; mas.textContent = '+';
+      mas.setAttribute('aria-label', 'Crear una hoja nueva');
+      cont.appendChild(mas);
+    }
+    Array.prototype.forEach.call(cont.querySelectorAll('.solapa[data-hoja]'), function (b) {
+      var h = b.getAttribute('data-hoja');
+      b.setAttribute('aria-pressed', h === S.hoja ? 'true' : 'false');
+      b.querySelector('.n').textContent = h === 'repetidas' ? tareasDeHoja(h).length : tareasDeHoja(h).filter(function (t) { return !t.done; }).length;
+    });
+    $('btn-hoja-nueva').setAttribute('aria-expanded', HOJAFORM ? 'true' : 'false');
+  }
+
+  function pintarFiltros() {
+    if (CAL.filtro !== 'todas' && indiceHoja(CAL.filtro) < 0) CAL.filtro = 'todas';
+    var c = document.querySelector('.cal-filtro'), ops = ['todas'].concat(EXTRA), clave = ops.join('\u0001');
+    if (c.getAttribute('data-clave') !== clave) {
+      c.setAttribute('data-clave', clave);
+      c.textContent = '';
+      ops.forEach(function (h) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'dia'; b.setAttribute('data-filtro', h); b.setAttribute('aria-pressed', 'false');
+        b.textContent = h === 'todas' ? 'Todas' : h;
+        c.appendChild(b);
+      });
+    }
+  }
+
   function tareasDeHoja(h) {
     if (h === 'repetidas') return S.tareas.filter(function (t) { return t.plantilla; }).sort(function (a, b) { return a.created - b.created; });
-    return S.tareas.filter(function (t) { return !t.plantilla && !esFutura(t) && (h === 'diarias' || (t.instituto && !t.done)); }).sort(function (a, b) {
+    return S.tareas.filter(function (t) { return !t.plantilla && !esFutura(t) && (h === 'diarias' || (t.dest === h && !t.done)); }).sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
       var ad = a.due != null, bd = b.due != null;
       if (ad && bd && a.due !== b.due) return a.due - b.due;
@@ -1125,8 +1259,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     cb.setAttribute('aria-label', 'Hecha: ' + t.text);
     cb.addEventListener('change', function () {
       cambiarTarea(t.id, { done: cb.checked });
-      if (VISTA === 'lista' && S.hoja === 'instituto' && cb.checked) {
-        avisar('Hecha: sale de Instituto y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
+      if (VISTA === 'lista' && indiceHoja(S.hoja) >= 0 && cb.checked) {
+        avisar('Hecha: sale de ' + S.hoja + ' y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
       }
     });
     var caja = document.createElement('span');
@@ -1169,16 +1303,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       tx.appendChild(mas);
     }
 
-    var pase = document.createElement('button');
-    pase.type = 'button'; pase.className = 'pase'; pase.textContent = 'Instituto';
-    pase.setAttribute('data-key', t.id + ':pase');
-    pase.setAttribute('aria-pressed', t.instituto ? 'true' : 'false');
-    pase.setAttribute('aria-label', t.instituto ? 'Quitar de Instituto: ' + t.text : 'Agregar a Instituto: ' + t.text);
-    pase.addEventListener('click', function () {
-      var antes = t.instituto, ahora = !antes;
-      cambiarTarea(t.id, { instituto: ahora });
-      avisar(ahora ? 'Agregada a Instituto' : 'Quitada de Instituto', function () { cambiarTarea(t.id, { instituto: antes }); });
-    });
+    var pase = crearPase(t);
 
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'borrar'; del.innerHTML = SVG_X;
@@ -1195,10 +1320,15 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   function render() {
     AHORA = Date.now();
+    sincronizarHojas();
     pintarRespaldo();
     var enCal = VISTA === 'calendario';
     $('vista-cal').hidden = !enCal;
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
+    var propia = indiceHoja(S.hoja) >= 0;
+    $('form-hoja').hidden = enCal || !HOJAFORM;
+    $('hoja-acciones').hidden = enCal || !propia;
+    if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
     document.querySelector('.progreso').hidden = enCal;
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-vista') === VISTA ? 'true' : 'false');
@@ -1225,29 +1355,24 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         st.textContent = 'No hay tareas en Diarias';
         p.textContent = 'Escribí una arriba y tocá Agregar.';
       } else {
-        st.textContent = 'Instituto está vacío';
-        p.textContent = 'En Diarias, activá el botón Instituto de una tarea para pasarla acá.';
+        st.textContent = S.hoja + ' está vacía';
+        p.textContent = 'En Diarias, tocá el botón de hoja de una tarea hasta que diga ' + S.hoja + '.';
       }
       li.appendChild(st); li.appendChild(p); lista.appendChild(li);
     } else {
       visibles.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
     }
 
-    $('n-diarias').textContent = tareasDeHoja('diarias').filter(function (t) { return !t.done; }).length;
-    $('n-instituto').textContent = tareasDeHoja('instituto').filter(function (t) { return !t.done; }).length;
-    $('n-repetidas').textContent = tareasDeHoja('repetidas').length;
-    Array.prototype.forEach.call(document.querySelectorAll('.solapa'), function (b) {
-      b.setAttribute('aria-pressed', b.getAttribute('data-hoja') === S.hoja ? 'true' : 'false');
-    });
+    pintarSolapas();
 
-    var enInst = S.hoja === 'instituto';
+    var enInst = indiceHoja(S.hoja) >= 0;
     var enRep = S.hoja === 'repetidas';
     $('progreso-barra').parentNode.hidden = enInst || enRep;
     $('progreso-texto').textContent = enRep ? (visibles.length + (visibles.length === 1 ? ' tarea repetida' : ' tareas repetidas')) : visibles.length
       ? (enInst
-          ? visibles.length + (visibles.length === 1 ? ' pendiente' : ' pendientes') + ' en Instituto'
-          : hechas + ' de ' + visibles.length + (hechas === 1 ? ' hecha' : ' hechas') + ' en ' + HOJAS[S.hoja])
-      : (S.listo ? 'Sin tareas en ' + HOJAS[S.hoja] : '');
+          ? visibles.length + (visibles.length === 1 ? ' pendiente' : ' pendientes') + ' en ' + S.hoja
+          : hechas + ' de ' + visibles.length + (hechas === 1 ? ' hecha' : ' hechas') + ' en ' + nombreHoja(S.hoja))
+      : (S.listo ? 'Sin tareas en ' + nombreHoja(S.hoja) : '');
     $('progreso-barra').style.width = visibles.length ? Math.round(hechas / visibles.length * 100) + '%' : '0%';
 
     var nVenc = visibles.filter(vencida).length;
@@ -1258,11 +1383,11 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     pie.hidden = hechas === 0;
     $('pie-texto').textContent = hechas + (hechas === 1 ? ' tarea hecha' : ' tareas hechas');
 
-    input.placeholder = enRep ? 'Nueva tarea repetida' : 'Nueva tarea en ' + HOJAS[S.hoja];
+    input.placeholder = enRep ? 'Nueva tarea repetida' : 'Nueva tarea en ' + nombreHoja(S.hoja);
     $('col-1').textContent = enRep ? '' : 'Hecha';
-    $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en Instituto si tiene ese botón activado. Tocá los días de una tarea para cambiarlos.' : (enInst
-      ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, apagá su botón Instituto.'
-      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
+    $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
+      ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -1306,16 +1431,50 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   $('solapas').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.solapa') : null;
     if (!b) return;
+    if (b.id === 'btn-hoja-nueva') { mostrarFormHoja(!HOJAFORM); return; }
     S.hoja = b.getAttribute('data-hoja');
     lsEscribir(LS_HOJA, S.hoja);
     render();
+  });
+
+  function mostrarFormHoja(si) {
+    HOJAFORM = si;
+    render();
+    if (si) $('input-hoja').focus();
+  }
+  $('form-hoja').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var inp = $('input-hoja'), n = nombreValido(inp.value);
+    if (!n) { avisar('Escribí un nombre para la hoja (no puede ser Diarias ni Repetidas)', null); return; }
+    if (indiceHoja(n) >= 0) { avisar('Ya existe una hoja llamada ' + EXTRA[indiceHoja(n)], null); return; }
+    if (EXTRA.length >= MAX_HOJAS) { avisar('Podés tener hasta ' + MAX_HOJAS + ' hojas propias', null); return; }
+    agregarHoja(n);
+    S.hoja = n; lsEscribir(LS_HOJA, n);
+    inp.value = ''; HOJAFORM = false;
+    render();
+    avisar('Hoja ' + n + ' creada. Con el botón de cada tarea la pasás acá.', null);
+  });
+  $('btn-hoja-cancelar').addEventListener('click', function () { $('input-hoja').value = ''; mostrarFormHoja(false); });
+  $('btn-borrar-hoja').addEventListener('click', function () {
+    var h = S.hoja, pos = indiceHoja(h);
+    if (pos < 0) return;
+    var ids = S.tareas.filter(function (t) { return t.dest === h; }).map(function (t) { return t.id; });
+    BORRADAS[h.toLowerCase()] = true;
+    EXTRA.splice(pos, 1); guardarHojas();
+    S.hoja = 'diarias'; lsEscribir(LS_HOJA, 'diarias');
+    if (ids.length) ids.forEach(function (id) { cambiarTarea(id, { dest: '' }); }); else render();
+    avisar('Hoja ' + h + ' eliminada. Sus tareas siguen en Diarias.', function () {
+      delete BORRADAS[h.toLowerCase()];
+      if (indiceHoja(h) < 0) { EXTRA.splice(Math.min(pos, EXTRA.length), 0, h); guardarHojas(); }
+      if (ids.length) ids.forEach(function (id) { cambiarTarea(id, { dest: h }); }); else render();
+    });
   });
 
   $('btn-limpiar').addEventListener('click', function () {
     var hechas = tareasDeHoja(S.hoja).filter(function (t) { return t.done; });
     if (!hechas.length) return;
     hechas.forEach(function (t) { quitarTarea(t.id); });
-    var nota = S.hoja === 'instituto' ? ' (también de Diarias)' : '';
+    var nota = indiceHoja(S.hoja) >= 0 ? ' (también de Diarias)' : '';
     avisar((hechas.length === 1 ? 'Se borró 1 tarea hecha' : 'Se borraron ' + hechas.length + ' tareas hechas') + nota, function () {
       hechas.forEach(restaurarTarea);
     });
