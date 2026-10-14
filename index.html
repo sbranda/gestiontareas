@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tareas diarias</title>
+<meta name="description" content="Planilla de tareas diarias con hoja Instituto. Funciona sin conexión.">
+<meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E161C" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tareas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+/* Layout: una planilla con solapas (Diarias / Instituto), como las hojas de una planilla de cálculo.
+   Cada fila: tilde de "Hecha", la tarea, y un botón "Instituto" que la pasa a la otra hoja. */
+:root {
+  color-scheme: light;
+  --bg: #EDF0F3;
+  --surface: #FFFFFF;
+  --tab: #DFE5EA;
+  --ink: #14212B;
+  --muted: #566672;
+  --line: #CFD7DE;
+  --accent: #0B6E8E;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DAEDF3;
+  --danger: #B3261E;
+  --font-display: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
+    --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
+  --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap {
+  max-width: 720px; margin: 0 auto;
+  padding-block: calc(28px + env(safe-area-inset-top, 0px)) calc(120px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+header { display: grid; gap: 6px; margin-bottom: 20px; }
+.fecha { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 8vw, 40px); line-height: 1.05; letter-spacing: -0.01em; text-wrap: balance; }
+.progreso { display: grid; gap: 8px; margin-top: 10px; }
+.progreso-texto { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.barra { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.barra > span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 3px; }
+
+.nueva { display: flex; gap: 8px; margin-bottom: 22px; }
+.nueva input {
+  flex: 1; min-width: 0; height: 48px; padding: 0 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+}
+.nueva input::placeholder { color: var(--muted); }
+.btn-agregar {
+  height: 48px; padding: 0 18px; border: 0; border-radius: 8px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600;
+}
+.btn-agregar:disabled, .nueva input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.solapas { display: flex; gap: 4px; padding-left: 0; }
+.solapa {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; min-height: 44px;
+  background: var(--tab); color: var(--muted);
+  border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
+  font-weight: 500;
+}
+.solapa[aria-pressed="true"] {
+  position: relative; z-index: 1; margin-bottom: -1px; padding-bottom: 11px;
+  background: var(--surface); color: var(--ink); font-weight: 600;
+}
+.solapa .n {
+  font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums;
+  min-width: 22px; padding: 1px 6px; text-align: center;
+  border-radius: 10px; background: var(--line); color: var(--ink);
+}
+.solapa[aria-pressed="true"] .n { background: var(--accent-soft); color: var(--accent); }
+
+.planilla { background: var(--surface); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; overflow: hidden; }
+.fila, .cols { display: grid; grid-template-columns: 48px minmax(0, 1fr) 92px 40px; align-items: center; }
+.cols {
+  background: var(--tab); border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  padding-block: 8px;
+}
+.cols span:first-child, .cols span:nth-child(3) { text-align: center; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.fila { min-height: 54px; border-bottom: 1px solid var(--line); padding-right: 4px; }
+.fila:last-child { border-bottom: 0; }
+
+.tilde { position: relative; display: grid; place-items: center; width: 48px; height: 48px; cursor: pointer; }
+.tilde input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.caja {
+  display: grid; place-items: center; width: 26px; height: 26px;
+  border: 2px solid var(--muted); border-radius: 6px; background: var(--surface);
+  color: transparent; pointer-events: none;
+}
+.caja svg { width: 16px; height: 16px; }
+.tilde input:checked + .caja { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tilde input:focus-visible + .caja { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.texto { padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
+.fila[data-hecha="true"] .texto { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.pase {
+  justify-self: center; height: 34px; width: 84px; padding: 0 8px;
+  border: 1.5px solid var(--accent); border-radius: 17px; background: transparent; color: var(--accent);
+  font-size: 13px; font-weight: 600;
+}
+.pase[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.borrar {
+  display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--muted);
+}
+.borrar svg { width: 16px; height: 16px; }
+.borrar:hover { color: var(--danger); background: var(--tab); }
+
+.vacio { padding: 36px 20px; text-align: center; color: var(--muted); }
+.vacio strong { display: block; margin-bottom: 6px; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+
+.pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-top: 1px solid var(--line); background: var(--tab); }
+.pie[hidden] { display: none; }
+.pie span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.btn-limpiar { min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+.ayuda { margin: 12px 0 0; padding: 10px 14px; background: var(--accent-soft); color: var(--ink); border-radius: 8px; font-size: 14px; }
+.estado { margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
+.estado.error { color: var(--danger); }
+
+.credito { margin: 28px 0 0; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.aviso-wrap {
+  position: fixed; left: 0; right: 0; bottom: 0; pointer-events: none;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; justify-content: center;
+}
+.aviso {
+  pointer-events: auto; display: flex; align-items: center; gap: 12px;
+  max-width: 460px; width: 100%; padding: 8px 8px 8px 16px;
+  background: var(--ink); color: var(--bg); border-radius: 10px; font-size: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.aviso[hidden] { display: none; }
+.aviso span { flex: 1; min-width: 0; }
+.aviso button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .barra > span { transition: width 0.25s ease; }
+  .caja, .pase, .solapa { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+}
+@media (max-width: 420px) {
+  .btn-agregar { padding: 0 14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="fecha" id="fecha"></div>
+    <h1>Tareas diarias</h1>
+    <div class="progreso">
+      <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
+      <div class="barra" aria-hidden="true"><span id="progreso-barra"></span></div>
+    </div>
+  </header>
+
+  <form class="nueva" id="form-nueva" autocomplete="off">
+    <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
+    <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
+  </form>
+
+  <div class="solapas" id="solapas">
+    <button type="button" class="solapa" data-hoja="diarias" aria-pressed="true">Diarias <span class="n" id="n-diarias">0</span></button>
+    <button type="button" class="solapa" data-hoja="instituto" aria-pressed="false">Instituto <span class="n" id="n-instituto">0</span></button>
+  </div>
+
+  <section class="planilla" aria-label="Planilla de tareas">
+    <div class="cols" aria-hidden="true"><span>Hecha</span><span>Tarea</span><span>Instituto</span><span></span></div>
+    <ul class="lista" id="lista"></ul>
+    <div class="pie" id="pie" hidden>
+      <span id="pie-texto"></span>
+      <button type="button" class="btn-limpiar" id="btn-limpiar">Borrar hechas</button>
+    </div>
+  </section>
+
+  <p class="ayuda" id="ayuda"></p>
+  <p class="estado" id="estado" role="status"></p>
+  <p class="credito">Desarrollado por Seba Branda</p>
+</div>
+
+<div class="aviso-wrap">
+  <div class="aviso" id="aviso" role="status" aria-live="polite" hidden>
+    <span id="aviso-texto"></span>
+    <button type="button" id="aviso-deshacer">Deshacer</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var HOJAS = { diarias: 'Diarias', instituto: 'Instituto' };
+  var LS_TAREAS = 'tareasdiarias.tareas.v1';
+  var LS_HOJA = 'tareasdiarias.hoja';
+
+  var S = { tareas: [], hoja: 'diarias', listo: false, error: false };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
+
+  function lsLeer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsEscribir(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+  var hojaGuardada = lsLeer(LS_HOJA);
+  if (hojaGuardada && HOJAS[hojaGuardada]) S.hoja = hojaGuardada;
+
+  /* ---------- Fecha ---------- */
+  try {
+    $('fecha').textContent = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+  } catch (e) {}
+
+  /* ---------- Almacenamiento ---------- */
+  function idNuevo() { return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function guardarLocal() {
+    var ok = lsEscribir(LS_TAREAS, JSON.stringify(S.tareas));
+    if (S.error === ok) { S.error = !ok; mostrarEstado(); }
+  }
+
+  function limpiar(t) {
+    return {
+      id: t.id,
+      text: typeof t.text === 'string' ? t.text : '',
+      done: !!t.done,
+      instituto: typeof t.instituto === 'boolean' ? t.instituto : t.sheet === 'instituto',
+      created: typeof t.created === 'number' ? t.created : 0
+    };
+  }
+
+  function crearTarea(texto, hoja) {
+    var datos = { text: texto, done: false, instituto: hoja === 'instituto', created: Date.now() };
+    datos.id = idNuevo();
+    S.tareas.push(datos); guardarLocal(); render();
+  }
+
+  function cambiarTarea(id, campos) {
+    S.tareas = S.tareas.map(function (t) { return t.id === id ? Object.assign({}, t, campos) : t; });
+    guardarLocal(); render();
+  }
+
+  function quitarTarea(id) {
+    S.tareas = S.tareas.filter(function (t) { return t.id !== id; });
+    guardarLocal(); render();
+  }
+
+  function restaurarTarea(t) {
+    var datos = { text: t.text, done: t.done, instituto: t.instituto, created: t.created };
+    S.tareas.push(Object.assign({ id: t.id }, datos)); guardarLocal(); render();
+  }
+
+  /* ---------- Vista ---------- */
+  function mostrarEstado() {
+    var el = $('estado');
+    if (S.error) {
+      el.className = 'estado error';
+      el.textContent = 'No se pudo guardar en este dispositivo. Liberá espacio o revisá los permisos del navegador.';
+    } else {
+      el.className = 'estado';
+      el.textContent = !S.listo ? 'Cargando tareas…' :
+        'Funciona sin conexión. Las tareas se guardan en este dispositivo.';
+    }
+  }
+
+  function tareasDeHoja(h) {
+    return S.tareas.filter(function (t) { return h === 'diarias' || (t.instituto && !t.done); }).sort(function (a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return a.created - b.created;
+    });
+  }
+
+  var SVG_TILDE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+  var SVG_X = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
+
+  function crearFila(t) {
+    var li = document.createElement('li');
+    li.className = 'fila';
+    li.setAttribute('data-hecha', t.done ? 'true' : 'false');
+
+    var lab = document.createElement('label');
+    lab.className = 'tilde';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = t.done;
+    cb.setAttribute('data-key', t.id + ':tilde');
+    cb.setAttribute('aria-label', 'Hecha: ' + t.text);
+    cb.addEventListener('change', function () {
+      cambiarTarea(t.id, { done: cb.checked });
+      if (S.hoja === 'instituto' && cb.checked) {
+        avisar('Hecha: sale de Instituto y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
+      }
+    });
+    var caja = document.createElement('span');
+    caja.className = 'caja'; caja.setAttribute('aria-hidden', 'true'); caja.innerHTML = SVG_TILDE;
+    lab.appendChild(cb); lab.appendChild(caja);
+
+    var tx = document.createElement('span');
+    tx.className = 'texto'; tx.textContent = t.text;
+
+    var pase = document.createElement('button');
+    pase.type = 'button'; pase.className = 'pase'; pase.textContent = 'Instituto';
+    pase.setAttribute('data-key', t.id + ':pase');
+    pase.setAttribute('aria-pressed', t.instituto ? 'true' : 'false');
+    pase.setAttribute('aria-label', t.instituto ? 'Quitar de Instituto: ' + t.text : 'Agregar a Instituto: ' + t.text);
+    pase.addEventListener('click', function () {
+      var antes = t.instituto, ahora = !antes;
+      cambiarTarea(t.id, { instituto: ahora });
+      avisar(ahora ? 'Agregada a Instituto' : 'Quitada de Instituto', function () { cambiarTarea(t.id, { instituto: antes }); });
+    });
+
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'borrar'; del.innerHTML = SVG_X;
+    del.setAttribute('data-key', t.id + ':borrar');
+    del.setAttribute('aria-label', 'Borrar: ' + t.text);
+    del.addEventListener('click', function () {
+      quitarTarea(t.id);
+      avisar('Tarea borrada', function () { restaurarTarea(t); });
+    });
+
+    li.appendChild(lab); li.appendChild(tx); li.appendChild(pase); li.appendChild(del);
+    return li;
+  }
+
+  function render() {
+    var activo = document.activeElement;
+    var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
+
+    var visibles = tareasDeHoja(S.hoja);
+    var hechas = visibles.filter(function (t) { return t.done; }).length;
+
+    lista.textContent = '';
+    if (!S.listo) {
+      /* primer cuadro: nada que mostrar hasta que respondan las tareas guardadas */
+    } else if (visibles.length === 0) {
+      var li = document.createElement('li');
+      li.className = 'vacio';
+      var st = document.createElement('strong');
+      var p = document.createElement('span');
+      if (S.hoja === 'diarias') {
+        st.textContent = 'No hay tareas en Diarias';
+        p.textContent = 'Escribí una arriba y tocá Agregar.';
+      } else {
+        st.textContent = 'Instituto está vacío';
+        p.textContent = 'En Diarias, activá el botón Instituto de una tarea para pasarla acá.';
+      }
+      li.appendChild(st); li.appendChild(p); lista.appendChild(li);
+    } else {
+      visibles.forEach(function (t) { lista.appendChild(crearFila(t)); });
+    }
+
+    $('n-diarias').textContent = tareasDeHoja('diarias').filter(function (t) { return !t.done; }).length;
+    $('n-instituto').textContent = tareasDeHoja('instituto').filter(function (t) { return !t.done; }).length;
+    Array.prototype.forEach.call(document.querySelectorAll('.solapa'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-hoja') === S.hoja ? 'true' : 'false');
+    });
+
+    var enInst = S.hoja === 'instituto';
+    $('progreso-barra').parentNode.hidden = enInst;
+    $('progreso-texto').textContent = visibles.length
+      ? (enInst
+          ? visibles.length + (visibles.length === 1 ? ' pendiente' : ' pendientes') + ' en Instituto'
+          : hechas + ' de ' + visibles.length + (hechas === 1 ? ' hecha' : ' hechas') + ' en ' + HOJAS[S.hoja])
+      : (S.listo ? 'Sin tareas en ' + HOJAS[S.hoja] : '');
+    $('progreso-barra').style.width = visibles.length ? Math.round(hechas / visibles.length * 100) + '%' : '0%';
+
+    pie.hidden = hechas === 0;
+    $('pie-texto').textContent = hechas + (hechas === 1 ? ' tarea hecha' : ' tareas hechas');
+
+    input.placeholder = 'Nueva tarea en ' + HOJAS[S.hoja];
+    $('ayuda').textContent = enInst
+      ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, apagá su botón Instituto.'
+      : 'Al tildar una tarea queda tachada acá. Si tiene el botón Instituto activado, también se ve en la hoja Instituto hasta que la tildes.';
+
+    if (clave) {
+      var el = lista.querySelector('[data-key="' + clave + '"]');
+      if (el) el.focus();
+    }
+  }
+
+  /* ---------- Aviso con deshacer ---------- */
+  var aviso = $('aviso'), temporizador = null;
+  function avisar(msg, deshacer) {
+    $('aviso-texto').textContent = msg;
+    aviso.hidden = false;
+    $('aviso-deshacer').onclick = function () { ocultarAviso(); deshacer(); };
+    clearTimeout(temporizador);
+    temporizador = setTimeout(ocultarAviso, 6000);
+  }
+  function ocultarAviso() { aviso.hidden = true; clearTimeout(temporizador); }
+
+  /* ---------- Eventos ---------- */
+  $('form-nueva').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var texto = input.value.trim();
+    if (!texto || !S.listo) return;
+    crearTarea(texto, S.hoja);
+    input.value = '';
+    input.focus();
+  });
+
+  $('solapas').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.solapa') : null;
+    if (!b) return;
+    S.hoja = b.getAttribute('data-hoja');
+    lsEscribir(LS_HOJA, S.hoja);
+    render();
+  });
+
+  $('btn-limpiar').addEventListener('click', function () {
+    var hechas = tareasDeHoja(S.hoja).filter(function (t) { return t.done; });
+    if (!hechas.length) return;
+    hechas.forEach(function (t) { quitarTarea(t.id); });
+    var nota = S.hoja === 'instituto' ? ' (también de Diarias)' : '';
+    avisar((hechas.length === 1 ? 'Se borró 1 tarea hecha' : 'Se borraron ' + hechas.length + ' tareas hechas') + nota, function () {
+      hechas.forEach(restaurarTarea);
+    });
+  });
+
+  /* ---------- Arranque ---------- */
+  function habilitar() {
+    S.listo = true;
+    input.disabled = false; btnAgregar.disabled = false;
+    mostrarEstado(); render();
+  }
+
+  function modoLocal() {
+    var crudo = lsLeer(LS_TAREAS), arr = [];
+    try { arr = crudo ? JSON.parse(crudo) : []; } catch (e) { arr = []; }
+    S.tareas = Array.isArray(arr) ? arr.map(limpiar) : [];
+    habilitar();
+  }
+
+  mostrarEstado(); render();
+
+  modoLocal();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
