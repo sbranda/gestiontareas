@@ -251,6 +251,13 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .modelo-form .marca { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 500; }
 .modelo-form .marca input { width: 24px; height: 24px; flex: none; }
 .pasos-acciones { margin-top: 8px; }
+.filtros { margin: 0 0 14px; }
+.buscar { display: flex; gap: 8px; }
+.buscar input { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.buscar .mini { flex: none; }
+.etiquetas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.filtro-estado { margin: 8px 0 0; font-size: 0.8125rem; color: var(--muted); }
+.etiqueta { font-weight: 600; color: var(--accent); }
 .paso { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 .paso label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; font-size: 0.875rem; cursor: pointer; }
 .paso input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
@@ -409,6 +416,16 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     <button type="button" class="mini" id="btn-hoja-cancelar">Cancelar</button>
   </form>
 
+  <div class="filtros" id="filtros-tareas" role="search" aria-label="Buscar y filtrar tareas" hidden>
+    <div class="buscar">
+      <label for="buscar" class="sr-only">Buscar tareas</label>
+      <input type="search" id="buscar" placeholder="Buscar tareas o #etiquetas" maxlength="60" autocomplete="off">
+      <button type="button" class="mini" id="buscar-borrar" hidden>Quitar filtro</button>
+    </div>
+    <div class="etiquetas" id="etiquetas" role="group" aria-label="Filtrar por etiqueta" hidden></div>
+    <p class="filtro-estado" id="filtro-estado" role="status"></p>
+  </div>
+
   <section class="planilla" id="planilla" aria-label="Planilla de tareas">
     <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Hoja</span><span></span></div>
     <ul class="lista" id="lista" aria-label="Lista de tareas" tabindex="-1"></ul>
@@ -566,6 +583,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var EDIT = { id: null, f: '', h: '' };
   var NOTA = { id: null, txt: '' };
   var POSP = { id: null };
+  var FILT = { q: '', tag: '', firma: '' };
   var LS_HIST = 'tareasdiarias.historial';
   var HIST = {};           /* tareas hechas por día: { 'AAAA-MM-DD': cantidad } */
   try { HIST = limpiarHist(JSON.parse(lsLeer(LS_HIST) || 'null')); } catch (e) { HIST = {}; }
@@ -887,6 +905,38 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
     return r;
   }
+  /* --- buscador y etiquetas (funciones puras) --- */
+  function normBusq(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  /* Etiquetas de una tarea: palabras con # en el título o en el detalle. */
+  function etiquetasDe(t) {
+    var fuente = (t.text || '') + ' ' + (t.nota || ''), re = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu, m, vistos = {}, r = [];
+    while ((m = re.exec(fuente))) {
+      var c = normBusq(m[2]);
+      if (!vistos[c]) { vistos[c] = true; r.push({ clave: c, texto: m[2] }); }
+    }
+    return r;
+  }
+  /* Busca sin distinguir mayúsculas ni tildes; todas las palabras tienen que estar (título, detalle o pasos). */
+  function coincideFiltro(t, q, tag) {
+    if (tag && !etiquetasDe(t).some(function (e) { return e.clave === tag; })) return false;
+    var palabras = normBusq(q).split(/\s+/).filter(Boolean);
+    if (!palabras.length) return true;
+    var pajar = normBusq((t.text || '') + ' ' + (t.nota || '') + ' ' + (t.pasos || []).map(function (p) { return p.text; }).join(' '));
+    return palabras.every(function (w) { return pajar.indexOf(w) >= 0; });
+  }
+  /* Etiquetas con la cantidad de tareas pendientes que las usan, de más a menos. */
+  function contarEtiquetas(tareas) {
+    var mapa = {};
+    tareas.forEach(function (t) {
+      if (t.done || t.plantilla) return;
+      etiquetasDe(t).forEach(function (e) {
+        var k = mapa[e.clave] || (mapa[e.clave] = { clave: e.clave, texto: e.texto, n: 0 });
+        k.n++;
+      });
+    });
+    return Object.keys(mapa).map(function (k) { return mapa[k]; }).sort(function (a, b) { return b.n - a.n || (a.clave < b.clave ? -1 : 1); });
+  }
+
   /* --- plantillas (funciones puras) --- */
   function limpiarModelo(m) {
     if (!m || typeof m !== 'object') return null;
@@ -1390,7 +1440,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var tx = document.createElement('div');
     tx.className = 'texto';
     var tt = document.createElement('span');
-    tt.className = 't'; tt.textContent = t.text;
+    tt.className = 't'; escribirTitulo(tt, t.text);
     tx.appendChild(tt);
     agregarNota(tx, t);
     var resumen = document.createElement('button');
@@ -2036,7 +2086,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var tx = document.createElement('div');
     tx.className = 'texto';
     var tt = document.createElement('span');
-    tt.className = 't'; tt.textContent = t.text;
+    tt.className = 't'; escribirTitulo(tt, t.text);
     tx.appendChild(tt);
     agregarNota(tx, t);
     var fd = fechaDe(t);
@@ -2096,8 +2146,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
     var filaAct = activo && activo.closest ? activo.closest('#lista > .fila') : null;
     var idxFila = filaAct ? Array.prototype.indexOf.call(lista.querySelectorAll('#lista > .fila'), filaAct) : -1;
-    var g = agruparHoy(S.tareas, AHORA);
-    var pend = g.atrasadas.length + g.hoy.length + g.urgentes.length;
+    var gAll = agruparHoy(S.tareas, AHORA);
+    var g = hayFiltro() ? agruparHoy(S.tareas.filter(pasaFiltro), AHORA) : gAll;
+    var pend = gAll.atrasadas.length + gAll.hoy.length + gAll.urgentes.length;
+    var pendF = g.atrasadas.length + g.hoy.length + g.urgentes.length;
     lista.textContent = '';
     function grupo(titulo, arr, rojo) {
       if (!arr.length) return;
@@ -2116,7 +2168,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         st.textContent = 'Todo al día';
         p.textContent = 'No tenés tareas atrasadas, para hoy ni urgentes.';
         vacio.appendChild(st); vacio.appendChild(p); lista.appendChild(vacio);
-      }
+      } else if (!pendF) lista.appendChild(vacioFiltro());
       grupo('Atrasadas', g.atrasadas, true);
       grupo('Para hoy', g.hoy);
       grupo('Urgentes', g.urgentes);
@@ -2124,11 +2176,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     }
     $('progreso-barra').parentNode.hidden = true;
     $('progreso-texto').textContent = !S.listo ? '' : (pend
-      ? pend + (pend === 1 ? ' pendiente' : ' pendientes') + (g.hechas.length ? ' · ' + g.hechas.length + (g.hechas.length === 1 ? ' hecha hoy' : ' hechas hoy') : '')
+      ? pend + (pend === 1 ? ' pendiente' : ' pendientes') + (gAll.hechas.length ? ' · ' + gAll.hechas.length + (gAll.hechas.length === 1 ? ' hecha hoy' : ' hechas hoy') : '')
       : 'Todo al día');
     var vEl = $('progreso-venc');
-    vEl.hidden = g.atrasadas.length === 0;
-    vEl.textContent = g.atrasadas.length + (g.atrasadas.length === 1 ? ' vencida' : ' vencidas');
+    vEl.hidden = gAll.atrasadas.length === 0;
+    vEl.textContent = gAll.atrasadas.length + (gAll.atrasadas.length === 1 ? ' vencida' : ' vencidas');
+    var todasHoy = gAll.atrasadas.concat(gAll.hoy, gAll.urgentes, gAll.hechas);
+    pintarBarraBusqueda(todasHoy, g.atrasadas.length + g.hoy.length + g.urgentes.length + g.hechas.length);
     pie.hidden = true;
     $('col-1').textContent = 'Hecha';
     $('ayuda').textContent = 'Junta de todas tus hojas lo atrasado, lo que vence hoy y lo urgente. Se usa igual que la lista: tildá para hacerla. Lo que tildás queda en "Hechas hoy".';
@@ -2161,6 +2215,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('form-hoja').hidden = enCal || esHoy || !HOJAFORM;
     $('hoja-acciones').hidden = enCal || esHoy || !propia;
     pintarModelos(!enCal && !esHoy && S.hoja !== 'repetidas');
+    $('filtros-tareas').hidden = enCal || (!esHoy && S.hoja === 'repetidas');
     if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
     document.querySelector('.progreso').hidden = enCal;
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
@@ -2176,6 +2231,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var idxFila = filaAct ? Array.prototype.indexOf.call(lista.children, filaAct) : -1;
     var visibles = tareasDeHoja(S.hoja);
     var hechas = visibles.filter(function (t) { return t.done; }).length;
+    var filtradas = S.hoja === 'repetidas' ? visibles : visibles.filter(pasaFiltro);
+    var hechasF = filtradas.filter(function (t) { return t.done; }).length;
 
     lista.textContent = '';
     if (!S.listo) {
@@ -2197,8 +2254,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       }
       li.appendChild(st); li.appendChild(p); lista.appendChild(li);
     } else {
-      visibles.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
+      if (!filtradas.length) lista.appendChild(vacioFiltro());
+      filtradas.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
     }
+    if (S.hoja !== 'repetidas') pintarBarraBusqueda(visibles, filtradas.length);
 
     pintarSolapas();
 
@@ -2217,14 +2276,14 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     vEl.hidden = nVenc === 0;
     vEl.textContent = nVenc + (nVenc === 1 ? ' vencida' : ' vencidas');
 
-    pie.hidden = hechas === 0;
-    $('pie-texto').textContent = hechas + (hechas === 1 ? ' tarea hecha' : ' tareas hechas');
+    pie.hidden = hechasF === 0;
+    $('pie-texto').textContent = hechasF + (hechasF === 1 ? ' tarea hecha' : ' tareas hechas');
 
     input.placeholder = enRep ? 'Nueva tarea repetida' : 'Nueva tarea en ' + nombreHoja(S.hoja);
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido. Con Posponer movés una tarea a mañana o al lunes sin editar la fecha. Con las plantillas creás de un toque una tarea con sus pasos.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido. Con Posponer movés una tarea a mañana o al lunes sin editar la fecha. Con las plantillas creás de un toque una tarea con sus pasos. Escribí #etiquetas en el título (por ejemplo #parcial) y filtrá con el buscador.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -2319,7 +2378,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   });
 
   $('btn-limpiar').addEventListener('click', function () {
-    var hechas = tareasDeHoja(S.hoja).filter(function (t) { return t.done; });
+    var hechas = tareasDeHoja(S.hoja).filter(function (t) { return t.done && pasaFiltro(t); });
     if (!hechas.length) return;
     hechas.forEach(function (t) { quitarTarea(t.id); });
     var nota = indiceHoja(S.hoja) >= 0 ? ' (también de Diarias)' : '';
@@ -2617,6 +2676,69 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     msgModelos('Plantilla «' + datos.nombre + '» guardada' + (lineas.length > MAX_PASOS ? ' (se guardaron los primeros ' + MAX_PASOS + ' pasos)' : '') + '.');
   });
   pintarListaModelos();
+
+  /* --- buscador y etiquetas: interfaz --- */
+  function hayFiltro() { return !!(FILT.tag || FILT.q.trim()); }
+  function pasaFiltro(t) { return !hayFiltro() || coincideFiltro(t, FILT.q, FILT.tag); }
+  function vacioFiltro() {
+    var li = document.createElement('li');
+    li.className = 'vacio';
+    var st = document.createElement('strong'), p = document.createElement('span');
+    st.textContent = 'Ninguna tarea coincide';
+    p.textContent = 'Probá con otra búsqueda o tocá Quitar filtro.';
+    li.appendChild(st); li.appendChild(p);
+    return li;
+  }
+  /* Rotula con otro color las palabras que empiezan con #. */
+  function escribirTitulo(el, texto) {
+    var re = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu, ult = 0, m;
+    while ((m = re.exec(texto))) {
+      var ini = m.index + m[1].length;
+      if (ini > ult) el.appendChild(document.createTextNode(texto.slice(ult, ini)));
+      var s = document.createElement('span');
+      s.className = 'etiqueta'; s.textContent = '#' + m[2];
+      el.appendChild(s);
+      ult = ini + 1 + m[2].length;
+      re.lastIndex = ult;
+    }
+    if (ult < texto.length) el.appendChild(document.createTextNode(texto.slice(ult)));
+  }
+  function limpiarFiltro() {
+    FILT.q = ''; FILT.tag = '';
+    $('buscar').value = '';
+    render();
+  }
+  /* ambito: tareas que se podrían ver sin filtro; mostradas: cuántas se ven con el filtro. */
+  function pintarBarraBusqueda(ambito, mostradas) {
+    var box = $('etiquetas'), activo = hayFiltro();
+    var tags = contarEtiquetas(ambito);
+    if (FILT.tag && !tags.some(function (e) { return e.clave === FILT.tag; })) tags.push({ clave: FILT.tag, texto: FILT.tag, n: 0 });
+    var firma = JSON.stringify([tags.map(function (e) { return [e.clave, e.texto, e.n]; }), FILT.tag]);
+    if (firma !== FILT.firma) {
+      var teniaFoco = box.contains(document.activeElement) ? document.activeElement.getAttribute('data-key') : null;
+      FILT.firma = firma;
+      box.textContent = '';
+      tags.forEach(function (e) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'dia';
+        b.textContent = '#' + e.texto + ' · ' + e.n;
+        b.setAttribute('data-key', 'etiqueta:' + e.clave);
+        b.setAttribute('aria-pressed', FILT.tag === e.clave ? 'true' : 'false');
+        b.setAttribute('aria-label', '#' + e.texto + ' · ' + e.n + (e.n === 1 ? ' pendiente' : ' pendientes') + '. Filtrar por esta etiqueta');
+        b.addEventListener('click', function () { FILT.tag = FILT.tag === e.clave ? '' : e.clave; render(); });
+        box.appendChild(b);
+      });
+      if (teniaFoco) { var f = box.querySelector('[data-key="' + teniaFoco + '"]'); if (f) f.focus(); }
+    }
+    box.hidden = !tags.length;
+    $('buscar-borrar').hidden = !activo;
+    $('filtro-estado').textContent = !activo ? '' : (mostradas ? 'Mostrando ' + mostradas + ' de ' + ambito.length + (ambito.length === 1 ? ' tarea' : ' tareas') : 'Ninguna tarea coincide');
+  }
+  $('buscar').addEventListener('input', function () { FILT.q = this.value; render(); });
+  $('buscar').addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && hayFiltro()) { e.preventDefault(); limpiarFiltro(); }
+  });
+  $('buscar-borrar').addEventListener('click', function () { limpiarFiltro(); $('buscar').focus(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
 
   modoLocal();
