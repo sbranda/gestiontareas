@@ -231,6 +231,43 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .respaldo-confirma p { color: var(--ink); }
 
 .solapas { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 0; }
+:root { --c-azul: #0B6E8E; --c-rojo: #B3261E; --c-verde: #2E7D32; --c-naranja: #A04A00; --c-violeta: #6B4BB8; --c-rosa: #B8326E; --c-marron: #7A5230; --c-gris: #55606A; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-azul: #4FB6D6; --c-rojo: #F2867E; --c-verde: #7BC47F; --c-naranja: #F2B45A; --c-violeta: #B79CF2; --c-rosa: #F28BB5; --c-marron: #D2A87A; --c-gris: #A5B0BA; } }
+:root[data-theme="dark"] { --c-azul: #4FB6D6; --c-rojo: #F2867E; --c-verde: #7BC47F; --c-naranja: #F2B45A; --c-violeta: #B79CF2; --c-rosa: #F28BB5; --c-marron: #D2A87A; --c-gris: #A5B0BA; }
+[data-color="azul"] { --hc: var(--c-azul); }
+[data-color="rojo"] { --hc: var(--c-rojo); }
+[data-color="verde"] { --hc: var(--c-verde); }
+[data-color="naranja"] { --hc: var(--c-naranja); }
+[data-color="violeta"] { --hc: var(--c-violeta); }
+[data-color="rosa"] { --hc: var(--c-rosa); }
+[data-color="marron"] { --hc: var(--c-marron); }
+[data-color="gris"] { --hc: var(--c-gris); }
+.solapa[data-color] { border-top: 3px solid var(--hc); }
+.solapa .ico, .pase .ico { display: inline-flex; flex: none; color: var(--hc, currentColor); }
+.solapa[data-color][aria-pressed="true"] .n { background: var(--hc); color: var(--accent-ink); }
+.pase { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.pase[data-color] { border-color: var(--hc); color: var(--hc); }
+.pase[data-color][aria-pressed="true"] { background: var(--hc); color: var(--accent-ink); }
+.pase[data-color][aria-pressed="true"] .ico { color: var(--accent-ink); }
+.planilla[data-color] { border-top: 3px solid var(--hc); }
+.hoja-estilo { margin-top: 10px; }
+.hoja-estilo[hidden], .estilo-panel[hidden] { display: none; }
+.estilo-panel { display: grid; gap: 12px; margin-top: 8px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.estilo-grupo { display: grid; gap: 6px; }
+.estilo-grupo > span { font-size: 0.8125rem; color: var(--muted); }
+.estilo-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw, .ic { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-weight: 700; cursor: pointer; }
+.sw[data-color] { background: var(--hc); color: var(--accent-ink); border-color: var(--hc); }
+.sw[aria-pressed="true"], .ic[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.ic[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.prefs { margin: 0 0 14px; }
+.prefs summary { display: flex; align-items: center; min-height: 44px; font-weight: 600; cursor: pointer; }
+.prefs-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 4px 0 6px; }
+.prefs-cuerpo label { min-width: 0; }
+.prefs-cuerpo label { display: grid; gap: 4px; font-size: 0.875rem; }
+.prefs-cuerpo select { width: 100%; min-height: 44px; max-width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; }
+.prefs-nota { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+.prefs .ajuste { justify-self: start; }
 .solapa {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 10px 16px; min-height: 44px;
@@ -414,6 +451,23 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
       <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
     </div>
+    <details class="prefs" id="prefs">
+      <summary>Más ajustes</summary>
+      <div class="prefs-cuerpo">
+        <label for="sel-inicio">Al abrir la app, mostrar
+          <select id="sel-inicio">
+            <option value="ultima">La última vista que usé</option>
+            <option value="hoy">Hoy</option>
+            <option value="lista">Lista</option>
+            <option value="calendario">Calendario</option>
+            <option value="historial">Historial</option>
+            <option value="enfoque">Enfoque</option>
+          </select>
+        </label>
+        <button type="button" class="ajuste" id="btn-feed">Al tildar: nada</button>
+        <p class="prefs-nota">Al tildar una tarea podés sentir una vibración suave o escuchar un sonido corto. La vibración no funciona en iPhone.</p>
+      </div>
+    </details>
     <div class="sr-only" id="ajuste-aviso" role="status" aria-live="polite"></div>
     <div class="fecha" id="fecha"></div>
     <h1>Tareas diarias</h1>
@@ -535,6 +589,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </section>
 
+  <div class="hoja-estilo" id="hoja-estilo" hidden>
+    <button type="button" class="mini" id="btn-estilo" aria-expanded="false" aria-controls="estilo-panel">Color e ícono de la hoja</button>
+    <div class="estilo-panel" id="estilo-panel" hidden></div>
+  </div>
   <div class="hoja-acciones" id="hoja-acciones" hidden>
     <button type="button" class="btn-limpiar" id="btn-borrar-hoja">Eliminar esta hoja</button>
   </div>
@@ -658,6 +716,49 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 (function () {
   'use strict';
 
+  /* --- colores e íconos por hoja, vista inicial y sensación al tildar --- */
+  var COLORES = [
+    { id: 'azul', nombre: 'Azul' }, { id: 'rojo', nombre: 'Rojo' }, { id: 'verde', nombre: 'Verde' }, { id: 'naranja', nombre: 'Naranja' },
+    { id: 'violeta', nombre: 'Violeta' }, { id: 'rosa', nombre: 'Rosa' }, { id: 'marron', nombre: 'Marrón' }, { id: 'gris', nombre: 'Gris' }
+  ];
+  var ICONOS = {
+    libro: { nombre: 'Libro', d: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/>' },
+    casa: { nombre: 'Casa', d: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>' },
+    maletin: { nombre: 'Trabajo', d: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/>' },
+    birrete: { nombre: 'Estudio', d: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/>' },
+    estrella: { nombre: 'Estrella', d: '<path d="M12 2l3 7 7 .5-5.2 4.8L18.5 22 12 18l-6.5 4 1.7-7.7L2 9.5 9 9z"/>' },
+    corazon: { nombre: 'Corazón', d: '<path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/>' },
+    carrito: { nombre: 'Compras', d: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/>' },
+    reloj: { nombre: 'Reloj', d: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
+    planta: { nombre: 'Planta', d: '<path d="M12 22v-8"/><path d="M12 14C7 14 5 10 5 5c5 0 7 3 7 9z"/><path d="M12 11c0-4 2-7 7-7 0 5-2 8-7 8z"/>' },
+    pelota: { nombre: 'Deporte', d: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>' }
+  };
+  var ORDEN_ICONOS = ['libro', 'casa', 'maletin', 'birrete', 'estrella', 'corazon', 'carrito', 'reloj', 'planta', 'pelota'];
+  var INICIOS = ['ultima', 'hoy', 'lista', 'calendario', 'historial', 'enfoque'];
+  var FEEDS = ['nada', 'vibración', 'sonido', 'vibración y sonido'];
+  function iconoSvg(id) {
+    return ICONOS[id] ? '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICONOS[id].d + '</svg>' : '';
+  }
+  function colorValido(id) { return COLORES.some(function (c) { return c.id === id; }); }
+  function limpiarEstilos(o) {
+    var r = {};
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return r;
+    Object.keys(o).slice(0, 60).forEach(function (k) {
+      var e = o[k], n = {};
+      if (!e || typeof e !== 'object' || k.length > 40) return;
+      if (colorValido(e.color)) n.color = e.color;
+      if (typeof e.icono === 'string' && ICONOS.hasOwnProperty(e.icono)) n.icono = e.icono;
+      if (n.color || n.icono) r[k] = n;
+    });
+    return r;
+  }
+  var LS_ESTILOS = 'tareasdiarias.estilos', LS_INICIO = 'tareasdiarias.inicio', LS_FEED = 'tareasdiarias.feedback';
+  var ESTILOS = {};
+  try { ESTILOS = limpiarEstilos(JSON.parse(lsLeer(LS_ESTILOS) || 'null')); } catch (e) {}
+  function guardarEstilos() { lsEscribir(LS_ESTILOS, JSON.stringify(ESTILOS)); }
+  var INICIO = lsLeer(LS_INICIO); if (INICIOS.indexOf(INICIO) < 0) INICIO = 'ultima';
+  var FEED = lsLeer(LS_FEED); if (FEEDS.indexOf(FEED) < 0) FEED = 'nada';
+  var EST = { abierto: false };
   var LS_HOJAS = 'tareasdiarias.hojas';
   var MAX_HOJAS = 8;
   var EXTRA = [];          /* hojas propias, además de Diarias y Repetidas */
@@ -1738,7 +1839,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Calendario mensual ---------- */
   var LS_VISTA = 'tareasdiarias.vista';
-  var VISTA = (lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque') ? lsLeer(LS_VISTA) : 'lista';
+  var VISTA = INICIO !== 'ultima' ? INICIO : ((lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque') ? lsLeer(LS_VISTA) : 'lista');
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
 
   function crearCeldaDia(d, res, hoy) {
@@ -2018,6 +2119,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     ENF.fin = null; ENF.pausa = null; ENF.id = sig ? sig.id : null;
     ENF.msg = 'Hecha. ' + (sig ? 'Siguiente: ' + sig.text : 'No quedan tareas pendientes.');
     guardarEnf(); programarEnf();
+    sentirTilde();
     cambiarTarea(q.cur.id, { done: true });
     var t = $('enf-titulo'); if (!$('enf-card').hidden) t.focus();
   });
@@ -2049,8 +2151,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var RESP = { msg: '', error: false, t: null };
   var PEND = null;
 
-  function armarCopia(tareas, hojas, hist, modelos) {
-    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], tareas: tareas }, null, 2);
+  function armarCopia(tareas, hojas, hist, modelos, estilos) {
+    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], estilos: estilos || {}, tareas: tareas }, null, 2);
   }
 
   /* Lee el texto de un archivo de copia. Devuelve { tareas, omitidas } o { error }. */
@@ -2070,7 +2172,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null };
   }
 
   function contarCopia(arr) {
@@ -2157,6 +2259,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     guardarHojas();
     if (PEND.historial) { HIST = modo === 'reemplazar' ? PEND.historial : mezclarHist(HIST, PEND.historial); guardarHist(); }
     if (PEND.modelos && PEND.modelos.length) { MODELOS = modo === 'reemplazar' ? PEND.modelos.slice() : mezclarModelos(MODELOS, PEND.modelos); guardarModelos(); pintarListaModelos(); }
+    if (PEND.estilos && Object.keys(PEND.estilos).length) { ESTILOS = modo === 'reemplazar' ? PEND.estilos : Object.assign({}, ESTILOS, PEND.estilos); guardarEstilos(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -2169,7 +2272,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS);
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS);
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -2306,6 +2409,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var pase = document.createElement('button');
     pase.type = 'button'; pase.className = 'pase';
     pase.textContent = t.dest || 'Hoja';
+    var esp = t.dest ? ESTILOS[t.dest] : null;
+    if (esp && esp.color) pase.setAttribute('data-color', esp.color);
+    if (esp && esp.icono) { var ico = document.createElement('span'); ico.className = 'ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = iconoSvg(esp.icono); pase.insertBefore(ico, pase.firstChild); }
     pase.title = t.dest ? 'Está en la hoja ' + t.dest : 'No está en ninguna hoja propia';
     pase.setAttribute('data-key', t.id + ':pase');
     pase.setAttribute('aria-pressed', t.dest ? 'true' : 'false');
@@ -2322,13 +2428,16 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   var solapasClave = null;
   function pintarSolapas() {
-    var cont = $('solapas'), clave = EXTRA.join('\u0001');
+    var cont = $('solapas'), clave = EXTRA.join('\u0001') + '|' + JSON.stringify(ESTILOS);
     if (clave !== solapasClave) {
       solapasClave = clave;
       cont.textContent = '';
       var crear = function (hoja) {
         var b = document.createElement('button');
         b.type = 'button'; b.className = 'solapa'; b.setAttribute('data-hoja', hoja); b.setAttribute('aria-pressed', 'false');
+        var es = ESTILOS[hoja];
+        if (es && es.color) b.setAttribute('data-color', es.color);
+        if (es && es.icono) { var ic = document.createElement('span'); ic.className = 'ico'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = iconoSvg(es.icono); b.appendChild(ic); }
         b.appendChild(document.createTextNode(nombreHoja(hoja) + ' '));
         var n = document.createElement('span');
         n.className = 'n'; n.textContent = '0';
@@ -2399,6 +2508,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     cb.setAttribute('data-key', t.id + ':tilde');
     cb.setAttribute('aria-label', 'Hecha: ' + t.text);
     cb.addEventListener('change', function () {
+      if (cb.checked) sentirTilde();
       cambiarTarea(t.id, { done: cb.checked });
       if (VISTA === 'lista' && indiceHoja(S.hoja) >= 0 && cb.checked) {
         avisar('Hecha: sale de ' + S.hoja + ' y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
@@ -2639,6 +2749,90 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
   }
 
+  /* ---------- Color e ícono de la hoja ---------- */
+  function anunciar(t) { $('ajuste-aviso').textContent = t; }
+  function setEstilo(h, campos) {
+    var e = Object.assign({}, ESTILOS[h], campos);
+    if (!e.color) delete e.color;
+    if (!e.icono) delete e.icono;
+    if (!e.color && !e.icono) delete ESTILOS[h]; else ESTILOS[h] = e;
+    guardarEstilos(); render();
+  }
+  function pintarEstilo(mostrar) {
+    var box = $('hoja-estilo'), pl = $('planilla'), h = S.hoja, es = (mostrar && ESTILOS[h]) || {};
+    if (es.color) pl.setAttribute('data-color', es.color); else pl.removeAttribute('data-color');
+    box.hidden = !mostrar;
+    if (!mostrar) return;
+    $('btn-estilo').setAttribute('aria-expanded', EST.abierto ? 'true' : 'false');
+    var texto = 'Color e ícono de ' + nombreHoja(h);
+    if ($('btn-estilo').textContent !== texto) $('btn-estilo').textContent = texto;
+    var pan = $('estilo-panel');
+    pan.hidden = !EST.abierto;
+    if (!EST.abierto) return;
+    var act = document.activeElement, k = act && act.getAttribute ? act.getAttribute('data-ekey') : null;
+    pan.textContent = '';
+    function grupo(titulo, etiqueta) {
+      var g = document.createElement('div'); g.className = 'estilo-grupo';
+      var s = document.createElement('span'); s.textContent = titulo;
+      var f = document.createElement('div'); f.className = 'estilo-fila'; f.setAttribute('role', 'group'); f.setAttribute('aria-label', etiqueta);
+      g.appendChild(s); g.appendChild(f); pan.appendChild(g);
+      return f;
+    }
+    var fc = grupo('Color', 'Color de la hoja ' + nombreHoja(h));
+    [{ id: '', nombre: 'Sin color' }].concat(COLORES).forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sw'; b.setAttribute('data-ekey', 'c:' + c.id);
+      b.setAttribute('aria-label', c.nombre);
+      var activo = (es.color || '') === c.id;
+      b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+      if (c.id) b.setAttribute('data-color', c.id);
+      b.textContent = activo ? '✓' : (c.id ? '' : '∅');
+      b.addEventListener('click', function () { setEstilo(h, { color: c.id }); anunciar('Color de ' + nombreHoja(h) + ': ' + c.nombre); });
+      fc.appendChild(b);
+    });
+    var fi = grupo('Ícono', 'Ícono de la hoja ' + nombreHoja(h));
+    [''].concat(ORDEN_ICONOS).forEach(function (id) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'ic'; b.setAttribute('data-ekey', 'i:' + id);
+      var nom = id ? ICONOS[id].nombre : 'Sin ícono';
+      b.setAttribute('aria-label', nom);
+      b.setAttribute('aria-pressed', (es.icono || '') === id ? 'true' : 'false');
+      if (id) b.innerHTML = iconoSvg(id).replace('width="16" height="16"', 'width="22" height="22"'); else b.textContent = '∅';
+      b.addEventListener('click', function () { setEstilo(h, { icono: id }); anunciar('Ícono de ' + nombreHoja(h) + ': ' + nom); });
+      fi.appendChild(b);
+    });
+    if (k) { var e = pan.querySelector('[data-ekey="' + k + '"]'); if (e) e.focus(); }
+  }
+
+  /* ---------- Vibración y sonido al tildar ---------- */
+  var AUDIO = null;
+  function sonarTilde() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!AUDIO) AUDIO = new AC();
+      if (AUDIO.state === 'suspended' && AUDIO.resume) AUDIO.resume();
+      var t0 = AUDIO.currentTime, o = AUDIO.createOscillator(), g = AUDIO.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(660, t0);
+      o.frequency.exponentialRampToValueAtTime(990, t0 + 0.09);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+      o.connect(g); g.connect(AUDIO.destination);
+      o.start(t0); o.stop(t0 + 0.2);
+    } catch (e) {}
+  }
+  function sentirTilde() {
+    if (FEED.indexOf('vibración') >= 0) { try { if (navigator.vibrate) navigator.vibrate(18); } catch (e) {} }
+    if (FEED.indexOf('sonido') >= 0) sonarTilde();
+  }
+  function pintarFeed() {
+    var b = $('btn-feed'), sig = FEEDS[(FEEDS.indexOf(FEED) + 1) % FEEDS.length];
+    b.textContent = 'Al tildar: ' + FEED;
+    b.setAttribute('aria-label', 'Al tildar: ' + FEED + '. Tocar para cambiar a ' + sig);
+  }
+
   /* ---------- Fin de día ---------- */
   var FIN_SALTO = 0;
   function pintarFinDia(el, mostrar) {
@@ -2829,6 +3023,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
     pintarOrdenar(false);
+    pintarEstilo(false);
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
     if (esHoy) { $('form-nueva').hidden = true; $('solapas').hidden = true; }
     var propia = indiceHoja(S.hoja) >= 0;
@@ -2883,6 +3078,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     pintarOrdenar(S.listo && S.hoja !== 'repetidas' && visibles.length > 1);
 
     pintarSolapas();
+    pintarEstilo(S.listo && S.hoja !== 'repetidas');
 
     var enInst = indiceHoja(S.hoja) >= 0;
     var enRep = S.hoja === 'repetidas';
@@ -3016,6 +3212,22 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   $('cal-imprimir').addEventListener('click', imprimirSemana);
   $('cal-semana-archivo').addEventListener('click', archivoSemana);
   recibirCompartido();
+
+  $('btn-estilo').addEventListener('click', function () { EST.abierto = !EST.abierto; render(); });
+  $('sel-inicio').value = INICIO;
+  $('sel-inicio').addEventListener('change', function () {
+    var v = $('sel-inicio').value;
+    INICIO = INICIOS.indexOf(v) >= 0 ? v : 'ultima';
+    lsEscribir(LS_INICIO, INICIO);
+    anunciar('Al abrir la app se mostrará: ' + $('sel-inicio').options[$('sel-inicio').selectedIndex].textContent);
+  });
+  pintarFeed();
+  $('btn-feed').addEventListener('click', function () {
+    FEED = FEEDS[(FEEDS.indexOf(FEED) + 1) % FEEDS.length];
+    lsEscribir(LS_FEED, FEED); pintarFeed();
+    anunciar('Al tildar: ' + FEED);
+    sentirTilde();
+  });
 
   /* ---------- Arranque ---------- */
   function habilitar() {
