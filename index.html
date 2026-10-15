@@ -437,6 +437,16 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   <p class="ayuda" id="ayuda"></p>
   <p class="estado" id="estado" role="status"></p>
 
+  <section class="respaldo" aria-labelledby="avisos-t">
+    <h2 id="avisos-t">Avisos</h2>
+    <p>Una notificación del teléfono cuando se acerca la fecha límite de una tarea.</p>
+    <div class="respaldo-botones">
+      <button type="button" class="mini primario" id="btn-avisos">Activar avisos</button>
+      <button type="button" class="mini" id="btn-ics">Llevar al calendario</button>
+    </div>
+    <p class="respaldo-estado" id="avisos-estado" role="status"></p>
+  </section>
+
   <section class="respaldo" aria-labelledby="respaldo-t">
     <h2 id="respaldo-t">Copia de respaldo</h2>
     <p>Guardá tus tareas en un archivo para no perderlas. También sirve para pasarlas de la compu al celular: exportás en uno e importás en el otro.</p>
@@ -819,6 +829,74 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var r = [];
     for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
     return r;
+  }
+  /* --- avisos y calendario (funciones puras) --- */
+  var AV_ANTES = 30 * 60000, AV_MANANA = 8, AV_VENTANA = 12 * 3600000;
+  function recortarAv(s) { s = String(s || ''); return s.length > 80 ? s.slice(0, 77) + '...' : s; }
+  function planAvisos(tareas) {
+    var r = [];
+    tareas.forEach(function (t) {
+      if (t.done || t.plantilla || t.due == null) return;
+      var d = new Date(t.due), tx = recortarAv(t.text);
+      if (t.hora) {
+        var hm = dos(d.getHours()) + ':' + dos(d.getMinutes());
+        r.push({ key: t.id + ':antes:' + t.due, id: t.id, at: t.due - AV_ANTES, titulo: 'En 30 minutos: ' + tx, cuerpo: 'Vence hoy a las ' + hm });
+        r.push({ key: t.id + ':ahora:' + t.due, id: t.id, at: t.due, titulo: 'Vence ahora: ' + tx, cuerpo: 'Eran las ' + hm });
+      } else {
+        var m = new Date(t.due); m.setHours(AV_MANANA, 0, 0, 0);
+        r.push({ key: t.id + ':dia:' + t.due, id: t.id, at: m.getTime(), titulo: 'Vence hoy: ' + tx, cuerpo: 'Tarea con fecha límite de hoy' });
+      }
+    });
+    return r;
+  }
+  /* De todos los avisos cuya hora ya pasó (y no son muy viejos), muestra solo el más reciente de cada tarea. */
+  function avisosPendientes(plan, ahora, hechos) {
+    var mejor = {}, silenciar = [];
+    plan.forEach(function (a) {
+      if (a.at > ahora || ahora - a.at > AV_VENTANA || hechos[a.key]) return;
+      var p = mejor[a.id];
+      if (!p) mejor[a.id] = a;
+      else if (a.at > p.at) { silenciar.push(p.key); mejor[a.id] = a; }
+      else silenciar.push(a.key);
+    });
+    return { mostrar: Object.keys(mejor).map(function (k) { return mejor[k]; }), silenciar: silenciar };
+  }
+  function escICS(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+  function localICS(ms) {
+    var d = new Date(ms);
+    return d.getFullYear() + dos(d.getMonth() + 1) + dos(d.getDate()) + 'T' + dos(d.getHours()) + dos(d.getMinutes()) + '00';
+  }
+  function plegarICS(linea) {
+    var out = [], cur = '', n = 0;
+    Array.prototype.forEach.call(linea, function (c) {
+      var cp = c.codePointAt(0), b = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+      if (n + b > 72) { out.push(cur); cur = ' '; n = 1; }
+      cur += c; n += b;
+    });
+    out.push(cur);
+    return out.join('\r\n');
+  }
+  function armarICS(tareas, ahora) {
+    var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Tareas diarias'];
+    var n = 0;
+    tareas.forEach(function (t) {
+      if (t.done || t.plantilla || t.due == null || t.due < ahora) return;
+      var ini, fin, alarmas;
+      if (t.hora) { ini = t.due; fin = t.due + 15 * 60000; alarmas = ['-PT30M', 'PT0S']; }
+      else { var m = new Date(t.due); m.setHours(AV_MANANA, 0, 0, 0); ini = m.getTime(); fin = ini + 30 * 60000; alarmas = ['PT0S']; }
+      L.push('BEGIN:VEVENT', 'UID:' + t.id + '@tareas-diarias', 'DTSTAMP:' + sello,
+        'DTSTART:' + localICS(ini), 'DTEND:' + localICS(fin),
+        'SUMMARY:' + escICS((t.urgente ? 'Urgente: ' : '') + t.text));
+      if (t.nota) L.push('DESCRIPTION:' + escICS(t.nota));
+      alarmas.forEach(function (a) {
+        L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS(t.text), 'TRIGGER:' + a, 'END:VALARM');
+      });
+      L.push('END:VEVENT');
+      n++;
+    });
+    L.push('END:VCALENDAR');
+    return { texto: L.map(plegarICS).join('\r\n') + '\r\n', cantidad: n };
   }
   /* --- fin funciones puras --- */
 
@@ -1483,9 +1561,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     return res;
   }
 
-  function descargarArchivo(nombre, texto) {
+  function descargarArchivo(nombre, texto, tipo) {
     return new Promise(function (ok) {
-      var url = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+      var url = URL.createObjectURL(new Blob([texto], { type: tipo || 'application/json' }));
       var a = document.createElement('a');
       a.href = url; a.download = nombre; a.style.display = 'none';
       document.body.appendChild(a);
@@ -1997,6 +2075,111 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* Refresca las vencidas cada minuto y al volver a la app */
   setInterval(function () { generarRepetidas(); if (!EDIT.id && !REP.id) render(); }, 60000);
+
+  /* --- avisos del teléfono y calendario --- */
+  var LS_AVISOS = 'tareasdiarias.avisos', LS_AVISADOS = 'tareasdiarias.avisados';
+  var URL_ESPEJO = '', AV_ULTIMO = '', AV_MSG = '';
+  try { URL_ESPEJO = new URL('avisos.json', document.baseURI).href; } catch (e) {}
+  function permisoAvisos() { try { return typeof Notification === 'undefined' ? 'no' : Notification.permission; } catch (e) { return 'no'; } }
+  function avisosActivos() { return lsLeer(LS_AVISOS) === '1' && permisoAvisos() === 'granted'; }
+  function leerHechos() { try { var o = JSON.parse(lsLeer(LS_AVISADOS) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+  function mostrarNotif(titulo, cuerpo, tag) {
+    var op = { body: cuerpo, tag: tag, icon: 'icon-192.png', badge: 'icon-192.png', lang: 'es' };
+    function directa() { try { new Notification(titulo, op); } catch (e) {} }
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        return navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.showNotification) return reg.showNotification(titulo, op);
+          directa();
+        }).catch(directa);
+      }
+    } catch (e) {}
+    directa();
+    return Promise.resolve();
+  }
+  /* Copia de los avisos en la caché del navegador, para que el service worker pueda mostrarlos con la app cerrada. */
+  function espejarAvisos(ahora, hechos, activo) {
+    if (!URL_ESPEJO || typeof caches === 'undefined' || typeof Response === 'undefined') return;
+    var plan = activo ? planAvisos(S.tareas).filter(function (a) { return a.at > ahora - AV_VENTANA && a.at < ahora + 4 * 86400000; }) : [];
+    var s = JSON.stringify({ plan: plan, hechos: hechos });
+    if (s === AV_ULTIMO) return;
+    AV_ULTIMO = s;
+    caches.open('tareas-diarias-avisos').then(function (c) {
+      return c.put(URL_ESPEJO, new Response(s, { headers: { 'Content-Type': 'application/json' } }));
+    }).catch(function () {});
+  }
+  function traerHechosDelEspejo(listo) {
+    if (!URL_ESPEJO || typeof caches === 'undefined') { listo(); return; }
+    caches.open('tareas-diarias-avisos').then(function (c) { return c.match(URL_ESPEJO); })
+      .then(function (r) { return r ? r.json() : null; })
+      .then(function (j) {
+        if (j && j.hechos) {
+          var h = leerHechos();
+          Object.keys(j.hechos).forEach(function (k) { if (!h[k]) h[k] = j.hechos[k]; });
+          lsEscribir(LS_AVISADOS, JSON.stringify(h));
+        }
+      }).catch(function () {}).then(listo);
+  }
+  function revisarAvisos() {
+    var activo = avisosActivos();
+    traerHechosDelEspejo(function () {
+      var hechos = leerHechos(), ahora = Date.now();
+      if (activo) {
+        var r = avisosPendientes(planAvisos(S.tareas), ahora, hechos);
+        r.silenciar.forEach(function (k) { hechos[k] = ahora; });
+        r.mostrar.forEach(function (a) { hechos[a.key] = ahora; mostrarNotif(a.titulo, a.cuerpo, a.key); });
+        Object.keys(hechos).forEach(function (k) { if (ahora - hechos[k] > 3 * 86400000) delete hechos[k]; });
+        lsEscribir(LS_AVISADOS, JSON.stringify(hechos));
+      }
+      espejarAvisos(ahora, hechos, activo);
+    });
+  }
+  function registrarSyncAvisos(alta) {
+    try {
+      navigator.serviceWorker.ready.then(function (reg) {
+        if (!reg.periodicSync) return;
+        return alta ? reg.periodicSync.register('revisar-tareas', { minInterval: 60 * 60 * 1000 }) : reg.periodicSync.unregister('revisar-tareas');
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function pintarAvisos() {
+    var b = $('btn-avisos'), e = $('avisos-estado'), p = permisoAvisos(), txt;
+    if (!b || !e) return;
+    var act = avisosActivos();
+    b.textContent = act ? 'Desactivar avisos' : 'Activar avisos';
+    if (AV_MSG) txt = AV_MSG;
+    else if (p === 'no') txt = 'Este navegador no permite avisos. Usá el botón de calendario: el teléfono te avisa solo.';
+    else if (p === 'denied') txt = 'Los avisos están bloqueados en el navegador. Habilitalos en los ajustes del sitio.';
+    else if (act) txt = 'Avisos activados: 30 minutos antes y a la hora de las tareas con hora, y a las 8:00 de las que solo tienen fecha. Llegan con la app abierta o en segundo plano; con la app cerrada depende del navegador. Para no depender de eso, llevá las tareas al calendario.';
+    else txt = 'Avisos desactivados.';
+    e.textContent = txt;
+  }
+  function msgAvisos(m) { AV_MSG = m; pintarAvisos(); }
+  if ($('btn-avisos')) {
+    $('btn-avisos').onclick = function () {
+      AV_MSG = '';
+      if (avisosActivos()) { lsEscribir(LS_AVISOS, '0'); registrarSyncAvisos(false); revisarAvisos(); pintarAvisos(); return; }
+      if (permisoAvisos() === 'no' || permisoAvisos() === 'denied') { pintarAvisos(); return; }
+      var pedido;
+      try { pedido = Notification.requestPermission(); } catch (e) { pedido = Promise.resolve('denied'); }
+      Promise.resolve(pedido).then(function (perm) {
+        if (perm === 'granted') { lsEscribir(LS_AVISOS, '1'); registrarSyncAvisos(true); revisarAvisos(); }
+        else AV_MSG = 'No diste permiso, así que no puedo mostrar avisos.';
+        pintarAvisos();
+      });
+    };
+    $('btn-ics').onclick = function () {
+      var r = armarICS(S.tareas, Date.now());
+      if (!r.cantidad) { msgAvisos('No hay tareas pendientes con fecha límite para llevar al calendario.'); return; }
+      Promise.resolve(descargarArchivo('tareas-diarias.ics', r.texto, 'text/calendar')).then(function () {
+        msgAvisos('Se descargó tareas-diarias.ics con ' + r.cantidad + (r.cantidad === 1 ? ' tarea' : ' tareas') + '. Abrilo y elegí agregarlo al calendario del teléfono: ahí suenan los avisos aunque esta app esté cerrada.');
+      }, function () { msgAvisos('No se pudo descargar el archivo.'); });
+    };
+    pintarAvisos();
+    if (avisosActivos()) registrarSyncAvisos(true);
+    setInterval(revisarAvisos, 30000);
+    setTimeout(revisarAvisos, 1500);
+  }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
 
   modoLocal();

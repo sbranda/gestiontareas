@@ -1,7 +1,8 @@
 /* Service worker de Tareas diarias.
    Guarda la app en el dispositivo para que abra sin conexión.
    Si cambiás algún archivo, subí el número de CACHE para que se actualice. */
-var CACHE = 'tareas-diarias-v15';
+var CACHE = 'tareas-diarias-v16';
+var CACHE_AVISOS = 'tareas-diarias-avisos';
 var ARCHIVOS = [
   './',
   './index.html',
@@ -22,7 +23,7 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (claves) {
-      return Promise.all(claves.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+      return Promise.all(claves.filter(function (k) { return k !== CACHE && k !== CACHE_AVISOS; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
@@ -43,4 +44,45 @@ self.addEventListener('fetch', function (e) {
       return guardado || red;
     })
   );
+});
+
+/* Avisos de fechas límite. La página guarda en la caché 'tareas-diarias-avisos' la lista de avisos;
+   cuando el navegador despierta al service worker (sincronización periódica, solo en algunos
+   navegadores y a su ritmo) mostramos los que ya vencieron y no se mostraron. */
+var VENTANA_AVISO = 12 * 3600000;
+function revisarAvisos() {
+  var url = new URL('avisos.json', self.registration.scope).href, ahora = Date.now();
+  return caches.open(CACHE_AVISOS).then(function (c) {
+    return c.match(url).then(function (r) { return r ? r.json() : null; }).then(function (j) {
+      if (!j || !j.plan) return;
+      var hechos = j.hechos || {}, mejor = {}, marcar = [];
+      j.plan.forEach(function (a) {
+        if (a.at > ahora || ahora - a.at > VENTANA_AVISO || hechos[a.key]) return;
+        var p = mejor[a.id];
+        if (!p) mejor[a.id] = a;
+        else if (a.at > p.at) { marcar.push(p.key); mejor[a.id] = a; }
+        else marcar.push(a.key);
+      });
+      var mostrar = Object.keys(mejor).map(function (k) { return mejor[k]; });
+      if (!mostrar.length && !marcar.length) return;
+      mostrar.forEach(function (a) { hechos[a.key] = ahora; });
+      marcar.forEach(function (k) { hechos[k] = ahora; });
+      j.hechos = hechos;
+      return Promise.all(mostrar.map(function (a) {
+        return self.registration.showNotification(a.titulo, { body: a.cuerpo, tag: a.key, icon: 'icon-192.png', badge: 'icon-192.png', lang: 'es' });
+      })).then(function () {
+        return c.put(url, new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }));
+      });
+    });
+  });
+}
+self.addEventListener('periodicsync', function (e) {
+  if (e.tag === 'revisar-tareas') e.waitUntil(revisarAvisos().catch(function () {}));
+});
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
+    for (var i = 0; i < cs.length; i++) { if ('focus' in cs[i]) return cs[i].focus(); }
+    return self.clients.openWindow('./');
+  }));
 });
