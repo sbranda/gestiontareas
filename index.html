@@ -235,6 +235,22 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .fila > .posponer { grid-column: 1 / -1; }
 .posponer { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 10px 52px; }
 .posponer .mini { min-height: 44px; padding: 0 14px; }
+.respaldo .mini { height: auto; min-height: 44px; }
+.modelos-rapidos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.modelos-rapidos .limite-rotulo { flex-basis: 100%; }
+.modelos-rapidos .mini { max-width: 100%; padding: 8px 14px; color: var(--ink); text-align: left; overflow-wrap: anywhere; }
+.modelos-lista { list-style: none; margin: 0 0 12px; padding: 0; }
+.modelo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.modelo-texto { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+.modelo-meta { display: block; font-size: 0.8125rem; color: var(--muted); }
+.modelo-vacio { padding: 6px 0 12px; font-size: 0.875rem; color: var(--muted); }
+.respaldo .modelo .mini { padding: 8px 14px; }
+.modelo-form { display: grid; gap: 6px; margin: 0 0 14px; padding: 14px; background: var(--accent-soft); border-radius: 8px; }
+.modelo-form label { margin-top: 6px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+.modelo-form input[type="text"], .modelo-form textarea, .modelo-form select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.modelo-form .marca { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 500; }
+.modelo-form .marca input { width: 24px; height: 24px; flex: none; }
+.pasos-acciones { margin-top: 8px; }
 .paso { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 .paso label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; font-size: 0.875rem; cursor: pointer; }
 .paso input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
@@ -383,6 +399,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </form>
 
+  <div class="modelos-rapidos" id="modelos-rapidos" role="group" aria-label="Crear una tarea desde una plantilla" hidden></div>
+
   <div class="solapas" id="solapas" role="group" aria-label="Hojas de tareas"></div>
 
   <form class="form-hoja" id="form-hoja" autocomplete="off" hidden>
@@ -453,6 +471,31 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <button type="button" class="mini" id="btn-ics">Llevar al calendario</button>
     </div>
     <p class="respaldo-estado" id="avisos-estado" role="status"></p>
+  </section>
+
+  <section class="respaldo" aria-labelledby="modelos-t">
+    <h2 id="modelos-t">Plantillas</h2>
+    <p>Guardá una tarea con sus pasos (una mudanza, un viaje, preparar una clase) y creala de nuevo con un toque. Aparecen arriba de la lista. También podés guardar una tarea que ya tenga pasos desde su botón Pasos.</p>
+    <ul class="modelos-lista" id="modelos-lista"></ul>
+    <form class="modelo-form" id="modelo-form" autocomplete="off" hidden>
+      <label for="modelo-nombre">Nombre</label>
+      <input type="text" id="modelo-nombre" maxlength="100">
+      <label for="modelo-nota">Detalle (opcional)</label>
+      <input type="text" id="modelo-nota" maxlength="300">
+      <label for="modelo-pasos">Pasos (uno por línea)</label>
+      <textarea id="modelo-pasos" rows="6"></textarea>
+      <label for="modelo-hoja">Hoja</label>
+      <select id="modelo-hoja"></select>
+      <label class="marca"><input type="checkbox" id="modelo-urgente"> Urgente</label>
+      <div class="respaldo-botones">
+        <button type="submit" class="mini primario">Guardar plantilla</button>
+        <button type="button" class="mini" id="modelo-cancelar">Cancelar</button>
+      </div>
+    </form>
+    <div class="respaldo-botones">
+      <button type="button" class="mini primario" id="btn-modelo-nuevo">Nueva plantilla</button>
+    </div>
+    <p class="respaldo-estado" id="modelos-estado" role="status"></p>
   </section>
 
   <section class="respaldo" aria-labelledby="respaldo-t">
@@ -553,6 +596,11 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
   var PASOS = { abierto: {}, draft: {} };
   var MAX_PASOS = 20;
+  var LS_MODELOS = 'tareasdiarias.modelos', MAX_MODELOS = 12;
+  var MODELOS = [];
+  (function () {
+    try { var a = JSON.parse(lsLeer(LS_MODELOS) || '[]'); if (Array.isArray(a)) MODELOS = limpiarListaModelos(a); } catch (e) {}
+  })();
   var REP = { id: null };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
   var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
@@ -839,6 +887,52 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
     return r;
   }
+  /* --- plantillas (funciones puras) --- */
+  function limpiarModelo(m) {
+    if (!m || typeof m !== 'object') return null;
+    var uno = function (s, n) { return typeof s === 'string' ? s.replace(/\s+/g, ' ').trim().slice(0, n) : ''; };
+    var nombre = uno(m.nombre, 100);
+    if (!nombre) return null;
+    var pasos = Array.isArray(m.pasos) ? m.pasos.map(function (p) { return uno(typeof p === 'string' ? p : (p && p.text), 120); }).filter(Boolean).slice(0, MAX_PASOS) : [];
+    var dest = typeof m.dest === 'string' ? nombreValido(m.dest) : '';
+    return {
+      id: (typeof m.id === 'string' && /^[A-Za-z0-9_.~:@+-]{1,200}$/.test(m.id)) ? m.id : idNuevo(),
+      nombre: nombre,
+      nota: typeof m.nota === 'string' ? m.nota.trim().slice(0, 300) : '',
+      pasos: pasos,
+      dest: dest || '',
+      urgente: m.urgente === true
+    };
+  }
+  function limpiarListaModelos(arr) {
+    var res = [], ids = {}, noms = {};
+    arr.forEach(function (x) {
+      var m = limpiarModelo(x);
+      if (!m) return;
+      var k = m.nombre.toLowerCase();
+      if (noms[k]) return;
+      while (ids[m.id]) m.id = idNuevo();
+      noms[k] = true; ids[m.id] = true;
+      res.push(m);
+    });
+    return res.slice(0, MAX_MODELOS);
+  }
+  /* Sumar copia: si el nombre ya existe gana la versión del archivo. */
+  function mezclarModelos(actuales, nuevos) {
+    var porNombre = {}, vistos = {};
+    nuevos.forEach(function (n) { porNombre[n.nombre.toLowerCase()] = n; });
+    var res = actuales.map(function (a) {
+      var k = a.nombre.toLowerCase();
+      vistos[k] = true;
+      return porNombre[k] ? Object.assign({}, porNombre[k], { id: a.id }) : a;
+    });
+    nuevos.forEach(function (n) { if (!vistos[n.nombre.toLowerCase()]) res.push(n); });
+    return limpiarListaModelos(res);
+  }
+  function datosDeModelo(m) {
+    return { nota: m.nota, urgente: m.urgente, pasos: m.pasos.map(function (p) { return { text: p, done: false }; }) };
+  }
+
   /* --- posponer (funciones puras): mañana y el próximo lunes --- */
   function ddmm(d) { return dos(d.getDate()) + '/' + dos(d.getMonth() + 1); }
   function destinosPosponer(t, ahora) {
@@ -1083,6 +1177,15 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       ok.setAttribute('data-key', t.id + ':paso-agregar');
       nuevo.appendChild(inp); nuevo.appendChild(ok);
       box.appendChild(nuevo);
+    }
+    if (t.pasos.length) {
+      var acc = document.createElement('div');
+      acc.className = 'pasos-acciones';
+      var gm = boton('Guardar como plantilla', '', function () { guardarComoModelo(t); });
+      gm.setAttribute('data-key', t.id + ':modelo');
+      gm.setAttribute('aria-label', 'Guardar como plantilla: ' + t.text);
+      acc.appendChild(gm);
+      box.appendChild(acc);
     }
     return box;
   }
@@ -1576,8 +1679,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var RESP = { msg: '', error: false, t: null };
   var PEND = null;
 
-  function armarCopia(tareas, hojas, hist) {
-    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, tareas: tareas }, null, 2);
+  function armarCopia(tareas, hojas, hist, modelos) {
+    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], tareas: tareas }, null, 2);
   }
 
   /* Lee el texto de un archivo de copia. Devuelve { tareas, omitidas } o { error }. */
@@ -1597,7 +1700,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null };
   }
 
   function contarCopia(arr) {
@@ -1683,6 +1786,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     PEND.tareas.forEach(function (t) { if (t.dest) agregarHoja(t.dest); });
     guardarHojas();
     if (PEND.historial) { HIST = modo === 'reemplazar' ? PEND.historial : mezclarHist(HIST, PEND.historial); guardarHist(); }
+    if (PEND.modelos && PEND.modelos.length) { MODELOS = modo === 'reemplazar' ? PEND.modelos.slice() : mezclarModelos(MODELOS, PEND.modelos); guardarModelos(); pintarListaModelos(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -1695,7 +1799,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST);
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS);
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -1722,7 +1826,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       var r = leerCopia(String(rd.result));
       if (r.error) { ocultarConfirma(); avisoRespaldo(r.error, true); return; }
       PEND = r;
-      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
+      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
       $('respaldo-confirma').hidden = false;
       $('btn-sumar').focus();
     };
@@ -2056,6 +2160,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var propia = indiceHoja(S.hoja) >= 0;
     $('form-hoja').hidden = enCal || esHoy || !HOJAFORM;
     $('hoja-acciones').hidden = enCal || esHoy || !propia;
+    pintarModelos(!enCal && !esHoy && S.hoja !== 'repetidas');
     if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
     document.querySelector('.progreso').hidden = enCal;
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
@@ -2119,7 +2224,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido. Con Posponer movés una tarea a mañana o al lunes sin editar la fecha.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido. Con Posponer movés una tarea a mañana o al lunes sin editar la fecha. Con las plantillas creás de un toque una tarea con sus pasos.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -2347,6 +2452,171 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     setInterval(revisarAvisos, 30000);
     setTimeout(revisarAvisos, 1500);
   }
+
+  /* --- plantillas: interfaz --- */
+  var MOD = { editando: null, firma: '' };
+  function guardarModelos() { lsEscribir(LS_MODELOS, JSON.stringify(MODELOS)); }
+  function indiceModelo(nombre, salvoId) {
+    var n = String(nombre).toLowerCase();
+    for (var i = 0; i < MODELOS.length; i++) { if (MODELOS[i].nombre.toLowerCase() === n && MODELOS[i].id !== salvoId) return i; }
+    return -1;
+  }
+  function modeloPorId(id) { return MODELOS.filter(function (m) { return m.id === id; })[0] || null; }
+  function msgModelos(m, error) {
+    var e = $('modelos-estado');
+    e.className = 'respaldo-estado' + (error ? ' error' : '');
+    e.textContent = m || '';
+  }
+  function textoPasosModelo(m) { return m.pasos.length + (m.pasos.length === 1 ? ' paso' : ' pasos'); }
+
+  /* Botones de arriba de la lista: se rehacen solo si cambian las plantillas, para no perder el foco. */
+  function pintarModelos(visible) {
+    var box = $('modelos-rapidos');
+    if (!box || !MOD) return;
+    var firma = JSON.stringify(MODELOS.map(function (m) { return [m.id, m.nombre, m.pasos.length]; }));
+    if (firma !== MOD.firma) {
+      MOD.firma = firma;
+      box.textContent = '';
+      var rot = document.createElement('span');
+      rot.className = 'limite-rotulo'; rot.textContent = 'Plantillas: creá una tarea con un toque';
+      box.appendChild(rot);
+      MODELOS.forEach(function (m) {
+        var b = boton('+ ' + m.nombre + (m.pasos.length ? ' · ' + textoPasosModelo(m) : ''), '', function () { usarModelo(m.id); });
+        b.setAttribute('data-key', 'modelo:' + m.id);
+        b.setAttribute('aria-label', b.textContent + '. Crear tarea desde esta plantilla');
+        box.appendChild(b);
+      });
+    }
+    box.hidden = !visible || !MODELOS.length;
+  }
+
+  function usarModelo(id) {
+    var m = modeloPorId(id);
+    if (!m || !S.listo) return;
+    var k = m.dest ? indiceHoja(m.dest) : -1;
+    var hoja = k >= 0 ? EXTRA[k] : (indiceHoja(S.hoja) >= 0 ? S.hoja : 'diarias');
+    var nid = idNuevo();
+    crearTarea(m.nombre, hoja, null, Object.assign({ id: nid }, datosDeModelo(m)));
+    avisar('Creada «' + m.nombre + '»' + (m.pasos.length ? ' con ' + textoPasosModelo(m) : ''), function () { quitarTarea(nid); });
+  }
+
+  function pintarListaModelos() {
+    var ul = $('modelos-lista');
+    if (!ul) return;
+    ul.textContent = '';
+    if (!MODELOS.length) {
+      var v = document.createElement('li');
+      v.className = 'modelo-vacio'; v.textContent = 'Todavía no tenés plantillas.';
+      ul.appendChild(v);
+    }
+    MODELOS.forEach(function (m) {
+      var li = document.createElement('li');
+      li.className = 'modelo';
+      var tx = document.createElement('div');
+      tx.className = 'modelo-texto';
+      var st = document.createElement('strong'); st.textContent = m.nombre;
+      var meta = document.createElement('span'); meta.className = 'modelo-meta';
+      var partes = [m.pasos.length ? textoPasosModelo(m) : 'sin pasos'];
+      if (m.dest) partes.push(m.dest);
+      if (m.urgente) partes.push('urgente');
+      meta.textContent = partes.join(' · ');
+      tx.appendChild(st); tx.appendChild(meta);
+      var crear = boton('Crear', 'primario', function () { usarModelo(m.id); });
+      crear.setAttribute('data-key', 'modelo-lista:crear:' + m.id);
+      crear.setAttribute('aria-label', 'Crear tarea desde la plantilla: ' + m.nombre);
+      var edit = boton('Editar', '', function () { abrirFormModelo(m); });
+      edit.setAttribute('data-key', 'modelo-lista:editar:' + m.id);
+      edit.setAttribute('aria-label', 'Editar la plantilla: ' + m.nombre);
+      var del = boton('Borrar', '', function () { quitarModelo(m.id); });
+      del.setAttribute('data-key', 'modelo-lista:borrar:' + m.id);
+      del.setAttribute('aria-label', 'Borrar la plantilla: ' + m.nombre);
+      li.appendChild(tx); li.appendChild(crear); li.appendChild(edit); li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  function cambiaronModelos() { guardarModelos(); pintarListaModelos(); render(); }
+
+  function quitarModelo(id) {
+    var i = MODELOS.map(function (m) { return m.id; }).indexOf(id);
+    if (i < 0) return;
+    var m = MODELOS[i];
+    MODELOS.splice(i, 1);
+    cambiaronModelos();
+    var vecina = MODELOS[Math.min(i, MODELOS.length - 1)];
+    var el = vecina ? document.querySelector('[data-key="modelo-lista:crear:' + vecina.id + '"]') : $('btn-modelo-nuevo');
+    if (el) el.focus();
+    avisar('Plantilla «' + m.nombre + '» borrada', function () {
+      if (indiceModelo(m.nombre) >= 0 || MODELOS.length >= MAX_MODELOS) return;
+      MODELOS.splice(Math.min(i, MODELOS.length), 0, m);
+      cambiaronModelos();
+    });
+  }
+
+  function guardarComoModelo(t) {
+    var m = limpiarModelo({ id: idNuevo(), nombre: t.text, nota: t.nota, pasos: t.pasos, dest: t.dest, urgente: t.urgente });
+    if (!m) return;
+    var i = indiceModelo(m.nombre);
+    if (i >= 0) {
+      var previa = MODELOS[i];
+      MODELOS[i] = Object.assign({}, m, { id: previa.id });
+      cambiaronModelos();
+      avisar('Plantilla «' + m.nombre + '» actualizada', function () { MODELOS[i] = previa; cambiaronModelos(); });
+      return;
+    }
+    if (MODELOS.length >= MAX_MODELOS) { avisar('Podés tener hasta ' + MAX_MODELOS + ' plantillas', null); return; }
+    MODELOS.push(m);
+    cambiaronModelos();
+    avisar('Plantilla «' + m.nombre + '» guardada: la ves arriba de la lista', function () {
+      var k = MODELOS.map(function (x) { return x.id; }).indexOf(m.id);
+      if (k >= 0) { MODELOS.splice(k, 1); cambiaronModelos(); }
+    });
+  }
+
+  function abrirFormModelo(m) {
+    MOD.editando = m ? m.id : 'nuevo';
+    msgModelos('');
+    var sel = $('modelo-hoja');
+    sel.textContent = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'La hoja donde esté'; sel.appendChild(o0);
+    EXTRA.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+    $('modelo-nombre').value = m ? m.nombre : '';
+    $('modelo-nota').value = m ? m.nota : '';
+    $('modelo-pasos').value = m ? m.pasos.join('\n') : '';
+    sel.value = m && m.dest && indiceHoja(m.dest) >= 0 ? EXTRA[indiceHoja(m.dest)] : '';
+    $('modelo-urgente').checked = !!(m && m.urgente);
+    $('modelo-form').hidden = false;
+    $('modelo-nombre').focus();
+  }
+  function cerrarFormModelo() {
+    MOD.editando = null;
+    $('modelo-form').hidden = true;
+    $('btn-modelo-nuevo').focus();
+  }
+  $('btn-modelo-nuevo').addEventListener('click', function () {
+    if (MODELOS.length >= MAX_MODELOS) { msgModelos('Podés tener hasta ' + MAX_MODELOS + ' plantillas. Borrá una para crear otra.', true); return; }
+    abrirFormModelo(null);
+  });
+  $('modelo-cancelar').addEventListener('click', function () { msgModelos(''); cerrarFormModelo(); });
+  $('modelo-form').addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { e.preventDefault(); msgModelos(''); cerrarFormModelo(); }
+  });
+  $('modelo-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nombre = $('modelo-nombre').value.replace(/\s+/g, ' ').trim();
+    if (!nombre) { msgModelos('Escribí un nombre para la plantilla.', true); $('modelo-nombre').focus(); return; }
+    var lineas = $('modelo-pasos').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var editId = MOD.editando && MOD.editando !== 'nuevo' ? MOD.editando : null;
+    var datos = limpiarModelo({ id: editId || idNuevo(), nombre: nombre, nota: $('modelo-nota').value, pasos: lineas, dest: $('modelo-hoja').value, urgente: $('modelo-urgente').checked });
+    if (indiceModelo(datos.nombre, editId) >= 0) { msgModelos('Ya tenés una plantilla con ese nombre.', true); $('modelo-nombre').focus(); return; }
+    if (!editId && MODELOS.length >= MAX_MODELOS) { msgModelos('Podés tener hasta ' + MAX_MODELOS + ' plantillas.', true); return; }
+    if (editId) MODELOS = MODELOS.map(function (m) { return m.id === editId ? datos : m; });
+    else MODELOS.push(datos);
+    cambiaronModelos();
+    cerrarFormModelo();
+    msgModelos('Plantilla «' + datos.nombre + '» guardada' + (lineas.length > MAX_PASOS ? ' (se guardaron los primeros ' + MAX_PASOS + ' pasos)' : '') + '.');
+  });
+  pintarListaModelos();
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
 
   modoLocal();
