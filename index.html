@@ -134,6 +134,35 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .hist-fila .ok { flex: none; color: var(--accent); font-weight: 700; }
 .hist-fila .hora { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
 .hist-nota { margin: 8px 2px 0; font-size: 0.8125rem; color: var(--muted); }
+.hist-resumen { margin: 0 0 8px; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.hist-racha { margin: 0 0 4px; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.hist-ayuda { margin: 0 0 14px; font-size: 0.8125rem; color: var(--muted); }
+.progreso-racha { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; color: var(--accent); }
+.progreso-racha[hidden] { display: none; }
+.enf-card, .fin-dia { display: grid; gap: 14px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; max-width: 100%; }
+.fin-dia { margin-bottom: 14px; border-color: var(--accent); background: var(--accent-soft); gap: 8px; }
+.fin-dia[hidden], .enf-card[hidden], .enf-nota[hidden], .enf-pasos[hidden] { display: none; }
+.fin-dia h2 { margin: 0; font-family: var(--font-display); font-size: 1.375rem; }
+.fin-frase { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere; }
+.fin-datos { margin: 0; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted); }
+.fin-dia .mini { justify-self: start; min-height: 44px; padding: 0 14px; }
+.enf-etiqueta { margin: 0; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted); }
+.enf-titulo { margin: 0; font-family: var(--font-display); font-size: 1.5rem; line-height: 1.25; overflow-wrap: anywhere; }
+.enf-nota { margin: 0; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.enf-pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.enf-pasos label { display: flex; align-items: center; gap: 10px; min-height: 44px; overflow-wrap: anywhere; }
+.enf-pasos input { flex: none; width: 24px; height: 24px; }
+.enf-tiempo { display: grid; gap: 10px; justify-items: center; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.enf-reloj { font-family: var(--font-mono); font-size: 2.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.enf-fila { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.enf-btn { min-height: 44px; min-width: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.enf-btn[aria-pressed="true"], .enf-btn.principal { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.enf-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.enf-estado { margin: 0; min-height: 1.4em; text-align: center; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.enf-elegir { display: grid; gap: 4px; }
+.enf-elegir label { font-size: 0.8125rem; color: var(--muted); }
+.enf-card > *, .fin-dia > * { min-width: 0; }
+.enf-elegir select { width: 100%; min-height: 44px; max-width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0 8px; }
 #hist-titulo { font-size: 1.125rem; text-transform: none; }
 .cal-nav h2 { flex: 1; min-width: 0; margin: 0; text-align: center; font-family: var(--font-display); font-size: 1.375rem; font-weight: 700; text-transform: capitalize; }
 .cal-nav .mini { min-width: 44px; height: 44px; }
@@ -363,6 +392,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <div class="progreso-linea">
         <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
         <div class="progreso-venc" id="progreso-venc" hidden></div>
+        <div class="progreso-racha" id="progreso-racha" hidden></div>
       </div>
       <div class="barra" aria-hidden="true"><span id="progreso-barra"></span></div>
     </div>
@@ -374,6 +404,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     <button type="button" class="vista" data-vista="lista" aria-pressed="true">Lista</button>
     <button type="button" class="vista" data-vista="calendario" aria-pressed="false">Calendario</button>
     <button type="button" class="vista" data-vista="historial" aria-pressed="false">Historial</button>
+    <button type="button" class="vista" data-vista="enfoque" aria-pressed="false">Enfoque</button>
   </div>
 
   <form class="nueva" id="form-nueva" autocomplete="off">
@@ -426,6 +457,37 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     <p class="filtro-estado" id="filtro-estado" role="status"></p>
   </div>
 
+  <div class="fin-dia" id="fin-dia" role="status" hidden></div>
+
+  <section id="vista-enfoque" hidden aria-label="Modo enfoque">
+    <div class="enf-card" id="enf-card">
+      <p class="enf-etiqueta" id="enf-etiqueta"></p>
+      <h2 class="enf-titulo" id="enf-titulo" tabindex="-1"></h2>
+      <p class="enf-nota" id="enf-nota" hidden></p>
+      <ul class="enf-pasos" id="enf-pasos" aria-label="Pasos" hidden></ul>
+      <div class="enf-tiempo">
+        <div class="enf-reloj" id="enf-reloj" role="timer" aria-live="off" aria-label="Tiempo restante">25:00</div>
+        <div class="enf-fila" role="group" aria-label="Duración del temporizador" id="enf-dur">
+          <button type="button" class="enf-btn" data-min="15" aria-pressed="false">15 min</button>
+          <button type="button" class="enf-btn" data-min="25" aria-pressed="true">25 min</button>
+          <button type="button" class="enf-btn" data-min="45" aria-pressed="false">45 min</button>
+        </div>
+        <div class="enf-fila">
+          <button type="button" class="enf-btn principal" id="enf-iniciar">Iniciar</button>
+          <button type="button" class="enf-btn" id="enf-reiniciar">Reiniciar</button>
+        </div>
+        <p class="enf-estado" id="enf-estado" role="status"></p>
+      </div>
+      <div class="enf-fila">
+        <button type="button" class="enf-btn principal" id="enf-hecha">Marcar como hecha</button>
+        <button type="button" class="enf-btn" id="enf-saltar">Saltar</button>
+      </div>
+      <div class="enf-elegir"><label for="enf-elegir">Elegir otra tarea</label><select id="enf-elegir"></select></div>
+    </div>
+    <div class="vacio" id="enf-vacio" hidden><strong>Nada para enfocar</strong><span>No tenés tareas pendientes. Agregá una desde Lista.</span></div>
+    <div class="fin-dia" id="enf-fin" role="status" hidden></div>
+  </section>
+
   <section class="planilla" id="planilla" aria-label="Planilla de tareas">
     <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Hoja</span><span></span></div>
     <ul class="lista" id="lista" aria-label="Lista de tareas" tabindex="-1"></ul>
@@ -468,6 +530,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <button type="button" class="mini" id="hist-hoy">Hoy</button>
     </div>
     <p class="hist-total" id="hist-total" aria-live="polite"></p>
+    <p class="hist-resumen" id="hist-resumen" hidden></p>
+    <p class="hist-racha" id="hist-racha"></p>
+    <p class="hist-ayuda" id="hist-ayuda">Un día suma a la racha cuando tildás tus tareas urgentes y no queda ninguna urgente pendiente. Los días sin urgentes no la cortan; un día con urgentes sin cerrar, sí. Se cuenta en este dispositivo.</p>
     <div class="hist-barras" id="hist-barras" role="group" aria-label="Tareas hechas por día"></div>
     <div class="cal-panel">
       <h3 id="hist-dia-titulo"></h3>
@@ -592,6 +657,26 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     if (ks.length > 400) ks.slice(0, ks.length - 400).forEach(function (k) { delete HIST[k]; });
     lsEscribir(LS_HIST, JSON.stringify(HIST));
   }
+  var LS_ENF = 'tareasdiarias.enfoque';
+  var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
+  try {
+    var oe = JSON.parse(lsLeer(LS_ENF) || 'null');
+    if (oe && typeof oe === 'object') {
+      if ([15, 25, 45].indexOf(oe.dur / 60000) >= 0) ENF.dur = oe.dur;
+      if (typeof oe.fin === 'number' && isFinite(oe.fin)) ENF.fin = oe.fin;
+      if (typeof oe.pausa === 'number' && oe.pausa > 0 && oe.pausa <= ENF.dur) ENF.pausa = oe.pausa;
+      if (typeof oe.id === 'string') ENF.id = oe.id;
+    }
+  } catch (e) {}
+  var ENF_T = null;
+  var LS_RACH = 'tareasdiarias.rachas';
+  var RACH = { ok: {}, vis: {} };
+  try { RACH = limpiarRach(JSON.parse(lsLeer(LS_RACH) || 'null')); } catch (e) {}
+  function guardarRach() { lsEscribir(LS_RACH, JSON.stringify(limpiarRach(RACH))); }
+  function urgPend(exceptoId) {
+    return S.tareas.filter(function (t) { return !t.done && t.urgente && !t.plantilla && !esFutura(t) && t.id !== exceptoId; }).length;
+  }
+  function rachaHoy() { return calcularRacha(RACH.ok, RACH.vis, hoyStr()); }
   /* Cada tilde suma al día en que se hizo; destildar lo descuenta. Se guarda aparte para que borrar tareas no borre el historial. */
   function registrarHecha(id, campos) {
     if (!campos || !Object.prototype.hasOwnProperty.call(campos, 'done') || Object.prototype.hasOwnProperty.call(campos, 'hechaEn')) return campos;
@@ -603,8 +688,18 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       extra.hechaEn = ahora;
       HIST[k] = (HIST[k] || 0) + 1;
       guardarHist();
+      if (prev.urgente && !prev.plantilla) {
+        RACH.vis[k] = 1;
+        if (urgPend(id) === 0) RACH.ok[k] = 1;
+        guardarRach();
+      }
     } else {
       extra.hechaEn = null;
+      if (prev.urgente && !prev.plantilla) {
+        var kh = claveDia(Date.now());
+        RACH.vis[kh] = 1; delete RACH.ok[kh];
+        guardarRach();
+      }
       if (prev.hechaEn) {
         var k2 = claveDia(prev.hechaEn);
         if (HIST[k2] > 0) { HIST[k2]--; if (!HIST[k2]) delete HIST[k2]; guardarHist(); }
@@ -1101,6 +1196,95 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     L.push('END:VCALENDAR');
     return { texto: L.map(plegarICS).join('\r\n') + '\r\n', cantidad: n };
   }
+  /* --- rachas, resumen semanal, enfoque y frases (funciones puras) --- */
+  var DIAS_MIN = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  function textoDias(n) { return n + (n === 1 ? ' día' : ' días'); }
+  function resumenSemana(h, lunes) {
+    var sem = semanaHist(h, lunes), total = 0, mejor = null, previa = 0;
+    sem.forEach(function (d) { total += d.n; if (d.n && (!mejor || d.n > mejor.n)) mejor = d; });
+    semanaHist(h, sumarDias(lunes, -7)).forEach(function (d) { previa += d.n; });
+    return { total: total, mejor: mejor, previa: previa };
+  }
+  function textoResumen(r) {
+    if (!r || !r.total) return '';
+    var s = 'Hiciste ' + r.total + (r.total === 1 ? ' tarea' : ' tareas') + ', tu mejor día fue el ' + DIAS_MIN[diaSemana(r.mejor.clave)] + ' (' + r.mejor.n + ').';
+    if (r.previa > 0) {
+      var d = r.total - r.previa;
+      s += d > 0 ? ' Son ' + d + (d === 1 ? ' más' : ' más') + ' que la semana anterior.' : d < 0 ? ' Son ' + (-d) + ' menos que la semana anterior.' : ' Igual que la semana anterior.';
+    }
+    return s;
+  }
+  function limpiarRach(o) {
+    var r = { ok: {}, vis: {} };
+    if (!o || typeof o !== 'object') return r;
+    ['ok', 'vis'].forEach(function (campo) {
+      var src = o[campo];
+      if (!src || typeof src !== 'object' || Array.isArray(src)) return;
+      Object.keys(src).sort().slice(-400).forEach(function (k) { if (/^\d{4}-\d{2}-\d{2}$/.test(k) && src[k]) r[campo][k] = 1; });
+    });
+    return r;
+  }
+  /* ok: días con las urgentes cerradas. vis: días en que había urgentes pendientes. Día con urgentes sin cerrar corta; día sin urgentes ni suma ni corta. */
+  function calcularRacha(ok, vis, hoy) {
+    var r = { n: 0, mejor: 0, hoyOk: !!ok[hoy] };
+    var ks = Object.keys(ok).concat(Object.keys(vis)).sort();
+    if (!ks.length) return r;
+    var d = ks[0], tope = sumarDias(hoy, -400), cur = 0, hueco = 0;
+    if (d < tope) d = tope;
+    while (d <= hoy) {
+      if (ok[d]) { cur++; hueco = 0; if (cur > r.mejor) r.mejor = cur; }
+      else if (vis[d] && d < hoy) { cur = 0; hueco = 0; }
+      else if (d < hoy && ++hueco > 30) cur = 0;
+      d = sumarDias(d, 1);
+    }
+    r.n = cur;
+    return r;
+  }
+  var FRASES = [
+    'Día cerrado. Lo que quedó para mañana, que espere a mañana.',
+    'Todo tildado. Te ganaste un rato sin pantallas.',
+    'Hoy hiciste lo que tenías que hacer. Descansar también cuenta.',
+    'Misión cumplida. Cerrá la app sin culpa.',
+    'Una tarea por vez y llegaste. Bien ahí.',
+    'Lista vacía, cabeza liviana.',
+    'Hoy avanzaste. Mañana seguís.',
+    'Terminaste lo de hoy. Tomate un mate.',
+    'La constancia es esto que acabás de hacer.',
+    'Podés irte tranquilo: no queda nada pendiente.',
+    'Cada tilde cuenta, y hoy los juntaste todos.',
+    'Buen cierre de día. Que descanses.',
+    'Hoy ganaste tiempo para vos.',
+    'Día ordenado, cabeza ordenada.',
+    'Todo hecho. Disfrutá lo que queda del día.',
+    'Paso a paso, y hoy llegaste al final.',
+    'Listo por hoy. Mañana será otro día.',
+    'Cumpliste con vos mismo. Eso se nota.',
+    'Sin pendientes. Buen momento para respirar hondo.',
+    'Gracias por el esfuerzo de hoy. Descansá.'
+  ];
+  function fraseDelDia(clave, salto) {
+    var h = 0;
+    for (var i = 0; i < clave.length; i++) h = (h * 31 + clave.charCodeAt(i)) % 100000;
+    return FRASES[(h + (salto || 0)) % FRASES.length];
+  }
+  function formatoTemp(ms) {
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    return dos(Math.floor(s / 60)) + ':' + dos(s % 60);
+  }
+  function duracionTexto(ms) {
+    var s = Math.max(0, Math.ceil(ms / 1000)), m = Math.floor(s / 60), r = s % 60, p = [];
+    if (m) p.push(m + (m === 1 ? ' minuto' : ' minutos'));
+    if (r || !m) p.push(r + (r === 1 ? ' segundo' : ' segundos'));
+    return p.join(' ');
+  }
+  /* Cola del modo enfoque: atrasadas, de hoy, urgentes y después el resto de lo pendiente. */
+  function colaEnfoque(tareas, ahora) {
+    var g = agruparHoy(tareas, ahora), vistos = {}, cola = [];
+    g.atrasadas.concat(g.hoy, g.urgentes).forEach(function (t) { vistos[t.id] = true; cola.push(t); });
+    var resto = tareas.filter(function (t) { return !t.done && !t.plantilla && !vistos[t.id] && !esFutura(t); })
+      .sort(function (a, b) { return (!!b.urgente - !!a.urgente) || (a.created - b.created); });
+    return cola.concat(resto);
+  }
   /* --- fin funciones puras --- */
 
   function actualizarQuitar() { btnQuitarLim.hidden = !(inFecha.value || inHora.value); }
@@ -1473,7 +1657,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Calendario mensual ---------- */
   var LS_VISTA = 'tareasdiarias.vista';
-  var VISTA = (lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial') ? lsLeer(LS_VISTA) : 'lista';
+  var VISTA = (lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque') ? lsLeer(LS_VISTA) : 'lista';
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
 
   function crearCeldaDia(d, res, hoy) {
@@ -1637,6 +1821,15 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       ? (esActual ? 'Todavía no hay tareas hechas esta semana.' : 'No hay tareas hechas registradas en esa semana.')
       : total + (total === 1 ? ' tarea hecha' : ' tareas hechas') + ' en la semana' + (mejor && total > mejor.n ? ' · mejor día: ' + NOMBRE_DIA[diaSemana(mejor.clave)] + ' (' + mejor.n + ')' : '');
 
+    var resTxt = textoResumen(resumenSemana(HIST, HI.lunes));
+    $('hist-resumen').hidden = !resTxt;
+    $('hist-resumen').textContent = resTxt;
+    var rr = rachaHoy(), pu = S.listo ? urgPend(null) : 0;
+    var txtR = (rr.n > 0 ? 'Racha de urgentes: ' + textoDias(rr.n) : (rr.mejor > 0 ? 'Sin racha por ahora' : 'Todavía no tenés racha de urgentes'));
+    if (rr.mejor > rr.n) txtR += ' · mejor racha: ' + textoDias(rr.mejor);
+    txtR += rr.hoyOk ? ' · hoy ya cerraste lo urgente.' : (pu > 0 ? ' · para sumar hoy te ' + (pu === 1 ? 'falta 1 urgente.' : 'faltan ' + pu + ' urgentes.') : '.');
+    $('hist-racha').textContent = txtR;
+
     var max = 1;
     sem.forEach(function (d) { if (d.n > max) max = d.n; });
     var cont = $('hist-barras');
@@ -1702,6 +1895,51 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     lsEscribir(LS_VISTA, VISTA);
     render();
   });
+  $('enf-dur').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-min]') : null;
+    if (!b) return;
+    ENF.dur = +b.getAttribute('data-min') * 60000; ENF.fin = null; ENF.pausa = null;
+    ENF.msg = 'Duración: ' + duracionTexto(ENF.dur) + '.';
+    guardarEnf(); programarEnf(); render();
+  });
+  $('enf-iniciar').addEventListener('click', function () {
+    if (ENF.fin) {
+      ENF.pausa = Math.max(1000, ENF.fin - Date.now()); ENF.fin = null;
+      ENF.msg = 'En pausa. Quedan ' + duracionTexto(ENF.pausa) + '.';
+    } else {
+      var rest = ENF.pausa || ENF.dur;
+      ENF.fin = Date.now() + rest; ENF.pausa = null;
+      ENF.msg = 'Temporizador en marcha: ' + duracionTexto(rest) + '.';
+    }
+    guardarEnf(); programarEnf(); render();
+  });
+  $('enf-reiniciar').addEventListener('click', function () {
+    ENF.fin = null; ENF.pausa = null; ENF.msg = 'Temporizador reiniciado.';
+    guardarEnf(); programarEnf(); render();
+  });
+  $('enf-saltar').addEventListener('click', function () {
+    var q = tareaEnfoque();
+    if (!q.cur || q.cola.length < 2) return;
+    ENF.saltadas.push(q.cur.id); ENF.id = null;
+    ENF.msg = 'Saltaste esa tarea. Vuelve a aparecer cuando termines las demás.';
+    guardarEnf(); render();
+  });
+  $('enf-elegir').addEventListener('change', function () {
+    ENF.id = $('enf-elegir').value;
+    ENF.saltadas = ENF.saltadas.filter(function (x) { return x !== ENF.id; });
+    guardarEnf(); render();
+  });
+  $('enf-hecha').addEventListener('click', function () {
+    var q = tareaEnfoque();
+    if (!q.cur) return;
+    var sig = q.cola.filter(function (t) { return t.id !== q.cur.id; })[0];
+    ENF.fin = null; ENF.pausa = null; ENF.id = sig ? sig.id : null;
+    ENF.msg = 'Hecha. ' + (sig ? 'Siguiente: ' + sig.text : 'No quedan tareas pendientes.');
+    guardarEnf(); programarEnf();
+    cambiarTarea(q.cur.id, { done: true });
+    var t = $('enf-titulo'); if (!$('enf-card').hidden) t.focus();
+  });
+  programarEnf();
   $('cal-ant').addEventListener('click', function () { irMes(-1); });
   $('cal-sig').addEventListener('click', function () { irMes(1); });
   $('cal-hoy').addEventListener('click', function () {
@@ -2141,6 +2379,123 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     return li;
   }
 
+  /* ---------- Fin de día ---------- */
+  var FIN_SALTO = 0;
+  function pintarFinDia(el, mostrar) {
+    if (!el) return;
+    el.hidden = !mostrar;
+    if (!mostrar) { el.removeAttribute('data-k'); el.textContent = ''; return; }
+    var hoy = hoyStr(), n = HIST[hoy] || 0, rr = rachaHoy();
+    var k = hoy + '|' + n + '|' + FIN_SALTO + '|' + rr.n;
+    if (el.getAttribute('data-k') === k) return;
+    var tenia = el.contains(document.activeElement);
+    el.setAttribute('data-k', k);
+    el.textContent = '';
+    var h = document.createElement('h2'); h.textContent = '¡Todo listo por hoy!';
+    var p = document.createElement('p'); p.className = 'fin-frase'; p.textContent = fraseDelDia(hoy, FIN_SALTO);
+    el.appendChild(h); el.appendChild(p);
+    var datos = [];
+    if (n > 0) datos.push('Hoy hiciste ' + n + (n === 1 ? ' tarea' : ' tareas'));
+    if (rr.n > 0) datos.push('Racha de urgentes: ' + textoDias(rr.n));
+    if (datos.length) { var d = document.createElement('p'); d.className = 'fin-datos'; d.textContent = datos.join(' · '); el.appendChild(d); }
+    var b = boton('Otra frase', 'fin-otra', function () { FIN_SALTO++; render(); });
+    el.appendChild(b);
+    if (tenia) b.focus();
+  }
+  function pintarRacha() {
+    var el = $('progreso-racha'), rr = rachaHoy();
+    el.hidden = !(rr.n > 0);
+    var t = 'Racha de urgentes: ' + textoDias(rr.n);
+    if (el.textContent !== t) el.textContent = t;
+  }
+  function marcarUrgVis() {
+    if (!S.listo) return;
+    var k = hoyStr();
+    if (!RACH.vis[k] && urgPend(null) > 0) { RACH.vis[k] = 1; guardarRach(); }
+  }
+
+  /* ---------- Modo enfoque ---------- */
+  function guardarEnf() { lsEscribir(LS_ENF, JSON.stringify({ id: ENF.id, dur: ENF.dur, fin: ENF.fin, pausa: ENF.pausa })); }
+  function restanteEnf() { return ENF.fin ? Math.max(0, ENF.fin - Date.now()) : (ENF.pausa || ENF.dur); }
+  function pintarReloj() {
+    var r = restanteEnf();
+    $('enf-reloj').textContent = formatoTemp(r);
+    if (ENF.fin && VISTA === 'enfoque') document.title = formatoTemp(r) + ' · Enfoque · Tareas diarias';
+  }
+  function programarEnf() {
+    clearInterval(ENF_T); ENF_T = null;
+    if (ENF.fin) ENF_T = setInterval(ticEnf, 1000);
+  }
+  function ticEnf() {
+    if (ENF.fin && Date.now() >= ENF.fin) { terminarEnf(true); return; }
+    if (VISTA === 'enfoque') pintarReloj();
+  }
+  function terminarEnf(avisarFin) {
+    ENF.fin = null; ENF.pausa = null; guardarEnf(); programarEnf();
+    ENF.msg = avisarFin ? 'Terminó el tiempo. ¡Buen trabajo!' : 'El tiempo terminó.';
+    if (avisarFin) {
+      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+      if (permisoAvisos() === 'granted') mostrarNotif('Terminó el tiempo de enfoque', 'Podés marcar la tarea como hecha o seguir con otra.', 'enfoque');
+      if (VISTA !== 'enfoque') avisar('Terminó el tiempo de enfoque', null);
+    }
+    render();
+  }
+  function tareaEnfoque() {
+    var todas = colaEnfoque(S.tareas, AHORA);
+    var cola = todas.filter(function (t) { return ENF.saltadas.indexOf(t.id) < 0; });
+    if (!cola.length && todas.length) { ENF.saltadas = []; cola = todas; }
+    var cur = null;
+    cola.forEach(function (t) { if (t.id === ENF.id) cur = t; });
+    if (!cur) cur = cola[0] || null;
+    ENF.id = cur ? cur.id : null;
+    return { cur: cur, cola: cola, todas: todas };
+  }
+  function renderEnfoque() {
+    var act = document.activeElement, fid = act && act.id ? act.id : null;
+    pie.hidden = true;
+    if (ENF.fin && Date.now() >= ENF.fin) { ENF.fin = null; ENF.pausa = null; ENF.msg = 'El tiempo terminó.'; guardarEnf(); programarEnf(); }
+    var q = S.listo ? tareaEnfoque() : { cur: null, cola: [], todas: [] }, cur = q.cur;
+    $('enf-card').hidden = !cur;
+    $('enf-vacio').hidden = !!cur || !S.listo;
+    pintarFinDia($('enf-fin'), S.listo && !cur && (HIST[hoyStr()] || 0) > 0);
+    if (!cur) { document.title = 'Enfoque · Tareas diarias'; return; }
+    var pos = q.todas.indexOf(cur) + 1, partes = [];
+    if (cur.urgente) partes.push('★ Urgente');
+    if (cur.due != null && cur.due < AHORA) partes.push('Atrasada'); else if (fechaDe(cur) === hoyStr()) partes.push('Para hoy');
+    partes.push('Tarea ' + pos + ' de ' + q.todas.length);
+    $('enf-etiqueta').textContent = partes.join(' · ');
+    $('enf-titulo').textContent = cur.text;
+    $('enf-nota').hidden = !cur.nota;
+    $('enf-nota').textContent = cur.nota || '';
+    var ul = $('enf-pasos');
+    ul.textContent = '';
+    cur.pasos.forEach(function (p, i) {
+      var li = document.createElement('li'), lab = document.createElement('label'), cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.id = 'enf-paso-' + i; cb.checked = !!p.done;
+      cb.addEventListener('change', function () { marcarPaso(cur.id, i, cb.checked); });
+      var sp = document.createElement('span'); sp.textContent = p.text;
+      lab.appendChild(cb); lab.appendChild(sp); li.appendChild(lab); ul.appendChild(li);
+    });
+    ul.hidden = !cur.pasos.length;
+    Array.prototype.forEach.call(document.querySelectorAll('#enf-dur [data-min]'), function (b) {
+      b.setAttribute('aria-pressed', +b.getAttribute('data-min') * 60000 === ENF.dur ? 'true' : 'false');
+    });
+    $('enf-iniciar').textContent = ENF.fin ? 'Pausar' : (ENF.pausa ? 'Seguir' : 'Iniciar');
+    pintarReloj();
+    var st = $('enf-estado');
+    if (st.textContent !== ENF.msg) st.textContent = ENF.msg;
+    $('enf-saltar').disabled = q.cola.length < 2;
+    var sel = $('enf-elegir');
+    sel.textContent = '';
+    q.todas.forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t.id; o.textContent = (t.urgente ? '★ ' : '') + (t.text.length > 60 ? t.text.slice(0, 57) + '...' : t.text);
+      sel.appendChild(o);
+    });
+    sel.value = cur.id;
+    if (fid) { var e = document.getElementById(fid); if (e && !e.disabled && e !== document.activeElement) e.focus(); }
+  }
+
   function renderHoy() {
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
@@ -2184,6 +2539,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var todasHoy = gAll.atrasadas.concat(gAll.hoy, gAll.urgentes, gAll.hechas);
     pintarBarraBusqueda(todasHoy, g.atrasadas.length + g.hoy.length + g.urgentes.length + g.hechas.length);
     pie.hidden = true;
+    pintarFinDia($('fin-dia'), S.listo && pend === 0 && gAll.hechas.length > 0);
     $('col-1').textContent = 'Hecha';
     $('ayuda').textContent = 'Junta de todas tus hojas lo atrasado, lo que vence hoy y lo urgente. Se usa igual que la lista: tildá para hacerla. Lo que tildás queda en "Hechas hoy".';
     if (clave) {
@@ -2203,12 +2559,15 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   function render() {
     AHORA = Date.now();
     sincronizarHojas();
-    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : nombreHoja(S.hoja))) + ' · Tareas diarias';
+    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Tareas diarias';
     pintarRespaldo();
     var esHoy = VISTA === 'hoy';
     var enCal = VISTA !== 'lista' && !esHoy;
     $('vista-cal').hidden = VISTA !== 'calendario';
     $('vista-hist').hidden = VISTA !== 'historial';
+    $('vista-enfoque').hidden = VISTA !== 'enfoque';
+    marcarUrgVis(); pintarRacha();
+    if (enCal) pintarFinDia($('fin-dia'), false);
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
     if (esHoy) { $('form-nueva').hidden = true; $('solapas').hidden = true; }
     var propia = indiceHoja(S.hoja) >= 0;
@@ -2223,6 +2582,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     if (VISTA === 'calendario') { renderCalendario(); return; }
     if (VISTA === 'historial') { renderHistorial(); return; }
+    if (VISTA === 'enfoque') { renderEnfoque(); return; }
     if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
@@ -2258,6 +2618,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       filtradas.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
     }
     if (S.hoja !== 'repetidas') pintarBarraBusqueda(visibles, filtradas.length);
+    pintarFinDia($('fin-dia'), S.listo && S.hoja !== 'repetidas' && visibles.length > 0 && hechas === visibles.length);
 
     pintarSolapas();
 
