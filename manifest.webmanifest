@@ -1,7 +1,7 @@
 {
   "name": "Tareas diarias",
   "short_name": "Tareas",
-  "description": "Planilla de tareas diarias con hoja Instituto. Funciona sin conexión.",
+  "description": "Planilla de tareas diarias con hojas propias, calendario e historial. Funciona sin conexión.",
   "lang": "es-AR",
   "start_url": "./",
   "scope": "./",
