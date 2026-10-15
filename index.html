@@ -232,6 +232,9 @@ button.nota:hover { color: var(--ink); }
 button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .pasos { min-width: 0; padding: 0 8px 10px 52px; }
 .fila > .pasos { grid-column: 1 / -1; }
+.fila > .posponer { grid-column: 1 / -1; }
+.posponer { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 10px 52px; }
+.posponer .mini { min-height: 44px; padding: 0 14px; }
 .paso { display: flex; align-items: center; gap: 4px; min-height: 44px; }
 .paso label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; font-size: 0.875rem; cursor: pointer; }
 .paso input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
@@ -519,6 +522,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var AHORA = Date.now();
   var EDIT = { id: null, f: '', h: '' };
   var NOTA = { id: null, txt: '' };
+  var POSP = { id: null };
   var LS_HIST = 'tareasdiarias.historial';
   var HIST = {};           /* tareas hechas por día: { 'AAAA-MM-DD': cantidad } */
   try { HIST = limpiarHist(JSON.parse(lsLeer(LS_HIST) || 'null')); } catch (e) { HIST = {}; }
@@ -835,6 +839,34 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
     return r;
   }
+  /* --- posponer (funciones puras): mañana y el próximo lunes --- */
+  function ddmm(d) { return dos(d.getDate()) + '/' + dos(d.getMonth() + 1); }
+  function destinosPosponer(t, ahora) {
+    if (t.done || t.plantilla) return [];
+    var actual = t.due != null ? claveDia(t.due) : (fechaDe(t) || claveDia(ahora));
+    var r = [];
+    var man = new Date(ahora); man.setDate(man.getDate() + 1);
+    var cM = claveDia(man.getTime());
+    if (actual < cM) r.push({ id: 'manana', fecha: cM, etiqueta: 'Mañana · ' + ddmm(man), cuando: 'mañana' });
+    var dias = (8 - new Date(ahora).getDay()) % 7 || 7;   /* días hasta el próximo lunes */
+    if (dias > 1) {   /* si hoy es domingo, el lunes ya es mañana */
+      var lun = new Date(ahora); lun.setDate(lun.getDate() + dias);
+      var cL = claveDia(lun.getTime());
+      if (actual < cL) r.push({ id: 'lunes', fecha: cL, etiqueta: 'El lunes · ' + ddmm(lun), cuando: 'el lunes' });
+    }
+    return r;
+  }
+  /* Con fecha límite: se mueve a ese día conservando la hora. Sin fecha límite: queda agendada para ese día. */
+  function camposPosponer(t, fecha) {
+    var p = fecha.split('-'), c = {};
+    if (t.due != null) {
+      var d = new Date(t.due);
+      c.due = new Date(+p[0], +p[1] - 1, +p[2], d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()).getTime();
+      if (t.dia) c.dia = fecha;
+    } else c.dia = fecha;
+    return c;
+  }
+
   /* --- vista Hoy (función pura): atrasadas, de hoy y urgentes de todas las hojas --- */
   function agruparHoy(tareas, ahora) {
     var hoy = claveDia(ahora), r = { atrasadas: [], hoy: [], urgentes: [], hechas: [] };
@@ -1729,6 +1761,54 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   /* El botón de cada tarea pasa por: sin hoja -> cada hoja propia -> sin hoja */
+  function agregarPosponer(tx, t) {
+    var ops = destinosPosponer(t, AHORA);
+    if (!ops.length) { if (POSP.id === t.id) POSP.id = null; return null; }
+    var abierto = POSP.id === t.id;
+    var chip = document.createElement('button');
+    chip.type = 'button'; chip.className = 'limite posp-chip';
+    chip.textContent = (abierto ? '▾' : '▸') + ' Posponer';
+    chip.setAttribute('data-key', t.id + ':posponer');
+    chip.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    chip.setAttribute('aria-label', 'Posponer: ' + t.text + (abierto ? '. Ocultar opciones' : '. Ver opciones'));
+    chip.addEventListener('click', function () {
+      POSP.id = abierto ? null : t.id;
+      render();
+      if (!abierto) {
+        var el = document.querySelector('[data-key="' + t.id + ':posp-0"]');
+        if (el) el.focus();
+      }
+    });
+    tx.appendChild(chip);
+    if (!abierto) return null;
+    var box = document.createElement('div');
+    box.className = 'posponer';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Posponer para otro día: ' + t.text);
+    ops.forEach(function (o, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'mini';
+      b.textContent = o.etiqueta;
+      b.setAttribute('data-key', t.id + ':posp-' + i);
+      b.setAttribute('aria-label', o.etiqueta + '. Posponer: ' + t.text);
+      b.addEventListener('click', function () {
+        var campos = camposPosponer(t, o.fecha), antes = {};
+        Object.keys(campos).forEach(function (k) { antes[k] = t[k]; });
+        POSP.id = null;
+        cambiarTarea(t.id, campos);
+        avisar('Pospuesta para ' + o.cuando + (t.due == null ? ': vuelve a aparecer ese día' : ''), function () { cambiarTarea(t.id, antes); });
+      });
+      box.appendChild(b);
+    });
+    box.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      POSP.id = null; render();
+      var c = document.querySelector('[data-key="' + t.id + ':posponer"]');
+      if (c) c.focus();
+    });
+    return box;
+  }
+
   function crearChipUrgente(t) {
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'limite urg';
@@ -1887,6 +1967,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     }
     if (!t.done && !t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
     if (!t.done) tx.appendChild(crearChipUrgente(t));
+    var panelPosp = t.done ? null : agregarPosponer(tx, t);
     var panelPasos = agregarPasos(tx, t);
 
     var pase = crearPase(t);
@@ -1901,6 +1982,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
 
     li.appendChild(lab); li.appendChild(tx); li.appendChild(pase); li.appendChild(del);
+    if (panelPosp) li.appendChild(panelPosp);
     if (panelPasos) li.appendChild(panelPasos);
     return li;
   }
@@ -2037,7 +2119,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido. Con Posponer movés una tarea a mañana o al lunes sin editar la fecha.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
