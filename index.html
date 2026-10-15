@@ -134,6 +134,35 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .hist-fila .ok { flex: none; color: var(--accent); font-weight: 700; }
 .hist-fila .hora { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
 .hist-nota { margin: 8px 2px 0; font-size: 0.8125rem; color: var(--muted); }
+.btn-voz { flex: none; display: grid; place-items: center; width: 48px; min-height: 48px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn-voz[hidden] { display: none; }
+.btn-voz[aria-pressed="true"] { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.voz-estado { margin: 6px 2px 0; min-height: 1.2em; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.voz-estado:empty { display: none; }
+.mini[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.ordenar-fila { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 10px; }
+.ordenar-fila[hidden] { display: none; }
+.ordenar-ayuda { margin: 0; font-size: 0.8125rem; color: var(--muted); flex: 1 1 14rem; }
+.ordenar-ayuda:empty { display: none; }
+.fila > .mover { grid-column: 1 / -1; }
+.mover { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 8px 10px 52px; }
+.mover .mini { min-height: 44px; padding: 0 14px; }
+.mover-asa { touch-action: none; cursor: grab; }
+.fila.arrastrando { opacity: 0.6; }
+.fila.soltar { box-shadow: inset 0 3px 0 var(--accent); }
+.cal-imprimir { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.cal-imprimir .mini { min-height: 44px; padding: 0 14px; }
+#impresion { display: none; }
+@media print {
+  [data-no-print] { display: none !important; }
+  body.imprimiendo { background: #fff !important; color: #000 !important; }
+  body.imprimiendo #impresion { display: block; font-family: system-ui, sans-serif; color: #000; background: #fff; }
+  #impresion h1 { margin: 0 0 4px; font-size: 18pt; }
+  #impresion h2 { margin: 14pt 0 4pt; font-size: 12pt; border-bottom: 1px solid #000; page-break-after: avoid; }
+  #impresion ul { list-style: none; margin: 0; padding: 0; }
+  #impresion li { padding: 3pt 0; font-size: 11pt; page-break-inside: avoid; }
+  #impresion .nota-imp, #impresion .pie-imp, #impresion .sin-imp { color: #444; font-size: 9.5pt; }
+}
 .hist-resumen { margin: 0 0 8px; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
 .hist-racha { margin: 0 0 4px; font-size: 0.9375rem; overflow-wrap: anywhere; }
 .hist-ayuda { margin: 0 0 14px; font-size: 0.8125rem; color: var(--muted); }
@@ -410,8 +439,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   <form class="nueva" id="form-nueva" autocomplete="off">
     <div class="nueva-fila">
       <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
+      <button type="button" class="btn-voz" id="btn-voz" aria-label="Dictar por voz" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
     </div>
+    <p class="voz-estado" id="voz-estado" role="status"></p>
     <input type="text" class="input-nota" id="input-nota" maxlength="300" placeholder="Detalle (opcional)" aria-label="Detalle de la tarea (opcional)">
     <div class="limite-fila">
       <span class="limite-rotulo" id="rotulo-limite">Fecha límite (opcional)</span>
@@ -458,6 +489,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   </div>
 
   <div class="fin-dia" id="fin-dia" role="status" hidden></div>
+
+  <div class="ordenar-fila" id="ordenar-fila" hidden>
+    <button type="button" class="mini" id="btn-ordenar" aria-pressed="false">Ordenar tareas</button>
+    <p class="ordenar-ayuda" id="ordenar-ayuda"></p>
+  </div>
+
+  <div id="impresion" aria-hidden="true"></div>
 
   <section id="vista-enfoque" hidden aria-label="Modo enfoque">
     <div class="enf-card" id="enf-card">
@@ -512,6 +550,11 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
     <div class="cal-grid" id="cal-grid"></div>
     <p class="cal-leyenda">El número son las tareas pendientes, en rojo si hay vencidas. La tilde indica todo hecho y la flecha que hay una tarea repetida.</p>
+    <div class="cal-imprimir" role="group" aria-label="Semana en papel">
+      <button type="button" class="mini" id="cal-imprimir">Imprimir semana</button>
+      <button type="button" class="mini" id="cal-semana-archivo">Guardar semana (archivo)</button>
+    </div>
+    <p class="hist-nota" id="cal-imp-nota"></p>
     <div class="cal-panel">
       <h3 id="cal-dia-titulo"></h3>
       <form class="nueva-fila cal-form" id="cal-form" autocomplete="off">
@@ -798,7 +841,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function limpiar(t) {
-    return {
+    var r = {
       id: t.id,
       text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
       done: !!t.done,
@@ -817,6 +860,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       rep: typeof t.rep === 'string' ? t.rep : '',
       dia: typeof t.dia === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.dia) ? t.dia : ''
     };
+    if (typeof t.orden === 'number' && isFinite(t.orden)) r.orden = t.orden;
+    return r;
   }
 
   function crearTarea(texto, hoja, limite, extra) {
@@ -1284,6 +1329,42 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var resto = tareas.filter(function (t) { return !t.done && !t.plantilla && !vistos[t.id] && !esFutura(t); })
       .sort(function (a, b) { return (!!b.urgente - !!a.urgente) || (a.created - b.created); });
     return cola.concat(resto);
+  }
+  /* --- ordenar, compartir, dictar e imprimir (funciones puras) --- */
+  function ordenNuevo(ids, id, haciaId) {
+    var i = ids.indexOf(id), j = ids.indexOf(haciaId);
+    if (i < 0 || j < 0 || i === j) return ids.slice();
+    var r = ids.slice(); r.splice(i, 1); r.splice(j, 0, id);
+    return r;
+  }
+  function limpiarDictado(s, mayuscula) {
+    s = String(s || '').replace(/\s+/g, ' ').trim().replace(/[.]+$/, '');
+    return mayuscula && s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+  /* Texto que llega desde otra app (?title=&text=&url=) -> { texto, nota } o null */
+  function desdeCompartido(qs) {
+    var p;
+    try { p = new URLSearchParams(qs); } catch (e) { return null; }
+    var g = function (k) { return String(p.get(k) || '').replace(/\u0000/g, '').trim(); };
+    var title = g('title'), text = g('text'), url = g('url');
+    if (!title && !text && !url) return null;
+    var cuerpo = text;
+    if (url && cuerpo.indexOf(url) >= 0 && cuerpo !== url) cuerpo = cuerpo.replace(url, '').trim();
+    var lineas = cuerpo.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    var texto = lineas.shift() || title || url, extras = lineas;
+    if (title && title !== texto && cuerpo) extras.push(title);
+    if (url && texto.indexOf(url) < 0 && extras.join('\n').indexOf(url) < 0) extras.push(url);
+    if (texto.length > 300) { extras.unshift(texto.slice(300)); texto = texto.slice(0, 300); }
+    return { texto: texto, nota: extras.join('\n').slice(0, 300) };
+  }
+  /* Semana para imprimir: los 7 días con sus tareas, y lo pendiente sin fecha */
+  function semanaImpresa(tareas, lunes) {
+    var dias = [];
+    for (var i = 0; i < 7; i++) {
+      var c = sumarDias(lunes, i);
+      dias.push({ clave: c, tareas: tareas.filter(function (t) { return !t.plantilla && fechaDe(t) === c; }).sort(ordenTareas) });
+    }
+    return { dias: dias, sinFecha: tareas.filter(function (t) { return !t.plantilla && !t.done && !fechaDe(t); }).sort(ordenTareas) };
   }
   /* --- fin funciones puras --- */
 
@@ -1761,6 +1842,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
     var hoy = hoyStr();
     pintarFiltros();
+    $('cal-imp-nota').textContent = 'Se imprime la ' + textoSemana(lunesImpresion()).toLowerCase() + ' (la del día elegido).';
     var res = resumenMes(CAL.y, CAL.m, S.tareas, hoy, AHORA, CAL.filtro);
     $('cal-titulo').textContent = MESES[CAL.m] + ' ' + CAL.y;
     Array.prototype.forEach.call(document.querySelectorAll('[data-filtro]'), function (b) {
@@ -2289,6 +2371,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     return S.tareas.filter(function (t) { return !t.plantilla && !esFutura(t) && (h === 'diarias' || (t.dest === h && !t.done)); }).sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
       if (!!a.urgente !== !!b.urgente) return a.urgente ? -1 : 1;
+      var ao = typeof a.orden === 'number', bo = typeof b.orden === 'number';
+      if (ao && bo && a.orden !== b.orden) return a.orden - b.orden;
+      if (ao !== bo) return ao ? -1 : 1;
       var ad = a.due != null, bd = b.due != null;
       if (ad && bd && a.due !== b.due) return a.due - b.due;
       if (ad !== bd) return ad ? -1 : 1;
@@ -2303,6 +2388,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var li = document.createElement('li');
     li.className = 'fila';
     li.setAttribute('data-hecha', t.done ? 'true' : 'false');
+    li.setAttribute('data-id', t.id);
+    li.setAttribute('data-grupo', (t.done ? 'h' : 'p') + (t.urgente ? 'u' : 'n'));
     if (t.urgente && !t.done) li.setAttribute('data-urgente', 'true');
 
     var lab = document.createElement('label');
@@ -2376,7 +2463,180 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     li.appendChild(lab); li.appendChild(tx); li.appendChild(pase); li.appendChild(del);
     if (panelPosp) li.appendChild(panelPosp);
     if (panelPasos) li.appendChild(panelPasos);
+    if (ORD.on && VISTA === 'lista' && S.hoja !== 'repetidas') li.appendChild(crearMover(t));
     return li;
+  }
+
+  /* ---------- Ordenar tareas (subir, bajar, arrastrar) ---------- */
+  var ORD = { on: false, arr: null };
+  function grupoOrden(t) {
+    return tareasDeHoja(S.hoja).filter(function (x) { return x.done === t.done && !!x.urgente === !!t.urgente; });
+  }
+  function moverTarea(id, haciaId, mensaje) {
+    var t = tareaActual(id);
+    if (!t) return;
+    var ids = grupoOrden(t).map(function (x) { return x.id; });
+    var nuevo = ordenNuevo(ids, id, haciaId);
+    if (nuevo.join() === ids.join()) { if (mensaje) avisar(mensaje, null); return; }
+    var pos = {};
+    nuevo.forEach(function (x, i) { pos[x] = (i + 1) * 10; });
+    S.tareas = S.tareas.map(function (x) { return pos[x.id] ? Object.assign({}, x, { orden: pos[x.id] }) : x; });
+    guardarLocal(); render();
+    avisar('Movida a la posición ' + (nuevo.indexOf(id) + 1) + ' de ' + nuevo.length, null);
+  }
+  function crearMover(t) {
+    var div = document.createElement('div');
+    div.className = 'mover';
+    var gr = (t.done ? 'h' : 'p') + (t.urgente ? 'u' : 'n');
+    function vecino(d) {
+      var ids = grupoOrden(t).map(function (x) { return x.id; }), i = ids.indexOf(t.id);
+      return ids[i + d] || null;
+    }
+    var sube = boton('▲ Subir', 'mover-sube', function () { var v = vecino(-1); moverTarea(t.id, v || t.id, 'Ya está primera en su grupo'); });
+    var baja = boton('▼ Bajar', 'mover-baja', function () { var v = vecino(1); moverTarea(t.id, v || t.id, 'Ya está última en su grupo'); });
+    sube.setAttribute('data-key', t.id + ':sube'); baja.setAttribute('data-key', t.id + ':baja');
+    sube.setAttribute('aria-label', 'Subir: ' + t.text); baja.setAttribute('aria-label', 'Bajar: ' + t.text);
+    var asa = boton('⠿ Arrastrar', 'mover-asa', function () {});
+    asa.setAttribute('aria-label', 'Arrastrar: ' + t.text + '. Para mover sin arrastrar, usá Subir y Bajar');
+    function limpiarMarcas() {
+      Array.prototype.forEach.call(lista.querySelectorAll('.arrastrando, .soltar'), function (f) { f.classList.remove('arrastrando', 'soltar'); });
+    }
+    asa.addEventListener('pointerdown', function (e) {
+      if (e.button > 0) return;
+      e.preventDefault();
+      ORD.arr = { id: t.id, gr: gr, hacia: null };
+      var li = asa.closest('.fila'); if (li) li.classList.add('arrastrando');
+      try { asa.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    asa.addEventListener('pointermove', function (e) {
+      if (!ORD.arr) return;
+      var el = document.elementFromPoint ? document.elementFromPoint(e.clientX, e.clientY) : null;
+      var f = el && el.closest ? el.closest('#lista > .fila') : null;
+      Array.prototype.forEach.call(lista.querySelectorAll('.soltar'), function (x) { x.classList.remove('soltar'); });
+      if (f && f.getAttribute('data-grupo') === ORD.arr.gr && f.getAttribute('data-id') !== ORD.arr.id) { f.classList.add('soltar'); ORD.arr.hacia = f.getAttribute('data-id'); } else ORD.arr.hacia = null;
+    });
+    asa.addEventListener('pointerup', function () {
+      var a = ORD.arr; ORD.arr = null; limpiarMarcas();
+      if (a && a.hacia) moverTarea(a.id, a.hacia);
+    });
+    asa.addEventListener('pointercancel', function () { ORD.arr = null; limpiarMarcas(); });
+    div.appendChild(sube); div.appendChild(baja); div.appendChild(asa);
+    return div;
+  }
+  function pintarOrdenar(mostrar) {
+    $('ordenar-fila').hidden = !mostrar;
+    if (!mostrar) return;
+    $('btn-ordenar').setAttribute('aria-pressed', ORD.on ? 'true' : 'false');
+    var ay = ORD.on ? 'Usá Subir y Bajar, o arrastrá desde ⠿. El orden vale dentro de cada grupo: urgentes primero y hechas al final.' : '';
+    if ($('ordenar-ayuda').textContent !== ay) $('ordenar-ayuda').textContent = ay;
+  }
+
+  /* ---------- Dictado por voz ---------- */
+  var SRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var VOZ = { rec: null, base: '', texto: '', error: '' };
+  var ERR_VOZ = { 'not-allowed': 'No hay permiso para usar el micrófono.', 'service-not-allowed': 'No hay permiso para usar el micrófono.', 'audio-capture': 'No encontré un micrófono.', 'network': 'El dictado necesita conexión a internet.', 'no-speech': 'No te escuché. Probá de nuevo.' };
+  function vozMsg(t) { if ($('voz-estado').textContent !== t) $('voz-estado').textContent = t; }
+  function dictar() {
+    if (VOZ.rec) { try { VOZ.rec.stop(); } catch (e) {} return; }
+    if (input.disabled) { vozMsg('Esperá un momento: se están cargando las tareas.'); return; }
+    var rec;
+    try { rec = new SRec(); } catch (e) { vozMsg('Este navegador no permite dictar.'); return; }
+    rec.lang = 'es-AR'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    VOZ.rec = rec; VOZ.base = input.value.trim(); VOZ.texto = ''; VOZ.error = '';
+    rec.onresult = function (e) {
+      var s = '';
+      for (var i = 0; i < e.results.length; i++) s += e.results[i][0].transcript;
+      VOZ.texto = s;
+      input.value = ((VOZ.base ? VOZ.base + ' ' : '') + limpiarDictado(s, !VOZ.base)).slice(0, 300);
+    };
+    rec.onerror = function (e) { VOZ.error = e && e.error ? e.error : 'error'; };
+    rec.onend = function () {
+      VOZ.rec = null;
+      $('btn-voz').setAttribute('aria-pressed', 'false');
+      if (VOZ.error && !VOZ.texto) vozMsg(ERR_VOZ[VOZ.error] || 'No se pudo dictar.');
+      else if (VOZ.texto) { vozMsg('Dictado: ' + input.value + '. Revisalo y tocá Agregar.'); input.focus(); }
+      else vozMsg(ERR_VOZ['no-speech']);
+    };
+    try { rec.start(); $('btn-voz').setAttribute('aria-pressed', 'true'); vozMsg('Escuchando… hablá ahora.'); }
+    catch (e) { VOZ.rec = null; vozMsg('No se pudo empezar a escuchar.'); }
+  }
+
+  /* ---------- Texto compartido desde otra app ---------- */
+  function recibirCompartido() {
+    var d = desdeCompartido(location.search);
+    if (!d) return;
+    var n = 0;
+    (function esperar() {
+      if (S.listo) {
+        crearTarea(d.texto, 'diarias', null, d.nota ? { nota: d.nota } : null);
+        avisar('Guardada en Diarias: ' + recortarAv(d.texto), null);
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+      } else if (n++ < 60) setTimeout(esperar, 100);
+    })();
+  }
+
+  /* ---------- Imprimir la semana ---------- */
+  function lunesImpresion() { return lunesDe(CAL.sel || hoyStr()); }
+  function construirImpresion() {
+    var lun = lunesImpresion(), sem = semanaImpresa(S.tareas, lun), box = $('impresion');
+    box.textContent = '';
+    function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+    box.appendChild(el('h1', '', 'Tareas diarias · ' + textoSemana(lun)));
+    function fila(t) {
+      var li = el('li', '');
+      var txt = (t.done ? '☑ ' : '☐ ') + (t.urgente ? '★ ' : '') + t.text;
+      if (t.due != null && t.hora) txt += ' · ' + hora(t.due);
+      if (t.dest) txt += ' · ' + t.dest;
+      li.appendChild(el('span', '', txt));
+      if (t.nota) li.appendChild(el('div', 'nota-imp', t.nota));
+      (t.pasos || []).forEach(function (p) { li.appendChild(el('div', 'nota-imp', '   ' + (p.done ? '☑ ' : '☐ ') + p.text)); });
+      return li;
+    }
+    sem.dias.forEach(function (d) {
+      var t = titulodia(d.clave);
+      box.appendChild(el('h2', '', t.charAt(0).toUpperCase() + t.slice(1)));
+      var ul = el('ul', '');
+      if (!d.tareas.length) ul.appendChild(el('li', 'sin-imp', 'Sin tareas'));
+      d.tareas.forEach(function (x) { ul.appendChild(fila(x)); });
+      box.appendChild(ul);
+    });
+    if (sem.sinFecha.length) {
+      box.appendChild(el('h2', '', 'Pendientes sin fecha'));
+      var u2 = el('ul', ''); sem.sinFecha.forEach(function (x) { u2.appendChild(fila(x)); }); box.appendChild(u2);
+    }
+    box.appendChild(el('p', 'pie-imp', 'Impreso el ' + titulodia(hoyStr()) + ' · Desarrollado por @sebranda'));
+    return textoSemana(lun);
+  }
+  function imprimirSemana() {
+    construirImpresion();
+    var marcados = [], n = $('impresion');
+    while (n && n !== document.body && n.parentNode) {
+      var p = n.parentNode, actual = n;
+      Array.prototype.forEach.call(p.children, function (h) {
+        if (h !== actual && h.tagName !== 'SCRIPT' && h.tagName !== 'STYLE') { h.setAttribute('data-no-print', '1'); marcados.push(h); }
+      });
+      n = p;
+    }
+    document.body.classList.add('imprimiendo');
+    var fin = function () {
+      document.body.classList.remove('imprimiendo');
+      marcados.forEach(function (h) { h.removeAttribute('data-no-print'); });
+      window.removeEventListener('afterprint', fin);
+    };
+    window.addEventListener('afterprint', fin);
+    setTimeout(fin, 120000);
+    try { window.print(); } catch (e) { fin(); avisar('No se pudo abrir la impresión. Probá con "Guardar semana (archivo)".', null); }
+  }
+  function archivoSemana() {
+    var t = construirImpresion();
+    var cuerpo = $('impresion').innerHTML;
+    var doc = '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t + '</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:24px auto;padding:0 16px;color:#111;background:#fff}h1{font-size:1.4rem}h2{font-size:1.05rem;margin:18px 0 6px;border-bottom:1px solid #666}ul{list-style:none;padding:0;margin:0}li{padding:4px 0}.nota-imp,.pie-imp,.sin-imp{color:#555;font-size:.9rem}</style></head><body>' + cuerpo + '</body></html>';
+    Promise.resolve(descargarArchivo('semana-' + lunesImpresion() + '.html', doc, 'text/html')).then(function () {
+      avisar('Archivo guardado. Abrilo y usá Imprimir para obtener el PDF.', null);
+    }, function (e) {
+      if (e && e.code === 'declined') return;
+      avisar('No se pudo guardar el archivo.', null);
+    });
   }
 
   /* ---------- Fin de día ---------- */
@@ -2568,6 +2828,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
+    pintarOrdenar(false);
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
     if (esHoy) { $('form-nueva').hidden = true; $('solapas').hidden = true; }
     var propia = indiceHoja(S.hoja) >= 0;
@@ -2619,6 +2880,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     }
     if (S.hoja !== 'repetidas') pintarBarraBusqueda(visibles, filtradas.length);
     pintarFinDia($('fin-dia'), S.listo && S.hoja !== 'repetidas' && visibles.length > 0 && hechas === visibles.length);
+    pintarOrdenar(S.listo && S.hoja !== 'repetidas' && visibles.length > 1);
 
     pintarSolapas();
 
@@ -2747,6 +3009,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       hechas.forEach(restaurarTarea);
     });
   });
+
+  if (!SRec) $('btn-voz').hidden = true;
+  $('btn-voz').addEventListener('click', dictar);
+  $('btn-ordenar').addEventListener('click', function () { ORD.on = !ORD.on; render(); });
+  $('cal-imprimir').addEventListener('click', imprimirSemana);
+  $('cal-semana-archivo').addEventListener('click', archivoSemana);
+  recibirCompartido();
 
   /* ---------- Arranque ---------- */
   function habilitar() {
