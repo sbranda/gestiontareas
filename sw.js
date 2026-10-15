@@ -1,7 +1,7 @@
 /* Service worker de Tareas diarias.
    Guarda la app en el dispositivo para que abra sin conexión.
    Si cambiás algún archivo, subí el número de CACHE para que se actualice. */
-var CACHE = 'tareas-diarias-v14';
+var CACHE = 'tareas-diarias-v15';
 var ARCHIVOS = [
   './',
   './index.html',

@@ -56,6 +56,11 @@ html { -webkit-text-size-adjust: 100%; }
 .saltar { position: absolute; left: 12px; top: -80px; z-index: 50; padding: 12px 16px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
 .saltar:focus { top: 12px; }
 #contenido:focus, #lista:focus { outline: none; }
+.ajustes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 14px; }
+.ajuste { min-width: 44px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-weight: 600; }
+.ajuste[aria-disabled="true"] { opacity: 0.55; }
+#ajuste-tema { margin-left: auto; }
+@media (forced-colors: active) { .ajuste { border-color: ButtonText; } }
 body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 1rem; line-height: 1.45; }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -315,6 +320,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
 <div class="wrap">
   <header>
+    <div class="ajustes" role="group" aria-label="Apariencia y tamaño de letra">
+      <button type="button" class="ajuste" id="ajuste-menos" aria-label="A−, achicar letra">A−</button>
+      <button type="button" class="ajuste" id="ajuste-reset" aria-label="Tamaño de letra: 100 %. Tocar para volver al tamaño normal">100 %</button>
+      <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
+      <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
+    </div>
+    <div class="sr-only" id="ajuste-aviso" role="status" aria-live="polite"></div>
     <div class="fecha" id="fecha"></div>
     <h1>Tareas diarias</h1>
     <div class="progreso">
@@ -528,6 +540,50 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   function lsLeer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsEscribir(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+  /* --- apariencia: tamaño de letra y tema (se recuerdan en este dispositivo) --- */
+  var LETRAS = [80, 90, 100, 115, 130, 150, 175, 200];
+  var TEMAS = ['automático', 'claro', 'oscuro'];
+  var LS_LETRA = 'tareasdiarias.letra';
+  var LS_TEMA = 'tareasdiarias.tema';
+  var letraPct = parseInt(lsLeer(LS_LETRA), 10);
+  if (LETRAS.indexOf(letraPct) < 0) letraPct = 100;
+  var tema = lsLeer(LS_TEMA);
+  if (TEMAS.indexOf(tema) < 0) tema = 'automático';
+  function aplicarApariencia(avisar) {
+    var el = document.documentElement;
+    el.style.fontSize = letraPct + '%';
+    if (tema === 'claro') el.setAttribute('data-theme', 'light');
+    else if (tema === 'oscuro') el.setAttribute('data-theme', 'dark');
+    else el.removeAttribute('data-theme');
+    var i = LETRAS.indexOf(letraPct);
+    var menos = document.getElementById('ajuste-menos'), mas = document.getElementById('ajuste-mas');
+    var reset = document.getElementById('ajuste-reset'), bt = document.getElementById('ajuste-tema');
+    if (!menos) return;
+    menos.setAttribute('aria-disabled', i <= 0 ? 'true' : 'false');
+    mas.setAttribute('aria-disabled', i >= LETRAS.length - 1 ? 'true' : 'false');
+    reset.textContent = letraPct + ' %';
+    reset.setAttribute('aria-label', 'Tamaño de letra: ' + letraPct + ' %. Tocar para volver al tamaño normal');
+    bt.textContent = 'Tema: ' + tema;
+    bt.setAttribute('aria-label', 'Tema: ' + tema + '. Tocar para cambiar a ' + TEMAS[(TEMAS.indexOf(tema) + 1) % 3]);
+    if (avisar) document.getElementById('ajuste-aviso').textContent = avisar;
+  }
+  function cambiarLetra(delta) {
+    var i = LETRAS.indexOf(letraPct) + delta;
+    if (i < 0 || i >= LETRAS.length) return;
+    letraPct = LETRAS[i]; lsEscribir(LS_LETRA, String(letraPct));
+    aplicarApariencia('Letra al ' + letraPct + ' %');
+  }
+  document.getElementById('ajuste-menos').onclick = function () { cambiarLetra(-1); };
+  document.getElementById('ajuste-mas').onclick = function () { cambiarLetra(1); };
+  document.getElementById('ajuste-reset').onclick = function () {
+    letraPct = 100; lsEscribir(LS_LETRA, '100'); aplicarApariencia('Letra al 100 %');
+  };
+  document.getElementById('ajuste-tema').onclick = function () {
+    tema = TEMAS[(TEMAS.indexOf(tema) + 1) % 3]; lsEscribir(LS_TEMA, tema);
+    aplicarApariencia('Tema ' + tema);
+  };
+  aplicarApariencia('');
 
   function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); }
   function agregarHoja(n) {
