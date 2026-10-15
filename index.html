@@ -247,6 +247,10 @@ button.limite.urg[aria-pressed="true"] { color: var(--warn); font-weight: 700; t
 .urgente-fila { margin-top: 10px; }
 .dia.urgente-toggle[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); font-weight: 700; }
 .fila[data-vencida="true"] { background: var(--danger-soft); }
+.grupo-hoy { list-style: none; padding: 16px 4px 6px; }
+.grupo-hoy:first-child { padding-top: 6px; }
+.grupo-hoy h2 { margin: 0; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.grupo-hoy.rojo h2 { color: var(--danger); }
 .limite { display: inline-block; max-width: 100%; margin: 0; padding: 6px 0; min-height: 32px; border: 0; background: transparent; font-size: 0.8125rem; line-height: 1.3; text-align: left; color: var(--muted); font-variant-numeric: tabular-nums; }
 button.limite { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
 .limite.agregar { text-decoration: none; }
@@ -340,6 +344,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   <main id="contenido" tabindex="-1">
   <div class="vistas" role="group" aria-label="Vista">
+    <button type="button" class="vista" data-vista="hoy" aria-pressed="false">Hoy</button>
     <button type="button" class="vista" data-vista="lista" aria-pressed="true">Lista</button>
     <button type="button" class="vista" data-vista="calendario" aria-pressed="false">Calendario</button>
     <button type="button" class="vista" data-vista="historial" aria-pressed="false">Historial</button>
@@ -830,6 +835,28 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
     return r;
   }
+  /* --- vista Hoy (función pura): atrasadas, de hoy y urgentes de todas las hojas --- */
+  function agruparHoy(tareas, ahora) {
+    var hoy = claveDia(ahora), r = { atrasadas: [], hoy: [], urgentes: [], hechas: [] };
+    tareas.forEach(function (t) {
+      if (t.plantilla) return;
+      if (t.done) { if (typeof t.hechaEn === 'number' && claveDia(t.hechaEn) === hoy) r.hechas.push(t); return; }
+      if (t.due != null && t.due < ahora) r.atrasadas.push(t);
+      else if (fechaDe(t) === hoy) r.hoy.push(t);
+      else if (t.urgente && !esFutura(t)) r.urgentes.push(t);
+    });
+    var porHora = function (a, b) {
+      if (!!a.urgente !== !!b.urgente) return a.urgente ? -1 : 1;
+      var ad = a.due != null, bd = b.due != null;
+      if (ad && bd && a.due !== b.due) return a.due - b.due;
+      if (ad !== bd) return ad ? -1 : 1;
+      return a.created - b.created;
+    };
+    r.atrasadas.sort(porHora); r.hoy.sort(porHora); r.urgentes.sort(porHora);
+    r.hechas.sort(function (a, b) { return b.hechaEn - a.hechaEn; });
+    return r;
+  }
+
   /* --- avisos y calendario (funciones puras) --- */
   var AV_ANTES = 30 * 60000, AV_MANANA = 8, AV_VENTANA = 12 * 3600000;
   function recortarAv(s) { s = String(s || ''); return s.length > 80 ? s.slice(0, 77) + '...' : s; }
@@ -1261,7 +1288,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Calendario mensual ---------- */
   var LS_VISTA = 'tareasdiarias.vista';
-  var VISTA = (lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial') ? lsLeer(LS_VISTA) : 'lista';
+  var VISTA = (lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial') ? lsLeer(LS_VISTA) : 'lista';
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
 
   function crearCeldaDia(d, res, hoy) {
@@ -1878,18 +1905,75 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     return li;
   }
 
+  function renderHoy() {
+    var activo = document.activeElement;
+    var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
+    var filaAct = activo && activo.closest ? activo.closest('#lista > .fila') : null;
+    var idxFila = filaAct ? Array.prototype.indexOf.call(lista.querySelectorAll('#lista > .fila'), filaAct) : -1;
+    var g = agruparHoy(S.tareas, AHORA);
+    var pend = g.atrasadas.length + g.hoy.length + g.urgentes.length;
+    lista.textContent = '';
+    function grupo(titulo, arr, rojo) {
+      if (!arr.length) return;
+      var li = document.createElement('li');
+      li.className = 'grupo-hoy' + (rojo ? ' rojo' : '');
+      var h = document.createElement('h2');
+      h.textContent = titulo + ' · ' + arr.length;
+      li.appendChild(h); lista.appendChild(li);
+      arr.forEach(function (t) { lista.appendChild(crearFila(t)); });
+    }
+    if (S.listo) {
+      if (!pend) {
+        var vacio = document.createElement('li');
+        vacio.className = 'vacio';
+        var st = document.createElement('strong'), p = document.createElement('span');
+        st.textContent = 'Todo al día';
+        p.textContent = 'No tenés tareas atrasadas, para hoy ni urgentes.';
+        vacio.appendChild(st); vacio.appendChild(p); lista.appendChild(vacio);
+      }
+      grupo('Atrasadas', g.atrasadas, true);
+      grupo('Para hoy', g.hoy);
+      grupo('Urgentes', g.urgentes);
+      grupo('Hechas hoy', g.hechas);
+    }
+    $('progreso-barra').parentNode.hidden = true;
+    $('progreso-texto').textContent = !S.listo ? '' : (pend
+      ? pend + (pend === 1 ? ' pendiente' : ' pendientes') + (g.hechas.length ? ' · ' + g.hechas.length + (g.hechas.length === 1 ? ' hecha hoy' : ' hechas hoy') : '')
+      : 'Todo al día');
+    var vEl = $('progreso-venc');
+    vEl.hidden = g.atrasadas.length === 0;
+    vEl.textContent = g.atrasadas.length + (g.atrasadas.length === 1 ? ' vencida' : ' vencidas');
+    pie.hidden = true;
+    $('col-1').textContent = 'Hecha';
+    $('ayuda').textContent = 'Junta de todas tus hojas lo atrasado, lo que vence hoy y lo urgente. Se usa igual que la lista: tildá para hacerla. Lo que tildás queda en "Hechas hoy".';
+    if (clave) {
+      var el = lista.querySelector('[data-key="' + clave + '"]');
+      if (el) {
+        el.focus();
+        if (el.tagName === 'TEXTAREA') el.setSelectionRange(el.value.length, el.value.length);
+      } else if (idxFila >= 0) {
+        var filas = lista.querySelectorAll('#lista > .fila');
+        var vecina = filas[Math.min(idxFila, filas.length - 1)];
+        var destino = vecina && vecina.querySelector ? vecina.querySelector('input[type="checkbox"], button') : null;
+        (destino || lista).focus();
+      }
+    }
+  }
+
   function render() {
     AHORA = Date.now();
     sincronizarHojas();
-    document.title = (VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : nombreHoja(S.hoja))) + ' · Tareas diarias';
+    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : nombreHoja(S.hoja))) + ' · Tareas diarias';
     pintarRespaldo();
-    var enCal = VISTA !== 'lista';
+    var esHoy = VISTA === 'hoy';
+    var enCal = VISTA !== 'lista' && !esHoy;
     $('vista-cal').hidden = VISTA !== 'calendario';
     $('vista-hist').hidden = VISTA !== 'historial';
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
+    if (esHoy) { $('form-nueva').hidden = true; $('solapas').hidden = true; }
     var propia = indiceHoja(S.hoja) >= 0;
-    $('form-hoja').hidden = enCal || !HOJAFORM;
-    $('hoja-acciones').hidden = enCal || !propia;
+    $('form-hoja').hidden = enCal || esHoy || !HOJAFORM;
+    $('hoja-acciones').hidden = enCal || esHoy || !propia;
     if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
     document.querySelector('.progreso').hidden = enCal;
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
@@ -1897,6 +1981,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     if (VISTA === 'calendario') { renderCalendario(); return; }
     if (VISTA === 'historial') { renderHistorial(); return; }
+    if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
 
