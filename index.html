@@ -104,9 +104,28 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .rep-ico svg { width: 20px; height: 20px; }
 
 .vistas { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 18px; background: var(--tab); border: 1px solid var(--line); border-radius: 10px; }
-.vista { min-height: 40px; padding: 0 18px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 500; }
+.vista { min-height: 40px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 500; }
 .vista[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14); }
 .cal-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.hist-total { margin: 0 0 12px; font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.hist-barras { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 14px; }
+.hist-dia { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 44px; padding: 8px 2px 6px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); }
+.hist-dia[aria-pressed="true"] { background: var(--surface); border-color: var(--line); }
+.hist-n { font-family: var(--font-mono); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hist-col { display: flex; align-items: flex-end; width: 100%; height: 96px; }
+.hist-bar { width: 100%; min-height: 3px; border-radius: 4px 4px 0 0; background: var(--accent); }
+.hist-dia[data-n="0"] .hist-bar { background: var(--line); }
+.hist-dia[data-n="0"] .hist-n { color: var(--muted); font-weight: 400; }
+.hist-dia[data-futuro="true"] { opacity: 0.5; }
+.hist-et { font-size: 12px; color: var(--muted); }
+.hist-dia[data-hoy="true"] .hist-et { color: var(--accent); font-weight: 700; }
+.hist-lista { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.hist-fila { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.hist-fila:last-child { border-bottom: 0; }
+.hist-fila .ok { flex: none; color: var(--accent); font-weight: 700; }
+.hist-fila .hora { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.hist-nota { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+#hist-titulo { font-size: 18px; text-transform: none; }
 .cal-nav h2 { flex: 1; min-width: 0; margin: 0; text-align: center; font-family: var(--font-display); font-size: 22px; font-weight: 700; text-transform: capitalize; }
 .cal-nav .mini { min-width: 44px; height: 44px; }
 .cal-filtro { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
@@ -200,6 +219,17 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .nota { margin: 0; padding: 0 0 4px; border: 0; background: transparent; font: inherit; font-size: 13px; line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-wrap; }
 button.nota { cursor: pointer; }
 button.nota:hover { color: var(--ink); }
+button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
+.pasos { flex: 0 0 100%; min-width: 0; padding: 2px 0 6px; }
+.paso { display: flex; align-items: center; gap: 4px; min-height: 36px; }
+.paso label { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; font-size: 14px; cursor: pointer; }
+.paso input[type="checkbox"] { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.paso[data-hecho="true"] label span { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.paso .quitar-paso { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.paso .quitar-paso:hover { color: var(--danger); background: var(--tab); }
+.paso .quitar-paso svg { width: 14px; height: 14px; }
+.paso-nuevo { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.paso-nuevo input { flex: 1 1 100%; min-width: 0; height: 38px; padding: 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 14px; }
 .editor textarea { flex: 1 1 100%; min-width: 0; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 14px; resize: vertical; }
 .input-nota { width: 100%; height: 44px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 button.limite.urg[aria-pressed="true"] { color: var(--warn); font-weight: 700; text-decoration: none; }
@@ -284,6 +314,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   <div class="vistas" role="group" aria-label="Vista">
     <button type="button" class="vista" data-vista="lista" aria-pressed="true">Lista</button>
     <button type="button" class="vista" data-vista="calendario" aria-pressed="false">Calendario</button>
+    <button type="button" class="vista" data-vista="historial" aria-pressed="false">Historial</button>
   </div>
 
   <form class="nueva" id="form-nueva" autocomplete="off">
@@ -358,6 +389,23 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </section>
 
+  <section id="vista-hist" hidden aria-label="Historial semanal">
+    <div class="cal-nav">
+      <button type="button" class="mini" id="hist-ant" aria-label="Semana anterior">‹</button>
+      <h2 id="hist-titulo"></h2>
+      <button type="button" class="mini" id="hist-sig" aria-label="Semana siguiente">›</button>
+      <button type="button" class="mini" id="hist-hoy">Hoy</button>
+    </div>
+    <p class="hist-total" id="hist-total" aria-live="polite"></p>
+    <div class="hist-barras" id="hist-barras" role="group" aria-label="Tareas hechas por día"></div>
+    <div class="cal-panel">
+      <h3 id="hist-dia-titulo"></h3>
+      <ul class="hist-lista" id="hist-lista"></ul>
+      <p class="hist-nota" id="hist-nota"></p>
+    </div>
+    <p class="cal-leyenda">Se cuenta cada vez que tildás una tarea y se descuenta si la destildás. Los números quedan guardados aunque borres las tareas hechas. El historial vive en este dispositivo; la copia de respaldo lo incluye.</p>
+  </section>
+
   <p class="ayuda" id="ayuda"></p>
   <p class="estado" id="estado" role="status"></p>
 
@@ -426,6 +474,36 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var AHORA = Date.now();
   var EDIT = { id: null, f: '', h: '' };
   var NOTA = { id: null, txt: '' };
+  var LS_HIST = 'tareasdiarias.historial';
+  var HIST = {};           /* tareas hechas por día: { 'AAAA-MM-DD': cantidad } */
+  try { HIST = limpiarHist(JSON.parse(lsLeer(LS_HIST) || 'null')); } catch (e) { HIST = {}; }
+  function guardarHist() {
+    var ks = Object.keys(HIST).sort();
+    if (ks.length > 400) ks.slice(0, ks.length - 400).forEach(function (k) { delete HIST[k]; });
+    lsEscribir(LS_HIST, JSON.stringify(HIST));
+  }
+  /* Cada tilde suma al día en que se hizo; destildar lo descuenta. Se guarda aparte para que borrar tareas no borre el historial. */
+  function registrarHecha(id, campos) {
+    if (!campos || !Object.prototype.hasOwnProperty.call(campos, 'done') || Object.prototype.hasOwnProperty.call(campos, 'hechaEn')) return campos;
+    var prev = tareaActual(id);
+    if (!prev || !!prev.done === !!campos.done) return campos;
+    var extra = {};
+    if (campos.done) {
+      var ahora = Date.now(), k = claveDia(ahora);
+      extra.hechaEn = ahora;
+      HIST[k] = (HIST[k] || 0) + 1;
+      guardarHist();
+    } else {
+      extra.hechaEn = null;
+      if (prev.hechaEn) {
+        var k2 = claveDia(prev.hechaEn);
+        if (HIST[k2] > 0) { HIST[k2]--; if (!HIST[k2]) delete HIST[k2]; guardarHist(); }
+      }
+    }
+    return Object.assign({}, campos, extra);
+  }
+  var PASOS = { abierto: {}, draft: {} };
+  var MAX_PASOS = 20;
   var REP = { id: null };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
   var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
@@ -471,7 +549,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
       done: !!t.done,
       urgente: t.urgente === true,
+      hechaEn: typeof t.hechaEn === 'number' && isFinite(t.hechaEn) ? t.hechaEn : null,
       nota: typeof t.nota === 'string' ? t.nota.slice(0, 300) : '',
+      pasos: Array.isArray(t.pasos) ? t.pasos.filter(function (p) { return p && typeof p.text === 'string' && p.text.trim(); }).slice(0, 20).map(function (p) { return { text: p.text.trim().slice(0, 120), done: p.done === true }; }) : [],
       dest: typeof t.dest === 'string' ? canon(t.dest) : (t.instituto === true || t.sheet === 'instituto' ? canon('Instituto') : ''),
       created: typeof t.created === 'number' && isFinite(t.created) ? t.created : 0,
       due: typeof t.due === 'number' && isFinite(t.due) ? t.due : null,
@@ -486,7 +566,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function crearTarea(texto, hoja, limite, extra) {
-    var datos = { text: texto, done: false, urgente: false, nota: '', dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
+    var datos = { text: texto, done: false, urgente: false, hechaEn: null, nota: '', pasos: [], dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
     var fijo = null;
     if (extra) { fijo = extra.id || null; Object.keys(extra).forEach(function (k) { if (k !== 'id') datos[k] = extra[k]; }); }
     datos.id = fijo || idNuevo();
@@ -494,6 +574,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function cambiarTarea(id, campos) {
+    campos = registrarHecha(id, campos);
     S.tareas = S.tareas.map(function (t) { return t.id === id ? Object.assign({}, t, campos) : t; });
     guardarLocal(); render();
   }
@@ -644,6 +725,27 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     if (ad !== bd) return ad ? -1 : 1;
     return a.created - b.created;
   }
+  function sumarDias(clave, n) { var d = aFecha(clave); d.setDate(d.getDate() + n); return claveDia(d.getTime()); }
+  function lunesDe(clave) { return sumarDias(clave, -((aFecha(clave).getDay() + 6) % 7)); }
+  function limpiarHist(o) {
+    var r = {};
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return r;
+    Object.keys(o).forEach(function (k) {
+      var n = o[k];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) && typeof n === 'number' && isFinite(n) && n > 0) r[k] = Math.min(9999, Math.floor(n));
+    });
+    return r;
+  }
+  function mezclarHist(a, b) {
+    var r = {};
+    [a, b].forEach(function (o) { Object.keys(o).forEach(function (k) { r[k] = Math.max(r[k] || 0, o[k]); }); });
+    return r;
+  }
+  function semanaHist(h, lunes) {
+    var r = [];
+    for (var i = 0; i < 7; i++) { var c = sumarDias(lunes, i); r.push({ clave: c, n: h[c] || 0 }); }
+    return r;
+  }
   /* --- fin funciones puras --- */
 
   function actualizarQuitar() { btnQuitarLim.hidden = !(inFecha.value || inHora.value); }
@@ -671,6 +773,106 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     render();
     var el = document.querySelector('[data-key="' + id + ':limite"]');
     if (el) el.focus();
+  }
+
+  /* ---------- Subtareas (pasos) ---------- */
+  function tareaActual(id) {
+    for (var i = 0; i < S.tareas.length; i++) if (S.tareas[i].id === id) return S.tareas[i];
+    return null;
+  }
+  function textoPasos(t) {
+    var n = t.pasos.length, h = t.pasos.filter(function (p) { return p.done; }).length;
+    return { n: n, h: h };
+  }
+  function guardarPasos(id, nuevos) { cambiarTarea(id, { pasos: nuevos }); }
+  function agregarPaso(id) {
+    var cur = tareaActual(id);
+    if (!cur) return;
+    var txt = (PASOS.draft[id] || '').trim().slice(0, 120);
+    if (!txt) return;
+    if (cur.pasos.length >= MAX_PASOS) { avisar('Máximo ' + MAX_PASOS + ' pasos por tarea', null); return; }
+    PASOS.draft[id] = '';
+    guardarPasos(id, cur.pasos.concat([{ text: txt, done: false }]));
+    var el = document.querySelector('[data-key="' + id + ':paso-nuevo"]');
+    if (el) el.focus();
+  }
+  function marcarPaso(id, i, hecho) {
+    var cur = tareaActual(id);
+    if (!cur || !cur.pasos[i]) return;
+    guardarPasos(id, cur.pasos.map(function (p, k) { return k === i ? { text: p.text, done: hecho } : p; }));
+  }
+  function quitarPaso(id, i) {
+    var cur = tareaActual(id);
+    if (!cur || !cur.pasos[i]) return;
+    var antes = cur.pasos;
+    guardarPasos(id, antes.filter(function (p, k) { return k !== i; }));
+    avisar('Paso borrado', function () { guardarPasos(id, antes); });
+  }
+  function agregarPasos(tx, t) {
+    var c = textoPasos(t), abierto = !!PASOS.abierto[t.id];
+    if (t.done && !c.n) return;
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'limite pasos-chip' + (c.n && c.h === c.n ? ' completo' : '');
+    chip.textContent = c.n ? (abierto ? '▾' : '▸') + ' Pasos ' + c.h + '/' + c.n : '+ Pasos';
+    chip.setAttribute('data-key', t.id + ':pasos');
+    chip.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+    chip.setAttribute('aria-label', (c.n ? 'Pasos ' + c.h + ' de ' + c.n + '. ' + (abierto ? 'Ocultar' : 'Mostrar') : 'Agregar pasos') + ': ' + t.text);
+    chip.addEventListener('click', function () {
+      PASOS.abierto[t.id] = !abierto;
+      render();
+      if (!abierto && !t.done) {
+        var el = document.querySelector('[data-key="' + t.id + ':paso-nuevo"]');
+        if (el) el.focus();
+      }
+    });
+    tx.appendChild(chip);
+    if (!abierto) return;
+    var box = document.createElement('div');
+    box.className = 'pasos';
+    t.pasos.forEach(function (p, i) {
+      var fila = document.createElement('div');
+      fila.className = 'paso';
+      fila.setAttribute('data-hecho', p.done ? 'true' : 'false');
+      var lab = document.createElement('label');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = p.done; cb.disabled = t.done;
+      cb.setAttribute('data-key', t.id + ':paso:' + i);
+      cb.setAttribute('aria-label', 'Paso hecho: ' + p.text);
+      cb.addEventListener('change', function () { marcarPaso(t.id, i, cb.checked); });
+      var sp = document.createElement('span');
+      sp.textContent = p.text;
+      lab.appendChild(cb); lab.appendChild(sp);
+      fila.appendChild(lab);
+      if (!t.done) {
+        var x = document.createElement('button');
+        x.type = 'button'; x.className = 'quitar-paso'; x.innerHTML = SVG_X;
+        x.setAttribute('data-key', t.id + ':quitar-paso:' + i);
+        x.setAttribute('aria-label', 'Borrar paso: ' + p.text);
+        x.addEventListener('click', function () { quitarPaso(t.id, i); });
+        fila.appendChild(x);
+      }
+      box.appendChild(fila);
+    });
+    if (!t.done) {
+      var nuevo = document.createElement('div');
+      nuevo.className = 'paso-nuevo';
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 120; inp.placeholder = 'Nuevo paso';
+      inp.value = PASOS.draft[t.id] || '';
+      inp.setAttribute('aria-label', 'Nuevo paso de: ' + t.text);
+      inp.setAttribute('data-key', t.id + ':paso-nuevo');
+      inp.addEventListener('input', function () { PASOS.draft[t.id] = inp.value; });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); agregarPaso(t.id); }
+        else if (e.key === 'Escape') { e.preventDefault(); PASOS.abierto[t.id] = false; render(); }
+      });
+      var ok = boton('Agregar', 'primario', function () { agregarPaso(t.id); });
+      ok.setAttribute('data-key', t.id + ':paso-agregar');
+      nuevo.appendChild(inp); nuevo.appendChild(ok);
+      box.appendChild(nuevo);
+    }
+    tx.appendChild(box);
   }
 
   function empezarNota(t) {
@@ -820,7 +1022,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         return x.id === idInst || (!x.plantilla && x.rep === p.id && !x.done);
       });
       if (!yaEsta) {
-        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy, urgente: !!p.urgente, nota: p.nota || '' });
+        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy, urgente: !!p.urgente, nota: p.nota || '', pasos: (p.pasos || []).map(function (x) { return { text: x.text, done: false }; }) });
       }
       cambiarTarea(p.id, { ultima: hoy });
     });
@@ -885,6 +1087,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     tx.appendChild(resumen);
     if (!t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
     tx.appendChild(crearChipUrgente(t));
+    agregarPasos(tx, t);
     if (REP.id === t.id) tx.appendChild(crearEditorRep(t));
 
     var pase = crearPase(t);
@@ -904,7 +1107,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Calendario mensual ---------- */
   var LS_VISTA = 'tareasdiarias.vista';
-  var VISTA = lsLeer(LS_VISTA) === 'calendario' ? 'calendario' : 'lista';
+  var VISTA = (lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial') ? lsLeer(LS_VISTA) : 'lista';
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
 
   function crearCeldaDia(d, res, hoy) {
@@ -1037,6 +1240,93 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     render();
   }
 
+  /* ---------- Historial semanal ---------- */
+  var HI = { lunes: lunesDe(hoyStr()), sel: hoyStr() };
+  var DIA_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  function textoSemana(l) {
+    var a = aFecha(l), b = aFecha(sumarDias(l, 6));
+    return 'Semana del ' + a.getDate() + (a.getMonth() === b.getMonth() ? '' : ' de ' + MESES[a.getMonth()]) + ' al ' + b.getDate() + ' de ' + MESES[b.getMonth()];
+  }
+  function hora(ms) { var d = new Date(ms); return dos(d.getHours()) + ':' + dos(d.getMinutes()); }
+  function irSemana(n) {
+    HI.lunes = sumarDias(HI.lunes, 7 * n);
+    HI.sel = sumarDias(HI.sel, 7 * n);
+    render();
+  }
+  function renderHistorial() {
+    var activo = document.activeElement;
+    var foco = activo && activo.getAttribute ? activo.getAttribute('data-hdia') : null;
+    var hoy = hoyStr(), actual = lunesDe(hoy);
+    if (HI.lunes > actual) { HI.lunes = actual; HI.sel = hoy; }
+    if (HI.sel < HI.lunes || HI.sel > sumarDias(HI.lunes, 6)) HI.sel = HI.lunes;
+    var sem = semanaHist(HIST, HI.lunes), esActual = HI.lunes === actual;
+    $('hist-titulo').textContent = textoSemana(HI.lunes);
+    $('hist-sig').disabled = esActual;
+    $('hist-hoy').disabled = esActual && HI.sel === hoy;
+
+    var total = 0, mejor = null;
+    sem.forEach(function (d) { total += d.n; if (d.n && (!mejor || d.n > mejor.n)) mejor = d; });
+    $('hist-total').textContent = total === 0
+      ? (esActual ? 'Todavía no hay tareas hechas esta semana.' : 'No hay tareas hechas registradas en esa semana.')
+      : total + (total === 1 ? ' tarea hecha' : ' tareas hechas') + ' en la semana' + (mejor && total > mejor.n ? ' · mejor día: ' + NOMBRE_DIA[diaSemana(mejor.clave)] + ' (' + mejor.n + ')' : '');
+
+    var max = 1;
+    sem.forEach(function (d) { if (d.n > max) max = d.n; });
+    var cont = $('hist-barras');
+    cont.textContent = '';
+    sem.forEach(function (d) {
+      var dow = diaSemana(d.clave);
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'hist-dia';
+      b.setAttribute('data-hdia', d.clave);
+      b.setAttribute('data-n', String(d.n));
+      b.setAttribute('aria-pressed', d.clave === HI.sel ? 'true' : 'false');
+      if (d.clave === hoy) b.setAttribute('data-hoy', 'true');
+      if (d.clave > hoy) b.setAttribute('data-futuro', 'true');
+      b.setAttribute('aria-label', DIA_LARGO[dow] + ' ' + aFecha(d.clave).getDate() + ': ' + d.n + (d.n === 1 ? ' tarea hecha' : ' tareas hechas'));
+      var n = document.createElement('span'); n.className = 'hist-n'; n.textContent = d.n;
+      var col = document.createElement('span'); col.className = 'hist-col';
+      var bar = document.createElement('span'); bar.className = 'hist-bar';
+      bar.style.height = Math.round(d.n / max * 100) + '%';
+      col.appendChild(bar);
+      var et = document.createElement('span'); et.className = 'hist-et'; et.textContent = NOMBRE_DIA[dow] + ' ' + aFecha(d.clave).getDate();
+      b.appendChild(n); b.appendChild(col); b.appendChild(et);
+      cont.appendChild(b);
+    });
+    if (foco) { var f = cont.querySelector('[data-hdia="' + foco + '"]'); if (f) f.focus(); }
+
+    var cnt = HIST[HI.sel] || 0;
+    var ttl = titulodia(HI.sel);
+    $('hist-dia-titulo').textContent = ttl.charAt(0).toUpperCase() + ttl.slice(1) + (HI.sel === hoy ? ' · Hoy' : '');
+    var hechas = S.tareas.filter(function (t) { return t.done && !t.plantilla && t.hechaEn && claveDia(t.hechaEn) === HI.sel; })
+      .sort(function (a, b) { return a.hechaEn - b.hechaEn; });
+    var ul = $('hist-lista');
+    ul.textContent = '';
+    hechas.forEach(function (t) {
+      var li = document.createElement('li');
+      li.className = 'hist-fila';
+      var ok = document.createElement('span'); ok.className = 'ok'; ok.setAttribute('aria-hidden', 'true'); ok.textContent = '✓';
+      var tx = document.createElement('span'); tx.textContent = t.text;
+      var h = document.createElement('span'); h.className = 'hora'; h.textContent = hora(t.hechaEn);
+      li.appendChild(ok); li.appendChild(tx); li.appendChild(h);
+      ul.appendChild(li);
+    });
+    ul.hidden = hechas.length === 0;
+    var resto = cnt - hechas.length;
+    $('hist-nota').textContent = cnt === 0 && !hechas.length
+      ? 'Ese día no hay tareas hechas registradas.'
+      : (resto > 0 ? (hechas.length ? 'Y ' + resto + (resto === 1 ? ' más' : ' más') : cnt + (cnt === 1 ? ' tarea hecha' : ' tareas hechas')) + ' que ya no está' + (resto === 1 ? '' : 'n') + ' en la lista (las borraste).' : '');
+  }
+  $('hist-ant').addEventListener('click', function () { irSemana(-1); });
+  $('hist-sig').addEventListener('click', function () { irSemana(1); });
+  $('hist-hoy').addEventListener('click', function () { HI.lunes = lunesDe(hoyStr()); HI.sel = hoyStr(); render(); });
+  $('hist-barras').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-hdia]') : null;
+    if (!b) return;
+    HI.sel = b.getAttribute('data-hdia');
+    render();
+  });
+
   document.querySelector('.vistas').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.vista') : null;
     if (!b) return;
@@ -1071,8 +1361,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var RESP = { msg: '', error: false, t: null };
   var PEND = null;
 
-  function armarCopia(tareas, hojas) {
-    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], tareas: tareas }, null, 2);
+  function armarCopia(tareas, hojas, hist) {
+    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, tareas: tareas }, null, 2);
   }
 
   /* Lee el texto de un archivo de copia. Devuelve { tareas, omitidas } o { error }. */
@@ -1092,7 +1382,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null };
   }
 
   function contarCopia(arr) {
@@ -1177,6 +1467,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     PEND.hojas.forEach(function (n) { agregarHoja(n); });
     PEND.tareas.forEach(function (t) { if (t.dest) agregarHoja(t.dest); });
     guardarHojas();
+    if (PEND.historial) { HIST = modo === 'reemplazar' ? PEND.historial : mezclarHist(HIST, PEND.historial); guardarHist(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -1189,7 +1480,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA);
+    var texto = armarCopia(S.tareas, EXTRA, HIST);
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -1413,6 +1704,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     }
     if (!t.done && !t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
     if (!t.done) tx.appendChild(crearChipUrgente(t));
+    agregarPasos(tx, t);
 
     var pase = crearPase(t);
 
@@ -1433,8 +1725,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     AHORA = Date.now();
     sincronizarHojas();
     pintarRespaldo();
-    var enCal = VISTA === 'calendario';
-    $('vista-cal').hidden = !enCal;
+    var enCal = VISTA !== 'lista';
+    $('vista-cal').hidden = VISTA !== 'calendario';
+    $('vista-hist').hidden = VISTA !== 'historial';
     ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
     var propia = indiceHoja(S.hoja) >= 0;
     $('form-hoja').hidden = enCal || !HOJAFORM;
@@ -1444,7 +1737,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-vista') === VISTA ? 'true' : 'false');
     });
-    if (enCal) { renderCalendario(); return; }
+    if (VISTA === 'calendario') { renderCalendario(); return; }
+    if (VISTA === 'historial') { renderHistorial(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
 
@@ -1498,7 +1792,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título y con + Pasos una lista de pasos para tildar. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
