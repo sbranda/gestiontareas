@@ -192,11 +192,16 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .tilde input:checked + .caja { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .tilde input:focus-visible + .caja { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.texto { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
+.texto { display: flex; flex-flow: row wrap; align-items: center; column-gap: 14px; row-gap: 0; min-width: 0; padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
 .fila[data-hecha="true"] .texto { color: var(--muted); }
 .fila[data-hecha="true"] .t { text-decoration: line-through; text-decoration-thickness: 1px; }
 .fila[data-urgente="true"] { background: var(--warn-soft); box-shadow: inset 4px 0 0 var(--warn); }
-.texto .limite { margin-right: 14px; }
+.texto > .t, .texto > .nota, .texto > .editor { flex: 0 0 100%; }
+.nota { margin: 0; padding: 0 0 4px; border: 0; background: transparent; font: inherit; font-size: 13px; line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-wrap; }
+button.nota { cursor: pointer; }
+button.nota:hover { color: var(--ink); }
+.editor textarea { flex: 1 1 100%; min-width: 0; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 14px; resize: vertical; }
+.input-nota { width: 100%; height: 44px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 button.limite.urg[aria-pressed="true"] { color: var(--warn); font-weight: 700; text-decoration: none; }
 .urgente-fila { margin-top: 10px; }
 .dia.urgente-toggle[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); font-weight: 700; }
@@ -286,6 +291,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <input type="text" id="input-tarea" aria-label="Nueva tarea" maxlength="300" disabled>
       <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
     </div>
+    <input type="text" class="input-nota" id="input-nota" maxlength="300" placeholder="Detalle (opcional)" aria-label="Detalle de la tarea (opcional)">
     <div class="limite-fila">
       <span class="limite-rotulo" id="rotulo-limite">Fecha límite (opcional)</span>
       <input type="date" id="input-fecha" aria-label="Fecha límite">
@@ -419,6 +425,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var $ = function (id) { return document.getElementById(id); };
   var AHORA = Date.now();
   var EDIT = { id: null, f: '', h: '' };
+  var NOTA = { id: null, txt: '' };
   var REP = { id: null };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
   var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
@@ -464,6 +471,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
       done: !!t.done,
       urgente: t.urgente === true,
+      nota: typeof t.nota === 'string' ? t.nota.slice(0, 300) : '',
       dest: typeof t.dest === 'string' ? canon(t.dest) : (t.instituto === true || t.sheet === 'instituto' ? canon('Instituto') : ''),
       created: typeof t.created === 'number' && isFinite(t.created) ? t.created : 0,
       due: typeof t.due === 'number' && isFinite(t.due) ? t.due : null,
@@ -478,7 +486,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function crearTarea(texto, hoja, limite, extra) {
-    var datos = { text: texto, done: false, urgente: false, dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
+    var datos = { text: texto, done: false, urgente: false, nota: '', dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
     var fijo = null;
     if (extra) { fijo = extra.id || null; Object.keys(extra).forEach(function (k) { if (k !== 'id') datos[k] = extra[k]; }); }
     datos.id = fijo || idNuevo();
@@ -665,6 +673,67 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     if (el) el.focus();
   }
 
+  function empezarNota(t) {
+    NOTA.id = t.id; NOTA.txt = t.nota || '';
+    render();
+    var el = document.querySelector('[data-key="' + t.id + ':notaedit"]');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
+  function cerrarNota(id) {
+    NOTA.id = null;
+    render();
+    var el = document.querySelector('[data-key="' + id + ':nota"]');
+    if (el) el.focus();
+  }
+  function crearEditorNota(t) {
+    var box = document.createElement('div');
+    box.className = 'editor';
+    var ta = document.createElement('textarea');
+    ta.rows = 2; ta.maxLength = 300; ta.value = NOTA.txt;
+    ta.placeholder = 'Detalle de la tarea';
+    ta.setAttribute('aria-label', 'Nota de la tarea');
+    ta.setAttribute('data-key', t.id + ':notaedit');
+    ta.addEventListener('input', function () { NOTA.txt = ta.value; });
+    var guardar = boton('Guardar', 'primario', function () {
+      cambiarTarea(t.id, { nota: NOTA.txt.trim().slice(0, 300) });
+      cerrarNota(t.id);
+    });
+    box.appendChild(ta); box.appendChild(guardar);
+    if (t.nota) {
+      box.appendChild(boton('Quitar', '', function () { cambiarTarea(t.id, { nota: '' }); cerrarNota(t.id); }));
+    }
+    box.appendChild(boton('Cancelar', '', function () { cerrarNota(t.id); }));
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); cerrarNota(t.id); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); guardar.click(); }
+    });
+    return box;
+  }
+  /* El texto de la nota va justo debajo del título; tocarlo lo edita. */
+  function agregarNota(tx, t) {
+    if (NOTA.id === t.id && !t.done) { tx.appendChild(crearEditorNota(t)); return; }
+    if (!t.nota) return;
+    var n;
+    if (t.done) n = document.createElement('span');
+    else {
+      n = document.createElement('button');
+      n.type = 'button';
+      n.setAttribute('data-key', t.id + ':nota');
+      n.setAttribute('aria-label', 'Editar nota: ' + t.nota);
+      n.addEventListener('click', function () { empezarNota(t); });
+    }
+    n.className = 'nota'; n.textContent = t.nota;
+    tx.appendChild(n);
+  }
+  function crearChipNota(t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'limite agregar'; b.textContent = '+ Nota';
+    b.setAttribute('data-key', t.id + ':nota');
+    b.setAttribute('aria-label', 'Agregar nota: ' + t.text);
+    b.addEventListener('click', function () { empezarNota(t); });
+    return b;
+  }
+
   function crearEditor(t) {
     var box = document.createElement('div');
     box.className = 'editor';
@@ -751,7 +820,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         return x.id === idInst || (!x.plantilla && x.rep === p.id && !x.done);
       });
       if (!yaEsta) {
-        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy, urgente: !!p.urgente });
+        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy, urgente: !!p.urgente, nota: p.nota || '' });
       }
       cambiarTarea(p.id, { ultima: hoy });
     });
@@ -806,6 +875,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var tt = document.createElement('span');
     tt.className = 't'; tt.textContent = t.text;
     tx.appendChild(tt);
+    agregarNota(tx, t);
     var resumen = document.createElement('button');
     resumen.type = 'button'; resumen.className = 'limite';
     resumen.textContent = diasTexto(t.dias) + (t.horaStr ? ' · ' + t.horaStr : '');
@@ -813,6 +883,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     resumen.setAttribute('aria-label', resumen.textContent + '. Cambiar días');
     resumen.addEventListener('click', function () { REP.id = REP.id === t.id ? null : t.id; render(); });
     tx.appendChild(resumen);
+    if (!t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
     tx.appendChild(crearChipUrgente(t));
     if (REP.id === t.id) tx.appendChild(crearEditorRep(t));
 
@@ -1309,6 +1380,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var tt = document.createElement('span');
     tt.className = 't'; tt.textContent = t.text;
     tx.appendChild(tt);
+    agregarNota(tx, t);
     var fd = fechaDe(t);
     if (VISTA === 'lista' && fd && t.due == null && fd !== claveDia(AHORA)) {
       var para = document.createElement('span');
@@ -1339,6 +1411,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       mas.addEventListener('click', function () { empezarEdicion(t); });
       tx.appendChild(mas);
     }
+    if (!t.done && !t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
     if (!t.done) tx.appendChild(crearChipUrgente(t));
 
     var pase = crearPase(t);
@@ -1425,11 +1498,14 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Con + Nota agregás un detalle debajo del título. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
-      if (el) el.focus();
+      if (el) {
+        el.focus();
+        if (el.tagName === 'TEXTAREA') el.setSelectionRange(el.value.length, el.value.length);
+      }
     }
   }
 
@@ -1450,9 +1526,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     e.preventDefault();
     var texto = input.value.trim();
     if (!texto || !S.listo) return;
+    var nota = $('input-nota').value.trim().slice(0, 300);
     var dias = diasElegidos();
     if (dias.length) {
-      crearTarea(texto, S.hoja, null, { plantilla: true, dias: dias, horaStr: inHora.value || '', ultima: '', urgente: urgenteForm });
+      crearTarea(texto, S.hoja, null, { plantilla: true, dias: dias, horaStr: inHora.value || '', ultima: '', urgente: urgenteForm, nota: nota });
       avisar('Repetida: ' + diasTexto(dias) + (inHora.value ? ' · ' + inHora.value : ''), null);
       setTimeout(generarRepetidas, 800);
       diasForm = {};
@@ -1460,9 +1537,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       avisar('Elegí al menos un día en Repetir', null);
       return;
     } else {
-      crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value), urgenteForm ? { urgente: true } : null);
+      crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value), (urgenteForm || nota) ? { urgente: urgenteForm, nota: nota } : null);
     }
-    input.value = ''; inFecha.value = ''; inHora.value = ''; urgenteForm = false; pintarUrgenteForm(); pintarDias();
+    input.value = ''; inFecha.value = ''; inHora.value = ''; urgenteForm = false; pintarUrgenteForm(); $('input-nota').value = ''; pintarDias();
     input.focus();
   });
 
