@@ -30,6 +30,8 @@
   --accent-soft: #DAEDF3;
   --danger: #B3261E;
   --danger-soft: #FCE9E7;
+  --warn: #9A5B00;
+  --warn-soft: #FDF1DC;
   --font-display: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -37,13 +39,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
-    --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224;
+    --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224; --warn: #F2B45A; --warn-soft: #33290F;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
-  --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224;
+  --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224; --warn: #F2B45A; --warn-soft: #33290F;
   color-scheme: dark;
 }
 
@@ -193,6 +195,11 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .texto { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 12px 8px 12px 4px; overflow-wrap: anywhere; }
 .fila[data-hecha="true"] .texto { color: var(--muted); }
 .fila[data-hecha="true"] .t { text-decoration: line-through; text-decoration-thickness: 1px; }
+.fila[data-urgente="true"] { background: var(--warn-soft); box-shadow: inset 4px 0 0 var(--warn); }
+.texto .limite { margin-right: 14px; }
+button.limite.urg[aria-pressed="true"] { color: var(--warn); font-weight: 700; text-decoration: none; }
+.urgente-fila { margin-top: 10px; }
+.dia.urgente-toggle[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); font-weight: 700; }
 .fila[data-vencida="true"] { background: var(--danger-soft); }
 .limite { display: inline-block; max-width: 100%; margin: 0; padding: 6px 0; min-height: 32px; border: 0; background: transparent; font-size: 13px; line-height: 1.3; text-align: left; color: var(--muted); font-variant-numeric: tabular-nums; }
 button.limite { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
@@ -297,6 +304,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         <button type="button" class="dia" data-dia="0" aria-pressed="false">Dom</button>
         <button type="button" class="dia todos" id="btn-todos" aria-pressed="false">Todos</button>
       </div>
+    </div>
+    <div class="urgente-fila">
+      <button type="button" class="dia urgente-toggle" id="btn-urgente-nuevo" aria-pressed="false">☆ Urgente</button>
     </div>
   </form>
 
@@ -453,6 +463,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       id: t.id,
       text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
       done: !!t.done,
+      urgente: t.urgente === true,
       dest: typeof t.dest === 'string' ? canon(t.dest) : (t.instituto === true || t.sheet === 'instituto' ? canon('Instituto') : ''),
       created: typeof t.created === 'number' && isFinite(t.created) ? t.created : 0,
       due: typeof t.due === 'number' && isFinite(t.due) ? t.due : null,
@@ -467,7 +478,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   function crearTarea(texto, hoja, limite, extra) {
-    var datos = { text: texto, done: false, dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
+    var datos = { text: texto, done: false, urgente: false, dest: (hoja && hoja !== 'diarias' && hoja !== 'repetidas') ? canon(hoja) : '', created: Date.now(), due: limite ? limite.due : null, hora: limite ? limite.hora : false };
     var fijo = null;
     if (extra) { fijo = extra.id || null; Object.keys(extra).forEach(function (k) { if (k !== 'id') datos[k] = extra[k]; }); }
     datos.id = fijo || idNuevo();
@@ -619,6 +630,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
   function ordenTareas(a, b) {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    if (!!a.urgente !== !!b.urgente) return a.urgente ? -1 : 1;
     var ad = a.due != null, bd = b.due != null;
     if (ad && bd && a.due !== b.due) return a.due - b.due;
     if (ad !== bd) return ad ? -1 : 1;
@@ -688,6 +700,12 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Tareas repetidas ---------- */
   var diasForm = {};
+  var urgenteForm = false;
+  function pintarUrgenteForm() {
+    var b = $('btn-urgente-nuevo');
+    b.setAttribute('aria-pressed', urgenteForm ? 'true' : 'false');
+    b.textContent = (urgenteForm ? '★' : '☆') + ' Urgente';
+  }
   function diasElegidos() { return ORDEN_DIAS.filter(function (d) { return diasForm[d]; }); }
 
   function pintarDias() {
@@ -733,7 +751,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         return x.id === idInst || (!x.plantilla && x.rep === p.id && !x.done);
       });
       if (!yaEsta) {
-        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy });
+        crearTarea(p.text, p.dest || 'diarias', p.horaStr ? armarLimite(hoy, p.horaStr) : null, { id: idInst, rep: p.id, dia: hoy, urgente: !!p.urgente });
       }
       cambiarTarea(p.id, { ultima: hoy });
     });
@@ -778,6 +796,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   function crearFilaRep(t) {
     var li = document.createElement('li');
     li.className = 'fila';
+    if (t.urgente) li.setAttribute('data-urgente', 'true');
 
     var ic = document.createElement('span');
     ic.className = 'rep-ico'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = SVG_REP;
@@ -794,6 +813,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     resumen.setAttribute('aria-label', resumen.textContent + '. Cambiar días');
     resumen.addEventListener('click', function () { REP.id = REP.id === t.id ? null : t.id; render(); });
     tx.appendChild(resumen);
+    tx.appendChild(crearChipUrgente(t));
     if (REP.id === t.id) tx.appendChild(crearEditorRep(t));
 
     var pase = crearPase(t);
@@ -1164,6 +1184,21 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   /* El botón de cada tarea pasa por: sin hoja -> cada hoja propia -> sin hoja */
+  function crearChipUrgente(t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'limite urg';
+    b.textContent = (t.urgente ? '★' : '☆') + ' Urgente';
+    b.setAttribute('data-key', t.id + ':urgente');
+    b.setAttribute('aria-pressed', t.urgente ? 'true' : 'false');
+    b.setAttribute('aria-label', (t.urgente ? 'Quitar urgente: ' : 'Marcar como urgente: ') + t.text);
+    b.addEventListener('click', function () {
+      var antes = !!t.urgente;
+      cambiarTarea(t.id, { urgente: !antes });
+      avisar(antes ? 'Ya no es urgente' : 'Marcada como urgente: va arriba de la lista', function () { cambiarTarea(t.id, { urgente: antes }); });
+    });
+    return b;
+  }
+
   function siguienteHoja(actual) {
     var ops = [''].concat(EXTRA), i = ops.indexOf(actual);
     return ops[(i + 1) % ops.length];
@@ -1236,6 +1271,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     if (h === 'repetidas') return S.tareas.filter(function (t) { return t.plantilla; }).sort(function (a, b) { return a.created - b.created; });
     return S.tareas.filter(function (t) { return !t.plantilla && !esFutura(t) && (h === 'diarias' || (t.dest === h && !t.done)); }).sort(function (a, b) {
       if (a.done !== b.done) return a.done ? 1 : -1;
+      if (!!a.urgente !== !!b.urgente) return a.urgente ? -1 : 1;
       var ad = a.due != null, bd = b.due != null;
       if (ad && bd && a.due !== b.due) return a.due - b.due;
       if (ad !== bd) return ad ? -1 : 1;
@@ -1250,6 +1286,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var li = document.createElement('li');
     li.className = 'fila';
     li.setAttribute('data-hecha', t.done ? 'true' : 'false');
+    if (t.urgente && !t.done) li.setAttribute('data-urgente', 'true');
 
     var lab = document.createElement('label');
     lab.className = 'tilde';
@@ -1302,6 +1339,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       mas.addEventListener('click', function () { empezarEdicion(t); });
       tx.appendChild(mas);
     }
+    if (!t.done) tx.appendChild(crearChipUrgente(t));
 
     var pase = crearPase(t);
 
@@ -1387,7 +1425,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
-      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
+      : 'Al tildar una tarea queda tachada acá. El botón de la derecha de cada tarea la pasa también a una hoja propia (Instituto, Casa…): tocalo para ir cambiando de hoja. Con el + de arriba creás hojas nuevas. En su hoja se ve hasta que la tildes.') + ' Las tareas marcadas con ★ Urgente van primero en la lista. Si una tarea tiene fecha límite y se pasa, se marca en rojo. Lo que agendes en el calendario aparece acá el día elegido.';
 
     if (clave) {
       var el = lista.querySelector('[data-key="' + clave + '"]');
@@ -1414,7 +1452,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     if (!texto || !S.listo) return;
     var dias = diasElegidos();
     if (dias.length) {
-      crearTarea(texto, S.hoja, null, { plantilla: true, dias: dias, horaStr: inHora.value || '', ultima: '' });
+      crearTarea(texto, S.hoja, null, { plantilla: true, dias: dias, horaStr: inHora.value || '', ultima: '', urgente: urgenteForm });
       avisar('Repetida: ' + diasTexto(dias) + (inHora.value ? ' · ' + inHora.value : ''), null);
       setTimeout(generarRepetidas, 800);
       diasForm = {};
@@ -1422,11 +1460,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       avisar('Elegí al menos un día en Repetir', null);
       return;
     } else {
-      crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value));
+      crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value), urgenteForm ? { urgente: true } : null);
     }
-    input.value = ''; inFecha.value = ''; inHora.value = ''; pintarDias();
+    input.value = ''; inFecha.value = ''; inHora.value = ''; urgenteForm = false; pintarUrgenteForm(); pintarDias();
     input.focus();
   });
+
+  $('btn-urgente-nuevo').addEventListener('click', function () { urgenteForm = !urgenteForm; pintarUrgenteForm(); });
 
   $('solapas').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.solapa') : null;
