@@ -223,6 +223,13 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .respaldo h2 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
 .respaldo p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
 .respaldo .mini { height: 44px; padding: 0 16px; }
+.sync-campo { display: grid; gap: 4px; margin: 0 0 12px; }
+.sync-campo label { font-size: 0.875rem; font-weight: 600; }
+.sync-campo input { width: 100%; min-height: 48px; padding: 0 12px; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+.sync-campo input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#sync [hidden] { display: none; }
+.sync-seg { font-size: 0.8125rem; }
+.respaldo a { color: var(--accent); }
 .respaldo-botones { display: flex; flex-wrap: wrap; gap: 8px; }
 .respaldo .respaldo-estado { margin: 12px 0 0; font-family: var(--font-mono); font-size: 0.75rem; }
 .respaldo .respaldo-estado.viejo { color: var(--ink); font-weight: 600; }
@@ -646,6 +653,29 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   <p class="ayuda" id="ayuda"></p>
   <p class="estado" id="estado" role="status"></p>
 
+  <section class="respaldo" id="sync" aria-labelledby="sync-t">
+    <h2 id="sync-t">Sincronizar entre dispositivos</h2>
+    <div id="sync-config">
+      <p>Guarda tus tareas en un gist privado de tu cuenta de GitHub y las mantiene iguales en el celular y en la compu. Hace falta un token de GitHub con el permiso "gist": <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Tareas%20diarias" target="_blank" rel="noopener">crear token<span class="sr-only"> (se abre en otra pestaña)</span></a>. Pegalo acá, en cada dispositivo.</p>
+      <div class="sync-campo">
+        <label for="sync-token">Token de GitHub</label>
+        <input type="password" id="sync-token" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300">
+      </div>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="btn-sync-activar">Activar sincronización</button>
+      </div>
+      <p class="sync-seg">El token queda guardado solo en este navegador. Usá un token clásico con únicamente el permiso "gist" y revocalo en GitHub si perdés el dispositivo. Otras apps tuyas publicadas en el mismo dominio podrían leerlo.</p>
+    </div>
+    <div id="sync-activa" hidden>
+      <p id="sync-ultima" aria-live="off"></p>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="btn-sync-ahora">Sincronizar ahora</button>
+        <button type="button" class="mini" id="btn-sync-parar">Dejar de sincronizar acá</button>
+      </div>
+    </div>
+    <p class="respaldo-estado" id="sync-estado" role="status"></p>
+  </section>
+
   <section class="respaldo" aria-labelledby="avisos-t">
     <h2 id="avisos-t">Avisos</h2>
     <p>Una notificación del teléfono cuando se acerca la fecha límite de una tarea.</p>
@@ -755,10 +785,48 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var LS_ESTILOS = 'tareasdiarias.estilos', LS_INICIO = 'tareasdiarias.inicio', LS_FEED = 'tareasdiarias.feedback';
   var ESTILOS = {};
   try { ESTILOS = limpiarEstilos(JSON.parse(lsLeer(LS_ESTILOS) || 'null')); } catch (e) {}
-  function guardarEstilos() { lsEscribir(LS_ESTILOS, JSON.stringify(ESTILOS)); }
+  function guardarEstilos() { lsEscribir(LS_ESTILOS, JSON.stringify(ESTILOS)); tocarMod('estilos'); }
   var INICIO = lsLeer(LS_INICIO); if (INICIOS.indexOf(INICIO) < 0) INICIO = 'ultima';
   var FEED = lsLeer(LS_FEED); if (FEEDS.indexOf(FEED) < 0) FEED = 'nada';
   var EST = { abierto: false };
+  /* --- sincronización: marcas de modificación, tareas borradas y configuración --- */
+  var LS_MODS = 'tareasdiarias.mods', LS_TOMB = 'tareasdiarias.borradas', LS_SYNC = 'tareasdiarias.sync';
+  var MODS = { hojas: 0, modelos: 0, estilos: 0 };
+  try {
+    var om = JSON.parse(lsLeer(LS_MODS) || 'null');
+    if (om && typeof om === 'object') ['hojas', 'modelos', 'estilos'].forEach(function (k) { if (typeof om[k] === 'number' && isFinite(om[k])) MODS[k] = om[k]; });
+  } catch (e) {}
+  var TOMB = {};
+  try {
+    var ot = JSON.parse(lsLeer(LS_TOMB) || 'null');
+    if (ot && typeof ot === 'object' && !Array.isArray(ot)) Object.keys(ot).forEach(function (k) { if (typeof ot[k] === 'number' && isFinite(ot[k])) TOMB[k] = ot[k]; });
+  } catch (e) {}
+  var HOJAS_DEF = lsLeer('tareasdiarias.hojas') === null;
+  var SNAP = null;
+  var SYNC = { cfg: null, enCurso: false, pendiente: false, aplicando: false, t: null, error: '', ultimoIntento: 0 };
+  try {
+    var oc = JSON.parse(lsLeer(LS_SYNC) || 'null');
+    if (oc && typeof oc.token === 'string' && /^[A-Za-z0-9_-]{20,300}$/.test(oc.token)) {
+      SYNC.cfg = { token: oc.token, gistId: (typeof oc.gistId === 'string' && /^[A-Fa-f0-9]{8,64}$/.test(oc.gistId)) ? oc.gistId : '', ultima: typeof oc.ultima === 'number' ? oc.ultima : 0 };
+    }
+  } catch (e) {}
+  function guardarCfg() { if (SYNC.cfg) lsEscribir(LS_SYNC, JSON.stringify(SYNC.cfg)); else { try { localStorage.removeItem(LS_SYNC); } catch (e) {} } }
+  function guardarTomb() {
+    var lim = Date.now() - 60 * 86400000;
+    Object.keys(TOMB).forEach(function (k) { if (TOMB[k] < lim) delete TOMB[k]; });
+    lsEscribir(LS_TOMB, JSON.stringify(TOMB));
+  }
+  function tocarMod(k) {
+    if (SYNC.aplicando) return;
+    MODS[k] = Date.now();
+    lsEscribir(LS_MODS, JSON.stringify(MODS));
+    programarSync();
+  }
+  function programarSync(ms) {
+    if (!SYNC.cfg || SYNC.aplicando) return;
+    clearTimeout(SYNC.t);
+    SYNC.t = setTimeout(function () { sincronizar(); }, ms == null ? 4000 : ms);
+  }
   var LS_HOJAS = 'tareasdiarias.hojas';
   var MAX_HOJAS = 8;
   var EXTRA = [];          /* hojas propias, además de Diarias y Repetidas */
@@ -800,6 +868,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var ks = Object.keys(HIST).sort();
     if (ks.length > 400) ks.slice(0, ks.length - 400).forEach(function (k) { delete HIST[k]; });
     lsEscribir(LS_HIST, JSON.stringify(HIST));
+    programarSync();
   }
   var LS_ENF = 'tareasdiarias.enfoque';
   var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
@@ -909,7 +978,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   };
   aplicarApariencia('');
 
-  function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); }
+  function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); HOJAS_DEF = false; tocarMod('hojas'); }
   function agregarHoja(n) {
     n = nombreValido(n);
     if (!n) return '';
@@ -936,7 +1005,20 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* ---------- Almacenamiento ---------- */
   function idNuevo() { return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  /* Marca cada tarea cambiada con la hora y recuerda las borradas, para poder unir dos dispositivos */
+  function sellarCambios() {
+    var ahora = Date.now(), nuevo = {}, cambio = false;
+    S.tareas.forEach(function (t) {
+      var c = Object.assign({}, t); delete c.mod;
+      var j = JSON.stringify(c); nuevo[t.id] = j;
+      if (SNAP && !SYNC.aplicando && SNAP[t.id] !== j) { t.mod = ahora; cambio = true; delete TOMB[t.id]; }
+    });
+    if (SNAP && !SYNC.aplicando) Object.keys(SNAP).forEach(function (id) { if (!(id in nuevo)) { TOMB[id] = ahora; cambio = true; } });
+    SNAP = nuevo;
+    if (cambio) { guardarTomb(); programarSync(); }
+  }
   function guardarLocal() {
+    sellarCambios();
     var ok = lsEscribir(LS_TAREAS, JSON.stringify(S.tareas));
     if (S.error === ok) { S.error = !ok; mostrarEstado(); }
   }
@@ -962,6 +1044,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       dia: typeof t.dia === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.dia) ? t.dia : ''
     };
     if (typeof t.orden === 'number' && isFinite(t.orden)) r.orden = t.orden;
+    if (typeof t.mod === 'number' && isFinite(t.mod) && t.mod > 0) r.mod = t.mod;
     return r;
   }
 
@@ -1466,6 +1549,73 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       dias.push({ clave: c, tareas: tareas.filter(function (t) { return !t.plantilla && fechaDe(t) === c; }).sort(ordenTareas) });
     }
     return { dias: dias, sinFecha: tareas.filter(function (t) { return !t.plantilla && !t.done && !fechaDe(t); }).sort(ordenTareas) };
+  }
+  /* --- sincronización (funciones puras): unir los datos de dos dispositivos --- */
+  function estable(v) {
+    if (Array.isArray(v)) return '[' + v.map(estable).join(',') + ']';
+    if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + estable(v[k]); }).join(',') + '}';
+    return JSON.stringify(v === undefined ? null : v);
+  }
+  function porId(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); }
+  /* Forma comparable: el orden de las listas no cuenta, así dos dispositivos no se "corrigen" entre sí sin parar */
+  function canonSync(m) {
+    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos };
+  }
+  function unirHojas(a, b) {
+    var vistos = {}, r = [];
+    a.concat(b).forEach(function (n) { var k = n.toLowerCase(); if (!vistos[k]) { vistos[k] = 1; r.push(n); } });
+    return r;
+  }
+  function fusionarSync(loc, rem, ahora) {
+    var tomb = {};
+    [rem.borradas, loc.borradas].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { tomb[k] = Math.max(tomb[k] || 0, o[k]); }); });
+    var L = {}, Rm = {}, orden = [];
+    loc.tareas.forEach(function (t) { L[t.id] = t; orden.push(t.id); });
+    rem.tareas.forEach(function (t) { Rm[t.id] = t; if (!L[t.id]) orden.push(t.id); });
+    var tareas = [];
+    orden.forEach(function (id) {
+      var a = L[id], b = Rm[id], p = !a ? b : (!b ? a : ((b.mod || 0) > (a.mod || 0) ? b : a));
+      if (tomb[id] && tomb[id] >= (p.mod || 0)) return;
+      delete tomb[id];
+      tareas.push(p);
+    });
+    var lim = (ahora || Date.now()) - 60 * 86400000;
+    Object.keys(tomb).forEach(function (k) { if (tomb[k] < lim) delete tomb[k]; });
+    var ml = loc.mods || {}, mr = rem.mods || {}, mods = {};
+    ['hojas', 'modelos', 'estilos'].forEach(function (k) { mods[k] = Math.max(ml[k] || 0, mr[k] || 0); });
+    function elegir(k, igual) {
+      if ((mr[k] || 0) > (ml[k] || 0)) return rem[k];
+      if ((mr[k] || 0) === (ml[k] || 0)) return igual();
+      return loc[k];
+    }
+    return {
+      tareas: tareas, borradas: tomb, mods: mods,
+      hojas: elegir('hojas', function () { return unirHojas(loc.hojas, rem.hojas); }),
+      historial: mezclarHist(loc.historial, rem.historial),
+      modelos: elegir('modelos', function () { return mezclarModelos(loc.modelos, rem.modelos); }),
+      estilos: elegir('estilos', function () { return Object.assign({}, rem.estilos, loc.estilos); })
+    };
+  }
+  function leerSync(texto) {
+    var o;
+    try { o = JSON.parse(texto); } catch (e) { return null; }
+    if (!o || o.app !== 'tareas-diarias-sync' || !Array.isArray(o.tareas) || o.tareas.length > 5000) return null;
+    var vistos = {}, tareas = [], borradas = {}, mods = { hojas: 0, modelos: 0, estilos: 0 };
+    o.tareas.forEach(function (t) {
+      if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !/^[A-Za-z0-9_.~:@+-]{1,200}$/.test(t.id) || t.id === '.' || t.id === '..' || vistos[t.id] || typeof t.text !== 'string' || !t.text.trim()) return;
+      vistos[t.id] = 1; tareas.push(limpiar(t));
+    });
+    if (o.borradas && typeof o.borradas === 'object' && !Array.isArray(o.borradas)) {
+      Object.keys(o.borradas).forEach(function (k) { if (typeof o.borradas[k] === 'number' && isFinite(o.borradas[k]) && /^[A-Za-z0-9_.~:@+-]{1,200}$/.test(k)) borradas[k] = o.borradas[k]; });
+    }
+    if (o.mods && typeof o.mods === 'object') Object.keys(mods).forEach(function (k) { if (typeof o.mods[k] === 'number' && isFinite(o.mods[k])) mods[k] = o.mods[k]; });
+    return {
+      tareas: tareas, borradas: borradas, mods: mods,
+      hojas: Array.isArray(o.hojas) ? o.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [],
+      historial: limpiarHist(o.historial),
+      modelos: Array.isArray(o.modelos) ? limpiarListaModelos(o.modelos) : [],
+      estilos: limpiarEstilos(o.estilos)
+    };
   }
   /* --- fin funciones puras --- */
 
@@ -3229,6 +3379,146 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     sentirTilde();
   });
 
+  /* ---------- Sincronización con un gist privado de GitHub ---------- */
+  var SYNC_ARCHIVO = 'tareas-diarias.json', SYNC_DESC = 'Tareas diarias (sincronización)';
+  function api(metodo, ruta, cuerpo) {
+    var cab = { Authorization: 'Bearer ' + SYNC.cfg.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' };
+    if (cuerpo) cab['Content-Type'] = 'application/json';
+    return fetch('https://api.github.com' + ruta, { method: metodo, headers: cab, body: cuerpo ? JSON.stringify(cuerpo) : undefined, cache: 'no-store' }).then(function (r) {
+      if (!r.ok) { var e = new Error('http'); e.status = r.status; e.limite = r.headers && r.headers.get && r.headers.get('x-ratelimit-remaining') === '0'; throw e; }
+      return r.json();
+    });
+  }
+  function buscarGist(pagina) {
+    pagina = pagina || 1;
+    return api('GET', '/gists?per_page=100&page=' + pagina).then(function (lista) {
+      var g = (lista || []).filter(function (x) { return x && x.description === SYNC_DESC && x.files && x.files[SYNC_ARCHIVO]; })[0];
+      if (g) return g.id;
+      if (lista && lista.length === 100 && pagina < 5) return buscarGist(pagina + 1);
+      return '';
+    });
+  }
+  function leerGist(id) {
+    return api('GET', '/gists/' + id).then(function (g) {
+      var f = g && g.files && g.files[SYNC_ARCHIVO];
+      if (!f) return null;
+      if (f.truncated && f.raw_url) return fetch(f.raw_url, { cache: 'no-store' }).then(function (r) { return r.text(); });
+      return f.content;
+    });
+  }
+  function estadoLocal() {
+    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS };
+  }
+  function armarSync(m) {
+    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos });
+  }
+  function aplicarSync(m) {
+    SYNC.aplicando = true;
+    try {
+      S.tareas = m.tareas; TOMB = m.borradas; guardarTomb();
+      if (m.mods.hojas > 0 || m.hojas.length) { EXTRA = m.hojas.slice(); guardarHojas(); }
+      HIST = m.historial; guardarHist();
+      MODELOS = m.modelos; guardarModelos(); pintarListaModelos();
+      ESTILOS = m.estilos; guardarEstilos();
+      MODS = m.mods; lsEscribir(LS_MODS, JSON.stringify(MODS));
+      SNAP = null; guardarLocal();
+      SNAP = {};
+      S.tareas.forEach(function (t) { var c = Object.assign({}, t); delete c.mod; SNAP[t.id] = JSON.stringify(c); });
+    } finally { SYNC.aplicando = false; }
+    render();
+  }
+  function textoErrorSync(e) {
+    if (e && e.code === 'invalido') return 'El archivo de sincronización tiene un formato desconocido. No se tocó nada.';
+    var s = e && e.status;
+    if (s === 401) return 'El token no es válido o venció. Creá uno nuevo y pegalo de nuevo.';
+    if (s === 403 && e.limite) return 'GitHub pidió esperar un poco. Se vuelve a intentar solo.';
+    if (s === 403 || s === 404) return 'El token no tiene permiso para usar gists. Necesita el permiso "gist".';
+    if (s === 422) return 'GitHub rechazó los datos (¿son demasiados?).';
+    if (!s) return 'Sin conexión con GitHub. Se sincroniza cuando vuelva internet.';
+    return 'No se pudo sincronizar (código ' + s + ').';
+  }
+  function sincronizar() {
+    if (!SYNC.cfg) return Promise.resolve();
+    if (!S.listo) { programarSync(500); return Promise.resolve(); }
+    if (SYNC.enCurso) { SYNC.pendiente = true; return Promise.resolve(); }
+    SYNC.enCurso = true; SYNC.error = ''; SYNC.ultimoIntento = Date.now();
+    var cfg = SYNC.cfg, trajo = false;
+    pintarSync('Sincronizando…');
+    var buscar = Promise.resolve().then(function () { return cfg.gistId || buscarGist(); });
+    return buscar.then(function (id) {
+      if (!id) return { id: '', rem: null };
+      return leerGist(id).then(function (txt) {
+        var rem = leerSync(txt);
+        if (!rem) { var e = new Error('invalido'); e.code = 'invalido'; throw e; }
+        return { id: id, rem: rem };
+      });
+    }).then(function (r) {
+      var loc = estadoLocal(), m = loc, cambiaRemoto = true;
+      if (r.rem) {
+        m = fusionarSync(loc, r.rem, Date.now());
+        if (estable(canonSync(m)) !== estable(canonSync(loc))) { aplicarSync(m); trajo = true; m = estadoLocal(); }
+        cambiaRemoto = estable(canonSync(m)) !== estable(canonSync(r.rem));
+      }
+      if (r.id && !cambiaRemoto) return r.id;
+      var cont = armarSync(m);
+      if (r.id) return api('PATCH', '/gists/' + r.id, { files: (function () { var f = {}; f[SYNC_ARCHIVO] = { content: cont }; return f; })() }).then(function () { return r.id; });
+      var fs = {}; fs[SYNC_ARCHIVO] = { content: cont };
+      return api('POST', '/gists', { description: SYNC_DESC, public: false, files: fs }).then(function (g) { return g.id; });
+    }).then(function (id) {
+      cfg.gistId = id; cfg.ultima = Date.now(); guardarCfg();
+      SYNC.resultado = trajo ? 'Sincronizado: se sumaron los cambios del otro dispositivo.' : 'Sincronizado.';
+      SYNC.error = '';
+    }).catch(function (e) {
+      SYNC.error = textoErrorSync(e);
+      if (e && e.status === 401) { SYNC.cfg = null; guardarCfg(); }
+    }).then(function () {
+      SYNC.enCurso = false;
+      pintarSync(SYNC.error || SYNC.resultado || '');
+      SYNC.resultado = '';
+      if (SYNC.pendiente) { SYNC.pendiente = false; programarSync(1500); }
+    });
+  }
+  function haceTexto(ms) {
+    var s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return 'hace instantes';
+    if (s < 3600) return 'hace ' + Math.round(s / 60) + ' min';
+    if (s < 86400) return 'hace ' + Math.round(s / 3600) + ' h';
+    return 'el ' + textoDia(claveDia(ms));
+  }
+  function pintarSync(aviso) {
+    var act = !!SYNC.cfg;
+    $('sync-config').hidden = act; $('sync-activa').hidden = !act;
+    if (act) {
+      var u = SYNC.cfg.ultima ? 'Sincronización activa. Última vez: ' + haceTexto(SYNC.cfg.ultima) + '.' : 'Sincronización activa. Todavía no se sincronizó.';
+      if ($('sync-ultima').textContent !== u) $('sync-ultima').textContent = u;
+    }
+    if (aviso != null && $('sync-estado').textContent !== aviso) $('sync-estado').textContent = aviso;
+  }
+  $('btn-sync-activar').addEventListener('click', function () {
+    var tk = $('sync-token').value.trim();
+    if (!/^[A-Za-z0-9_-]{20,300}$/.test(tk)) { pintarSync('Pegá el token completo de GitHub (sin espacios).'); $('sync-token').focus(); return; }
+    SYNC.cfg = { token: tk, gistId: '', ultima: 0 }; guardarCfg();
+    $('sync-token').value = '';
+    pintarSync('Conectando…');
+    $('btn-sync-ahora').focus();
+    sincronizar().then(function () { if (!SYNC.cfg) $('sync-token').focus(); });
+  });
+  $('btn-sync-ahora').addEventListener('click', function () { sincronizar(); });
+  $('btn-sync-parar').addEventListener('click', function () {
+    clearTimeout(SYNC.t); SYNC.cfg = null; guardarCfg();
+    pintarSync('Este dispositivo ya no sincroniza. Tus tareas siguen acá y en el gist.');
+    $('sync-token').focus();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (SYNC.cfg && !document.hidden && Date.now() - SYNC.ultimoIntento > 15000) programarSync(300);
+  });
+  window.addEventListener('online', function () { programarSync(500); });
+  setInterval(function () {
+    if (!SYNC.cfg || document.hidden) return;
+    pintarSync();
+    if (Date.now() - SYNC.ultimoIntento > 80000) programarSync(0);
+  }, 60000);
+
   /* ---------- Arranque ---------- */
   function habilitar() {
     S.listo = true;
@@ -3241,6 +3531,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var crudo = lsLeer(LS_TAREAS), arr = [];
     try { arr = crudo ? JSON.parse(crudo) : []; } catch (e) { arr = []; }
     S.tareas = Array.isArray(arr) ? arr.map(limpiar) : [];
+    SNAP = {};
+    S.tareas.forEach(function (t) { var c = Object.assign({}, t); delete c.mod; SNAP[t.id] = JSON.stringify(c); });
     habilitar();
   }
 
@@ -3356,7 +3648,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   /* --- plantillas: interfaz --- */
   var MOD = { editando: null, firma: '' };
-  function guardarModelos() { lsEscribir(LS_MODELOS, JSON.stringify(MODELOS)); }
+  function guardarModelos() { lsEscribir(LS_MODELOS, JSON.stringify(MODELOS)); tocarMod('modelos'); }
   function indiceModelo(nombre, salvoId) {
     var n = String(nombre).toLowerCase();
     for (var i = 0; i < MODELOS.length; i++) { if (MODELOS[i].nombre.toLowerCase() === n && MODELOS[i].id !== salvoId) return i; }
@@ -3584,6 +3876,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
 
   modoLocal();
+  pintarSync('');
+  if (SYNC.cfg) programarSync(1000);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
