@@ -219,6 +219,11 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .limite.fija { color: var(--muted); }
 .fila.proyectada { opacity: 0.85; }
 
+.instalar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; }
+.instalar-ico { border-radius: 10px; flex: none; }
+.instalar-txt { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
+.instalar-txt strong { font-size: 1rem; }
+.instalar-bot { display: flex; flex-wrap: wrap; gap: 8px; }
 .respaldo { margin-top: 28px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .respaldo h2 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
 .respaldo p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
@@ -451,6 +456,17 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 <a class="saltar" href="#contenido">Saltar al contenido</a>
 
 <div class="wrap">
+  <div class="instalar" id="instalar" role="region" aria-labelledby="instalar-t" data-no-print hidden>
+    <img src="icon-192.png" alt="" width="44" height="44" class="instalar-ico">
+    <div class="instalar-txt">
+      <strong id="instalar-t">Instalá Tareas diarias</strong>
+      <span id="instalar-msg">Queda en tu pantalla de inicio y abre como una app, también sin conexión.</span>
+    </div>
+    <div class="instalar-bot">
+      <button type="button" class="mini primario" id="btn-instalar">Instalar</button>
+      <button type="button" class="mini" id="btn-instalar-no">Ahora no</button>
+    </div>
+  </div>
   <header>
     <div class="ajustes" role="group" aria-label="Apariencia y tamaño de letra">
       <button type="button" class="ajuste" id="ajuste-menos" aria-label="A−, achicar letra">A−</button>
@@ -3537,6 +3553,54 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   mostrarEstado(); render();
+
+  /* --- aviso para instalar la app --- */
+  (function () {
+    var LS_INST = 'tareasdiarias.instalar';
+    var caja = document.getElementById('instalar'), btnI = document.getElementById('btn-instalar'),
+        btnNo = document.getElementById('btn-instalar-no'), msg = document.getElementById('instalar-msg');
+    if (!caja || !btnI || !btnNo || !msg) return;
+    var evento = null;
+    var ua = navigator.userAgent || '';
+    var esIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var esAndroid = /Android/i.test(ua);
+    function instalada() {
+      try { if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true; } catch (e) {}
+      return navigator.standalone === true;
+    }
+    function mostrar() { if (!instalada() && lsLeer(LS_INST) !== '1') caja.hidden = false; }
+    function ocultar() { caja.hidden = true; }
+    if (instalada()) return;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault(); evento = e;
+      btnI.hidden = false;
+      msg.textContent = 'Queda en tu pantalla de inicio y abre como una app, también sin conexión.';
+      mostrar();
+    });
+    window.addEventListener('appinstalled', function () { evento = null; ocultar(); lsEscribir(LS_INST, '1'); });
+    btnI.addEventListener('click', function () {
+      if (!evento) return;
+      var ev = evento; evento = null;
+      try {
+        ev.prompt();
+        ev.userChoice.then(function (r) { if (r && r.outcome === 'accepted') { ocultar(); lsEscribir(LS_INST, '1'); } else { btnI.hidden = true; } }).catch(function () {});
+      } catch (e) {}
+    });
+    btnNo.addEventListener('click', function () { lsEscribir(LS_INST, '1'); ocultar(); });
+    if (esIOS) {
+      btnI.hidden = true;
+      msg.textContent = 'Tocá el botón Compartir de Safari y elegí «Agregar a pantalla de inicio».';
+      mostrar();
+    } else if (esAndroid) {
+      /* Si el navegador no manda el aviso solo, explicamos el menú */
+      setTimeout(function () {
+        if (evento || !caja.hidden) return;
+        btnI.hidden = true;
+        msg.textContent = 'Abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a pantalla de inicio».';
+        mostrar();
+      }, 3500);
+    }
+  })();
 
   /* Refresca las vencidas cada minuto y al volver a la app */
   setInterval(function () { generarRepetidas(); if (!EDIT.id && !REP.id) render(); }, 60000);
