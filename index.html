@@ -559,6 +559,18 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   .btn-agregar { padding: 0 14px; }
   .solapa { padding: 10px 12px; gap: 6px; }
 }
+/* Filas compactas: menos aire en cada tarea (en el celular vienen activadas; se cambia en Ajustes). Los toques siguen siendo de 32 px o más. */
+body.compacto .fila, body.compacto .cols { grid-template-columns: 36px minmax(0, 1fr) 58px 32px; }
+body.compacto .fila { min-height: 44px; }
+body.compacto .tilde { width: 36px; height: 44px; }
+body.compacto .texto { column-gap: 6px; padding: 6px 4px 6px 2px; }
+body.compacto .limite, body.compacto button.nota { min-height: 32px; font-size: 0.75rem; padding: 0; }
+body.compacto .nota { padding-bottom: 2px; }
+body.compacto .pase { min-height: 36px; width: 56px; padding: 0 2px; font-size: 0.75rem; }
+body.compacto .borrar { width: 32px; height: 40px; }
+body.compacto .pasos { padding-bottom: 6px; }
+body.compacto .posponer { gap: 6px; padding-bottom: 6px; }
+body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 /* Celular: las solapas van en una sola fila que se desliza; las inactivas muestran el nombre recortado. */
 @media (max-width: 600px) {
   .solapas { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 3px 2px 1px; }
@@ -824,6 +836,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
           <button type="button" class="ajuste" id="ajuste-reset" aria-label="Tamaño de letra: 100 %. Tocar para volver al tamaño normal">100 %</button>
           <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
           <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
+          <button type="button" class="ajuste" id="ajuste-compacto">Filas: amplias</button>
         </div>
       </section>
       <section class="respaldo" aria-labelledby="pf-t">
@@ -1603,6 +1616,27 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     aplicarApariencia('Tema ' + tema);
   };
   aplicarApariencia('');
+
+  var LS_COMPACTO = 'tareasdiarias.compacto';
+  function filasCompactas() {
+    var v = lsLeer(LS_COMPACTO);
+    if (v === 'si') return true;
+    if (v === 'no') return false;
+    try { return window.matchMedia('(max-width: 600px)').matches; } catch (e) { return false; }
+  }
+  function pintarCompacto(avisar) {
+    var c = filasCompactas(), b = document.getElementById('ajuste-compacto');
+    document.body.classList.toggle('compacto', c);
+    if (!b) return;
+    b.textContent = 'Filas: ' + (c ? 'compactas' : 'amplias');
+    b.setAttribute('aria-label', 'Filas de tareas: ' + (c ? 'compactas' : 'amplias') + '. Tocar para cambiar a ' + (c ? 'amplias' : 'compactas'));
+    if (avisar) document.getElementById('ajuste-aviso').textContent = 'Filas ' + (c ? 'compactas' : 'amplias');
+  }
+  document.getElementById('ajuste-compacto').onclick = function () {
+    lsEscribir(LS_COMPACTO, filasCompactas() ? 'no' : 'si'); pintarCompacto(true);
+  };
+  try { window.matchMedia('(max-width: 600px)').addEventListener('change', function () { pintarCompacto(false); }); } catch (e) {}
+  pintarCompacto(false);
 
   function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); HOJAS_DEF = false; tocarMod('hojas'); }
   function agregarHoja(n) {
