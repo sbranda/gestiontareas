@@ -862,6 +862,14 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     <ul class="modelos-lista" id="cumples-lista"></ul>
     <div class="respaldo-botones">
       <button type="button" class="mini" id="cumple-ics">Llevar al calendario del teléfono</button>
+      <button type="button" class="mini" id="cumple-borrar-todos">Borrar todos</button>
+    </div>
+    <div class="respaldo-confirma" id="cumple-confirma" hidden>
+      <p id="cumple-confirma-texto"></p>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="cumple-borrar-si">Sí, borrar todos</button>
+        <button type="button" class="mini" id="cumple-borrar-no">Cancelar</button>
+      </div>
     </div>
     <p class="respaldo-estado" id="cumples-estado" role="status"></p>
   </section>
@@ -4302,7 +4310,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     e.className = 'respaldo-estado' + (error ? ' error' : '');
     e.textContent = m || '';
   }
-  function cambiaronCumples() { guardarCumples(); pintarCumples(); render(); revisarAvisos(); }
+  function ocultarConfirmaCumples() { var c = $('cumple-confirma'); if (c) c.hidden = true; }
+  function cambiaronCumples() { ocultarConfirmaCumples(); guardarCumples(); pintarCumples(); render(); revisarAvisos(); }
   function pintarCumples() {
     var ul = $('cumples-lista');
     if (!ul) return;
@@ -4367,15 +4376,23 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
   }
   function importarCumples(texto) {
-    var r = parsearCumples(texto), nuevos = 0, rep = 0, lleno = 0, ks = {};
+    var r = parsearCumples(texto), nuevos = 0, rep = 0, lleno = 0, ks = {}, agregados = [];
     CUMPLES.forEach(function (c) { ks[claveNombreCumple(c)] = 1; });
     r.ok.forEach(function (c) {
       var k = claveNombreCumple(c);
       if (ks[k]) { rep++; return; }
       if (CUMPLES.length >= MAX_CUMPLES) { lleno++; return; }
-      ks[k] = 1; CUMPLES.push(c); nuevos++;
+      ks[k] = 1; CUMPLES.push(c); agregados.push(c.id); nuevos++;
     });
-    if (nuevos) cambiaronCumples();
+    if (nuevos) {
+      cambiaronCumples();
+      avisar('Se importaron ' + nuevos + ' cumpleaños', function () {
+        CUMPLES = CUMPLES.filter(function (x) { return agregados.indexOf(x.id) < 0; });
+        if (CUM.editando && !CUMPLES.some(function (x) { return x.id === CUM.editando; })) cerrarEdicionCumple();
+        cambiaronCumples();
+        msgCumples('Se deshizo la importación.');
+      });
+    }
     if (!r.ok.length) { msgCumples(r.mal ? 'No entendí ninguna línea. Cada una necesita un nombre y una fecha, por ejemplo: Ana, 15/03.' : 'No encontré nada para importar.', true); return 0; }
     var p = [nuevos ? 'Se agregaron ' + nuevos + (nuevos === 1 ? ' cumpleaños.' : ' cumpleaños.') : 'No se agregó ninguno.'];
     if (rep) p.push(rep + (rep === 1 ? ' ya estaba.' : ' ya estaban.'));
@@ -4434,6 +4451,29 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       Promise.resolve(descargarArchivo('cumpleanos.ics', r.texto, 'text/calendar')).then(function () {
         msgCumples('Se descargó cumpleanos.ics con ' + r.cantidad + (r.cantidad === 1 ? ' cumpleaños' : ' cumpleaños') + '. Abrilo y elegí agregarlo al calendario del teléfono: ahí se repiten todos los años y suenan aunque esta app esté cerrada.');
       }, function () { msgCumples('No se pudo descargar el archivo.', true); });
+    });
+    $('cumple-borrar-todos').addEventListener('click', function () {
+      if (!CUMPLES.length) { msgCumples('No hay cumpleaños para borrar.', true); return; }
+      msgCumples('');
+      $('cumple-confirma-texto').textContent = CUMPLES.length === 1 ? '¿Borrar el cumpleaños cargado? Vas a poder deshacerlo enseguida.' : '¿Borrar los ' + CUMPLES.length + ' cumpleaños? Vas a poder deshacerlo enseguida.';
+      $('cumple-confirma').hidden = false;
+      $('cumple-borrar-no').focus();
+    });
+    $('cumple-borrar-no').addEventListener('click', function () { ocultarConfirmaCumples(); $('cumple-borrar-todos').focus(); });
+    $('cumple-borrar-si').addEventListener('click', function () {
+      var quitados = CUMPLES.slice();
+      CUMPLES = [];
+      cerrarEdicionCumple();
+      cambiaronCumples();
+      msgCumples('Se borraron ' + quitados.length + ' cumpleaños.');
+      $('cumple-nombre').focus();
+      avisar('Se borraron ' + quitados.length + ' cumpleaños', function () {
+        var ks = {};
+        CUMPLES.forEach(function (c) { ks[claveNombreCumple(c)] = 1; });
+        quitados.forEach(function (c) { if (!ks[claveNombreCumple(c)] && CUMPLES.length < MAX_CUMPLES) CUMPLES.push(c); });
+        cambiaronCumples();
+        msgCumples('Se restauraron los cumpleaños.');
+      });
     });
     pintarCumples();
   }
