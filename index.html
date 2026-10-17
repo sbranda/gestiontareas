@@ -96,6 +96,15 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 }
 .btn-agregar:disabled, .nueva input:disabled { opacity: 0.55; cursor: not-allowed; }
 
+.nueva-destino { margin: -4px 2px 0; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.cuando-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cuando-chip:disabled { opacity: 0.5; cursor: default; }
+.cuando-nota { margin: 0 2px; font-size: 0.8125rem; color: var(--muted); }
+.cuando-nota:empty { display: none; }
+.mas-opciones summary { display: flex; align-items: center; min-height: 44px; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
+.mas-opciones[open] .repetir-fila { margin-top: 10px; }
+.mas-opciones summary::before { content: '▸'; display: inline-block; width: 1.1em; color: var(--muted); }
+.mas-opciones[open] summary::before { content: '▾'; }
 .limite-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .limite-rotulo { flex-basis: 100%; font-size: 0.8125rem; color: var(--muted); }
 .limite-fila input { min-height: 44px; padding: 0 10px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
@@ -531,14 +540,27 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       <button type="button" class="btn-voz" id="btn-voz" aria-label="Dictar por voz" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
     </div>
+    <p class="nueva-destino" id="nueva-destino"></p>
     <p class="voz-estado" id="voz-estado" role="status"></p>
-    <input type="text" class="input-nota" id="input-nota" maxlength="300" placeholder="Detalle (opcional)" aria-label="Detalle de la tarea (opcional)">
-    <div class="limite-fila">
-      <span class="limite-rotulo" id="rotulo-limite">Fecha límite (opcional)</span>
-      <input type="date" id="input-fecha" aria-label="Fecha límite">
-      <input type="time" id="input-hora" aria-label="Hora límite">
-      <button type="button" class="btn-quitar-limite" id="btn-quitar-limite" hidden>Quitar</button>
+    <div class="cuando" id="cuando-fila">
+      <span class="limite-rotulo" id="cuando-rotulo">¿Para cuándo?</span>
+      <div class="cuando-chips" role="group" aria-labelledby="cuando-rotulo">
+        <button type="button" class="dia cuando-chip" data-cuando="sin" aria-pressed="true">Sin fecha</button>
+        <button type="button" class="dia cuando-chip" data-cuando="hoy" aria-pressed="false">Hoy</button>
+        <button type="button" class="dia cuando-chip" data-cuando="manana" aria-pressed="false">Mañana</button>
+        <button type="button" class="dia cuando-chip" data-cuando="otro" aria-pressed="false">Otro día</button>
+        <button type="button" class="dia urgente-toggle" id="btn-urgente-nuevo" aria-pressed="false">☆ Urgente</button>
+      </div>
     </div>
+    <div class="limite-fila" id="limite-fila" hidden>
+      <span class="limite-rotulo" id="rotulo-limite">Hora límite (opcional)</span>
+      <input type="date" id="input-fecha" aria-label="Fecha límite" hidden>
+      <input type="time" id="input-hora" aria-label="Hora límite" hidden>
+    </div>
+    <p class="cuando-nota" id="cuando-nota"></p>
+    <details class="mas-opciones" id="mas-opciones">
+    <summary id="mas-resumen">Más opciones</summary>
+    <input type="text" class="input-nota" id="input-nota" maxlength="300" placeholder="Detalle (opcional)" aria-label="Detalle de la tarea (opcional)">
     <div class="repetir-fila">
       <span class="limite-rotulo">Repetir (opcional)</span>
       <div class="dias" id="dias" role="group" aria-label="Días en que se repite">
@@ -552,9 +574,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         <button type="button" class="dia todos" id="btn-todos" aria-pressed="false">Todos</button>
       </div>
     </div>
-    <div class="urgente-fila">
-      <button type="button" class="dia urgente-toggle" id="btn-urgente-nuevo" aria-pressed="false">☆ Urgente</button>
-    </div>
+    </details>
   </form>
 
   <div class="modelos-rapidos" id="modelos-rapidos" role="group" aria-label="Crear una tarea desde una plantilla" hidden></div>
@@ -994,7 +1014,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   })();
   var REP = { id: null };
   var lista = $('lista'), pie = $('pie'), input = $('input-tarea'), btnAgregar = $('btn-agregar');
-  var inFecha = $('input-fecha'), inHora = $('input-hora'), btnQuitarLim = $('btn-quitar-limite');
+  var inFecha = $('input-fecha'), inHora = $('input-hora');
 
   function lsLeer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsEscribir(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -1684,10 +1704,6 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
   /* --- fin funciones puras --- */
 
-  function actualizarQuitar() { btnQuitarLim.hidden = !(inFecha.value || inHora.value); }
-  inFecha.addEventListener('input', actualizarQuitar);
-  inHora.addEventListener('input', actualizarQuitar);
-  btnQuitarLim.addEventListener('click', function () { inFecha.value = ''; inHora.value = ''; actualizarQuitar(); });
 
   function boton(texto, clase, fn) {
     var b = document.createElement('button');
@@ -1943,10 +1959,54 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     });
     $('btn-todos').setAttribute('aria-pressed', n === 7 ? 'true' : 'false');
     inFecha.disabled = n > 0;
-    if (n > 0) inFecha.value = '';
-    $('rotulo-limite').textContent = n > 0 ? 'Hora de cada vez (opcional)' : 'Fecha límite (opcional)';
-    actualizarQuitar();
+    if (n > 0) { inFecha.value = ''; OTRO = false; }
+    pintarCuando();
   }
+
+  /* --- ¿Para cuándo? Sin fecha / Hoy / Mañana / Otro día --- */
+  var OTRO = false;
+  function mananaStr() { return sumarDias(hoyStr(), 1); }
+  function cuandoActual() {
+    if (diasElegidos().length) return 'rep';
+    var f = inFecha.value;
+    if (OTRO) return 'otro';
+    if (!f) return 'sin';
+    if (f === hoyStr()) return 'hoy';
+    if (f === mananaStr()) return 'manana';
+    return 'otro';
+  }
+  function pintarMas() {
+    var partes = [];
+    if ($('input-nota').value.trim()) partes.push('con detalle');
+    if (diasElegidos().length) partes.push('se repite');
+    var t = 'Más opciones' + (partes.length ? ' (' + partes.join(', ') + ')' : '');
+    if ($('mas-resumen').textContent !== t) $('mas-resumen').textContent = t;
+  }
+  function pintarCuando() {
+    var k = cuandoActual();
+    Array.prototype.forEach.call(document.querySelectorAll('.cuando-chip'), function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-cuando') === k ? 'true' : 'false');
+      b.disabled = k === 'rep';
+    });
+    inFecha.hidden = k !== 'otro';
+    inHora.hidden = k === 'sin';
+    $('limite-fila').hidden = k === 'sin';
+    $('rotulo-limite').textContent = k === 'rep' ? 'Hora de cada vez (opcional)' : (k === 'otro' ? 'Fecha y hora límite (opcional)' : 'Hora límite (opcional)');
+    $('cuando-nota').textContent = k === 'rep' ? 'Se repite: ' + diasTexto(diasElegidos()) + '. Para ponerle fecha, sacá los días en Más opciones.' : '';
+    pintarMas();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.cuando-chip'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-cuando');
+      if (k === 'sin') { OTRO = false; inFecha.value = ''; inHora.value = ''; }
+      else if (k === 'hoy') { OTRO = false; inFecha.value = hoyStr(); }
+      else if (k === 'manana') { OTRO = false; inFecha.value = mananaStr(); }
+      else { OTRO = true; }
+      pintarCuando();
+      if (k === 'otro') inFecha.focus();
+    });
+  });
+  $('input-nota').addEventListener('input', pintarMas);
 
   $('dias').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.dia') : null;
@@ -3340,6 +3400,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     $('pie-texto').textContent = hechasF + (hechasF === 1 ? ' tarea hecha' : ' tareas hechas');
 
     input.placeholder = enRep ? 'Nueva tarea repetida' : 'Nueva tarea en ' + nombreHoja(S.hoja);
+    $('nueva-destino').textContent = enRep ? 'Se crea una tarea repetida: elegí los días en Más opciones.' : 'Se agrega a: ' + nombreHoja(S.hoja);
+    $('cuando-fila').hidden = enRep;
+    if (enRep && !$('mas-opciones').open) $('mas-opciones').open = true;
     $('col-1').textContent = enRep ? '' : 'Hecha';
     $('ayuda').textContent = enRep ? 'Cada tarea repetida aparece sola en Diarias los días que elegiste, y también en la hoja que tenga elegida en su botón. Tocá los días de una tarea para cambiarlos.' : (enInst
       ? 'Al tildar una tarea, sale sola de esta hoja y queda tachada en Diarias. Para quitarla de acá sin hacerla, tocá el botón de hoja de la tarea hasta que pase a otra o diga "Hoja".'
@@ -3407,7 +3470,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     } else {
       crearTarea(texto, S.hoja, armarLimite(inFecha.value, inHora.value), (urgenteForm || nota) ? { urgente: urgenteForm, nota: nota } : null);
     }
-    input.value = ''; inFecha.value = ''; inHora.value = ''; urgenteForm = false; pintarUrgenteForm(); $('input-nota').value = ''; pintarDias();
+    input.value = ''; inFecha.value = ''; inHora.value = ''; urgenteForm = false; pintarUrgenteForm(); $('input-nota').value = ''; OTRO = false; pintarDias();
     input.focus();
   });
 
