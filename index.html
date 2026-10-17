@@ -400,6 +400,10 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .cumple-importar textarea { display: block; width: 100%; min-width: 0; min-height: 120px; margin: 6px 0 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cumple-importar input[type="text"] { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 6px 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cumple-importar .modelo-meta { margin: 0 0 8px; }
+.cumple-grupo-acciones { display: grid; gap: 6px; margin: 0 0 10px; padding: 12px; background: var(--accent-soft); border-radius: 8px; }
+.cumple-grupo-acciones[hidden] { display: none; }
+.cumple-grupo-acciones label { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+.cumple-grupo-acciones input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cumples-card label { display: block; margin: 4px 0 4px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
 .cumples-card select { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 0 0 6px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cumple-importar code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--ink); overflow-wrap: anywhere; }
@@ -887,6 +891,15 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         <option value="nombre">Nombre (A–Z)</option>
         <option value="mes">Mes del año</option>
       </select>
+    </div>
+    <div class="cumple-grupo-acciones" id="cumple-grupo-acciones" role="group" aria-labelledby="cumple-grupo-acc-t" hidden>
+      <label for="cumple-grupo-nuevo" id="cumple-grupo-acc-t">Nombre del grupo elegido</label>
+      <input type="text" id="cumple-grupo-nuevo" maxlength="30" autocomplete="off" aria-describedby="cumple-grupo-acc-ayuda">
+      <span class="modelo-meta" id="cumple-grupo-acc-ayuda">Cambiarlo lo cambia para todos los del grupo. Si ya existe otro grupo con ese nombre, se unen.</span>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="cumple-grupo-renombrar">Renombrar grupo</button>
+        <button type="button" class="mini" id="cumple-grupo-quitar">Quitar este grupo</button>
+      </div>
     </div>
     <p class="respaldo-estado" id="cumples-cuenta" role="status"></p>
     <ul class="modelos-lista" id="cumples-lista"></ul>
@@ -4401,7 +4414,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   /* --- cumpleaños: interfaz --- */
   var LS_CUMORDEN = 'tareasdiarias.cumples.orden';
   function ordenCumplesGuardado() { var o = lsLeer(LS_CUMORDEN); return (o === 'nombre' || o === 'mes') ? o : 'proximo'; }
-  var CUM = { editando: null, q: '', orden: ordenCumplesGuardado(), grupo: '', firma: '' };
+  var CUM = { editando: null, q: '', orden: ordenCumplesGuardado(), grupo: '', firma: '', prefill: null };
   function msgCumples(m, error) {
     var e = $('cumples-estado');
     if (!e) return;
@@ -4425,6 +4438,13 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       var firma = JSON.stringify([grupos.map(function (g) { return [g.clave, g.nombre, g.n]; }), CUMPLES.some(function (c) { return !c.grupo; })]);
       if (firma !== CUM.firma) { CUM.firma = firma; opcionesGrupo(selg, grupos, CUM.grupo, 'Todos los grupos'); }
       selg.value = CUM.grupo;
+    }
+    var acc = $('cumple-grupo-acciones');
+    if (acc) {
+      var esGrupo = ver && CUM.grupo.indexOf('g:') === 0;
+      acc.hidden = !esGrupo;
+      if (esGrupo && CUM.prefill !== CUM.grupo) { $('cumple-grupo-nuevo').value = nombreFiltroGrupo(CUM.grupo, grupos); CUM.prefill = CUM.grupo; }
+      if (!esGrupo) CUM.prefill = null;
     }
     var dl = $('cumple-grupos');
     if (dl) { dl.textContent = ''; grupos.forEach(function (g) { var o = document.createElement('option'); o.value = g.nombre; dl.appendChild(o); }); }
@@ -4591,6 +4611,44 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
     $('cumple-borrar-no').addEventListener('click', function () { ocultarConfirmaCumples(); $('cumple-borrar-todos').focus(); });
     $('cumple-filtro-grupo').addEventListener('change', function () { CUM.grupo = this.value; pintarCumples(); });
+    function miembrosGrupo(f) { return CUMPLES.filter(function (c) { return pasaGrupo(c, f) && c.grupo; }); }
+    function cambiarGrupo(f, nuevoNombre, textoOk, textoDeshacer) {
+      var miembros = miembrosGrupo(f), previos = miembros.map(function (c) { return [c.id, c.grupo]; });
+      var hoyAntes = HOYG, filtroAntes = CUM.grupo;
+      miembros.forEach(function (c) { if (nuevoNombre) c.grupo = nuevoNombre; else delete c.grupo; });
+      var nuevoF = nuevoNombre ? 'g:' + claveGrupo(nuevoNombre) : '';
+      if (HOYG === f) { HOYG = nuevoF; lsEscribir(LS_CUMHOY, HOYG); }
+      CUM.grupo = nuevoF; CUM.prefill = null;
+      cambiaronCumples();
+      msgCumples(textoOk);
+      avisar(textoDeshacer, function () {
+        previos.forEach(function (p) { CUMPLES.forEach(function (c) { if (c.id === p[0]) c.grupo = p[1]; }); });
+        HOYG = hoyAntes; lsEscribir(LS_CUMHOY, HOYG);
+        CUM.grupo = filtroAntes; CUM.prefill = null;
+        cambiaronCumples();
+        msgCumples('Se deshizo el cambio del grupo.');
+      });
+      return miembros.length;
+    }
+    $('cumple-grupo-renombrar').addEventListener('click', function () {
+      var grupos = gruposCumples(CUMPLES), f = CUM.grupo, actual = nombreFiltroGrupo(f, grupos);
+      var nuevo = limpiarGrupo($('cumple-grupo-nuevo').value);
+      if (!actual) return;
+      if (!nuevo) { msgCumples('Escribí el nuevo nombre del grupo. Para sacarlo, usá "Quitar este grupo".', true); $('cumple-grupo-nuevo').focus(); return; }
+      if (nuevo === actual) { msgCumples('Ese ya es el nombre del grupo.', true); $('cumple-grupo-nuevo').focus(); return; }
+      var ka = claveGrupo(actual), kn = claveGrupo(nuevo), une = false;
+      if (kn !== ka) CUMPLES.some(function (c) { if (c.grupo && claveGrupo(c.grupo) === kn) { nuevo = c.grupo; une = true; return true; } return false; });
+      var n = miembrosGrupo(f).length;
+      cambiarGrupo(f, nuevo, (une ? 'Se unieron ' : 'Se renombró el grupo «' + actual + '» a «' + nuevo + '». Cambió en ') + (une ? n + (n === 1 ? ' cumpleaños' : ' cumpleaños') + ' al grupo «' + nuevo + '».' : n + (n === 1 ? ' cumpleaños.' : ' cumpleaños.')), 'Grupo «' + actual + '» cambiado a «' + nuevo + '»');
+      $('cumple-grupo-nuevo').focus();
+    });
+    $('cumple-grupo-quitar').addEventListener('click', function () {
+      var grupos = gruposCumples(CUMPLES), f = CUM.grupo, actual = nombreFiltroGrupo(f, grupos);
+      if (!actual) return;
+      var n = miembrosGrupo(f).length;
+      cambiarGrupo(f, '', 'Se quitó el grupo «' + actual + '» a ' + n + ' cumpleaños. Los cumpleaños siguen cargados.', 'Grupo «' + actual + '» quitado');
+      ($('cumple-filtro-grupo-caja').hidden ? $('cumple-nombre') : $('cumple-filtro-grupo')).focus();
+    });
     $('cumple-buscar').addEventListener('input', function () { CUM.q = this.value; pintarCumples(); });
     $('cumple-orden').value = CUM.orden;
     $('cumple-orden').addEventListener('change', function () { CUM.orden = this.value; lsEscribir(LS_CUMORDEN, this.value); pintarCumples(); });
