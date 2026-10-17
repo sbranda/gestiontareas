@@ -369,6 +369,7 @@ body.panel-abierto { overflow: hidden; }
 .fila[data-hecha="true"] .t { text-decoration: line-through; text-decoration-thickness: 1px; }
 .fila[data-urgente="true"] { background: var(--warn-soft); box-shadow: inset 4px 0 0 var(--warn); }
 .texto > .t, .texto > .nota, .texto > .editor { flex: 0 0 100%; }
+.corte { display: none; }
 .nota { margin: 0; padding: 0 0 4px; border: 0; background: transparent; font: inherit; font-size: 0.8125rem; line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-wrap; }
 button.nota { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; cursor: pointer; }
 button.nota:hover { color: var(--ink); }
@@ -563,8 +564,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
 body.compacto .fila, body.compacto .cols { grid-template-columns: 36px minmax(0, 1fr) 58px 32px; }
 body.compacto .fila { min-height: 44px; }
 body.compacto .tilde { width: 36px; height: 44px; }
-body.compacto .texto { column-gap: 6px; padding: 6px 4px 6px 2px; }
-body.compacto .limite, body.compacto button.nota { min-height: 32px; font-size: 0.75rem; padding: 0; }
+body.compacto .texto { column-gap: 8px; padding: 6px 4px 6px 2px; }
+body.compacto .limite, body.compacto button.nota { min-height: 34px; font-size: 0.75rem; padding: 0; }
 body.compacto .nota { padding-bottom: 2px; }
 body.compacto .pase { min-height: 36px; width: 56px; padding: 0 2px; font-size: 0.75rem; }
 body.compacto .borrar { width: 32px; height: 40px; }
@@ -573,6 +574,7 @@ body.compacto .posponer { gap: 6px; padding-bottom: 6px; }
 body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 /* Celular: las solapas van en una sola fila que se desliza; las inactivas muestran el nombre recortado. */
 @media (max-width: 600px) {
+  body.compacto .corte { display: block; flex: 0 0 100%; height: 0; }
   .solapas { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 3px 2px 1px; }
   .solapas::-webkit-scrollbar { display: none; }
   .solapa { flex: none; padding: 10px 9px; gap: 4px; }
@@ -3531,7 +3533,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       tx.appendChild(mas);
     }
     if (!t.done && !t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
-    if (!t.done) tx.appendChild(crearChipUrgente(t));
+    if (!t.done) { var corte = document.createElement('span'); corte.className = 'corte'; corte.setAttribute('aria-hidden', 'true'); tx.appendChild(corte); tx.appendChild(crearChipUrgente(t)); }
     var panelPosp = t.done ? null : agregarPosponer(tx, t);
     var panelPasos = agregarPasos(tx, t);
 
