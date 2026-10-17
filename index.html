@@ -391,6 +391,25 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .modelo-form input[type="text"], .modelo-form textarea, .modelo-form select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .modelo-form .marca { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 500; }
 .modelo-form .marca input { width: 24px; height: 24px; flex: none; }
+.cumple-fecha { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 0 10px; }
+.cumple-fecha > div { display: grid; gap: 6px; min-width: 0; }
+.cumple-fecha .anio { grid-column: 1 / -1; }
+.cumple-importar { margin: 0 0 14px; }
+.cumple-importar summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; color: var(--accent); }
+.cumple-importar label { display: block; margin-top: 6px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+.cumple-importar textarea { display: block; width: 100%; min-width: 0; min-height: 120px; margin: 6px 0 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.cumple-importar code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--ink); overflow-wrap: anywhere; }
+.cumples-card { list-style: none; margin: 0 0 8px; padding: 10px 14px; background: var(--accent-soft); border-radius: 8px; }
+.cumples-card h2 { margin: 0 0 4px; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.cumple-item, .cumple-dia { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 4px 0; font-size: 0.9375rem; color: var(--ink); overflow-wrap: anywhere; }
+.cumple-item.hoy { font-weight: 700; }
+.cumple-mas { margin: 0; padding: 2px 0 0 28px; font-size: 0.8125rem; color: var(--muted); }
+.cumple-dia { list-style: none; margin: 0 0 8px; padding: 10px 14px; background: var(--accent-soft); border-radius: 8px; }
+.cumple-ico { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; color: var(--accent); }
+.cumple-ico svg { width: 20px; height: 20px; }
+.cal-torta { display: inline-grid; place-items: center; color: var(--accent); }
+.cal-torta svg { width: 13px; height: 13px; }
+.cal-dia-btn.sel .cal-torta { color: var(--accent-ink); }
 .pasos-acciones { margin-top: 8px; }
 .filtros { margin: 0 0 14px; }
 .buscar { display: flex; gap: 8px; }
@@ -804,6 +823,49 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     <p class="respaldo-estado" id="avisos-estado" role="status"></p>
   </section>
 
+  <section class="respaldo" aria-labelledby="cumples-t">
+    <h2 id="cumples-t">Cumpleaños</h2>
+    <p>Cargá los cumpleaños y la app los muestra en Hoy y en el Calendario. Con los avisos activados, te avisa a las 8:00 del día. El año de nacimiento es opcional: sirve para decir cuántos años cumple.</p>
+    <form class="modelo-form" id="cumple-form" autocomplete="off">
+      <label for="cumple-nombre">Nombre</label>
+      <input type="text" id="cumple-nombre" maxlength="60">
+      <div class="cumple-fecha">
+        <div>
+          <label for="cumple-dia">Día</label>
+          <input type="text" id="cumple-dia" inputmode="numeric" maxlength="2">
+        </div>
+        <div>
+          <label for="cumple-mes">Mes</label>
+          <select id="cumple-mes"></select>
+        </div>
+        <div class="anio">
+          <label for="cumple-anio">Año de nacimiento (opcional)</label>
+          <input type="text" id="cumple-anio" inputmode="numeric" maxlength="4">
+        </div>
+      </div>
+      <div class="respaldo-botones">
+        <button type="submit" class="mini primario" id="cumple-guardar">Agregar cumpleaños</button>
+        <button type="button" class="mini" id="cumple-cancelar" hidden>Cancelar</button>
+      </div>
+    </form>
+    <details class="cumple-importar" id="cumple-importar">
+      <summary>Importar una lista</summary>
+      <p>Un cumpleaños por línea, con el día y el mes (día/mes). Por ejemplo: <code>Ana Pérez, 15/03/2012</code>, <code>Juan 7/9</code> o <code>12 de octubre Luis</code>. También podés elegir un archivo de texto o CSV.</p>
+      <label for="cumple-texto">Lista pegada</label>
+      <textarea id="cumple-texto" rows="6"></textarea>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="cumple-importar-btn">Importar lo pegado</button>
+        <button type="button" class="mini" id="cumple-archivo-btn">Elegir archivo</button>
+        <input type="file" id="cumple-archivo" accept=".txt,.csv,text/plain,text/csv" hidden>
+      </div>
+    </details>
+    <ul class="modelos-lista" id="cumples-lista"></ul>
+    <div class="respaldo-botones">
+      <button type="button" class="mini" id="cumple-ics">Llevar al calendario del teléfono</button>
+    </div>
+    <p class="respaldo-estado" id="cumples-estado" role="status"></p>
+  </section>
+
   <section class="respaldo" aria-labelledby="modelos-t">
     <h2 id="modelos-t">Plantillas</h2>
     <p>Guardá una tarea con sus pasos (una mudanza, un viaje, preparar una clase) y creala de nuevo con un toque. Aparecen arriba de la lista. También podés guardar una tarea que ya tenga pasos desde su botón Pasos.</p>
@@ -831,7 +893,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
 
   <section class="respaldo" aria-labelledby="respaldo-t">
     <h2 id="respaldo-t">Copia de respaldo</h2>
-    <p>Guardá tus tareas, hojas, historial, plantillas, rachas y preferencias de apariencia en un archivo para no perderlas. También sirve para pasarlas de la compu al celular: exportás en uno e importás en el otro.</p>
+    <p>Guardá tus tareas, hojas, historial, plantillas, cumpleaños, rachas y preferencias de apariencia en un archivo para no perderlas. También sirve para pasarlas de la compu al celular: exportás en uno e importás en el otro.</p>
     <div class="respaldo-botones">
       <button type="button" class="mini primario" id="btn-exportar">Exportar</button>
       <button type="button" class="mini" id="btn-importar">Importar</button>
@@ -905,16 +967,173 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   var ESTILOS = {};
   try { ESTILOS = limpiarEstilos(JSON.parse(lsLeer(LS_ESTILOS) || 'null')); } catch (e) {}
   function guardarEstilos() { lsEscribir(LS_ESTILOS, JSON.stringify(ESTILOS)); tocarMod('estilos'); }
+  /* ---------- Cumpleaños (datos) ---------- */
+  var LS_CUMPLES = 'tareasdiarias.cumples', MAX_CUMPLES = 500;
+  var SVG_TORTA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4.5 21v-6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v6"/><path d="M4.5 17.5c2 0 2-1.3 3.8-1.3s1.8 1.3 3.7 1.3 1.8-1.3 3.7-1.3 1.9 1.3 3.8 1.3"/><path d="M12 13V9.5"/><path d="M12 9.5c-1.2-1-1.2-2.4 0-3.5 1.2 1.1 1.2 2.5 0 3.5z"/></svg>';
+  var CUMPLES = [];
+  try { CUMPLES = limpiarListaCumples(JSON.parse(lsLeer(LS_CUMPLES) || 'null')); } catch (e) {}
+  function guardarCumples() { lsEscribir(LS_CUMPLES, JSON.stringify(CUMPLES)); if (typeof tocarMod === 'function') tocarMod('cumples'); }
+  function esBisiesto(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function diasMaxMes(m) { return [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+  function limpiarCumple(o) {
+    if (!o || typeof o !== 'object') return null;
+    var nombre = String(o.nombre == null ? '' : o.nombre).replace(/\s+/g, ' ').trim().slice(0, 60);
+    var dia = parseInt(o.dia, 10), mes = parseInt(o.mes, 10);
+    if (!nombre || !(mes >= 1 && mes <= 12) || !(dia >= 1 && dia <= diasMaxMes(mes))) return null;
+    var id = (typeof o.id === 'string' && /^[A-Za-z0-9_.~:@+-]{1,60}$/.test(o.id)) ? o.id : idNuevo();
+    var r = { id: id, nombre: nombre, dia: dia, mes: mes };
+    var an = parseInt(o.anio, 10);
+    if (an >= 1900 && an <= new Date().getFullYear()) r.anio = an;
+    return r;
+  }
+  function claveNombreCumple(c) { return c.nombre.toLowerCase() + '|' + c.mes + '|' + c.dia; }
+  function limpiarListaCumples(arr) {
+    var r = [], ids = {}, ks = {};
+    if (!Array.isArray(arr)) return r;
+    arr.forEach(function (o) {
+      if (r.length >= MAX_CUMPLES) return;
+      var c = limpiarCumple(o);
+      if (!c) return;
+      var k = claveNombreCumple(c);
+      if (ks[k]) return;
+      while (ids[c.id]) c.id += 'x';
+      ids[c.id] = 1; ks[k] = 1; r.push(c);
+    });
+    return r;
+  }
+  /* Une dos listas sin repetir (mismo nombre y fecha). Si hay dos copias se queda con la de id menor, así dos dispositivos coinciden. */
+  function mezclarCumples(a, b) {
+    var por = {}, orden = [];
+    a.concat(b).forEach(function (c) {
+      var k = claveNombreCumple(c), p = por[k];
+      if (!p) { por[k] = Object.assign({}, c); orden.push(k); return; }
+      if (c.id < p.id) p.id = c.id;
+      if (c.anio && (!p.anio || c.anio < p.anio)) p.anio = c.anio;
+    });
+    return limpiarListaCumples(orden.map(function (k) { return por[k]; }));
+  }
+  function claveCumple(c, y) {
+    var d = c.dia;
+    if (c.mes === 2 && d === 29 && !esBisiesto(y)) d = 28;
+    return y + '-' + dos(c.mes) + '-' + dos(d);
+  }
+  function diasEntre(a, b) { return Math.round((aFecha(b) - aFecha(a)) / 86400000); }
+  function proximoDe(c, hoy) {
+    var y = parseInt(hoy.slice(0, 4), 10), k = claveCumple(c, y);
+    if (k < hoy) { y++; k = claveCumple(c, y); }
+    return { c: c, clave: k, faltan: diasEntre(hoy, k), edad: c.anio ? y - c.anio : null };
+  }
+  function ordenCumples(a, b) { return a.clave < b.clave ? -1 : a.clave > b.clave ? 1 : (a.c.nombre.toLowerCase() < b.c.nombre.toLowerCase() ? -1 : 1); }
+  function proximosCumples(lista, hoy, dias) {
+    return lista.map(function (c) { return proximoDe(c, hoy); }).filter(function (p) { return p.faltan <= dias; }).sort(ordenCumples);
+  }
+  function cumplesDeClave(clave) {
+    var y = parseInt(clave.slice(0, 4), 10), r = [];
+    CUMPLES.forEach(function (c) { if (claveCumple(c, y) === clave) r.push({ c: c, nombre: c.nombre, edad: c.anio ? y - c.anio : null }); });
+    return r.sort(function (a, b) { return a.nombre.toLowerCase() < b.nombre.toLowerCase() ? -1 : 1; });
+  }
+  function textoEdad(n) { return n > 0 ? n + (n === 1 ? ' año' : ' años') : ''; }
+  function textoFechaCumple(c) { return c.dia + ' de ' + MESES[c.mes - 1]; }
+  function quitarTildes(s) { s = String(s); return s.normalize ? s.normalize('NFD').replace(/[̀-ͯ]/g, '') : s; }
+  function numMes(txt) {
+    var t = quitarTildes(txt).toLowerCase().replace(/\./g, '');
+    for (var i = 0; i < 12; i++) if (quitarTildes(MESES[i]) === t) return i + 1;
+    if (t === 'setiembre') return 9;
+    var ab = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+    return t.length <= 4 && ab[t.slice(0, 3)] ? ab[t.slice(0, 3)] : 0;
+  }
+  function anioDe(s) {
+    if (s == null || s === '') return undefined;
+    var n = parseInt(s, 10);
+    if (String(s).length === 2) n += n <= (new Date().getFullYear() % 100) ? 2000 : 1900;
+    return n;
+  }
+  /* Lee una lista pegada: una persona por línea, con día/mes (y año opcional) en cualquier lugar de la línea. */
+  function parsearCumples(texto) {
+    var ok = [], mal = 0;
+    String(texto == null ? '' : texto).split(/\r?\n/).forEach(function (linea) {
+      var l = linea.trim();
+      if (!l) return;
+      var m, dia, mes, anio;
+      if ((m = /(\d{4})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?!\d)/.exec(l))) { anio = +m[1]; mes = +m[2]; dia = +m[3]; }
+      else if ((m = /(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{4}|\d{2}))?(?!\d)/.exec(l))) { dia = +m[1]; mes = +m[2]; anio = anioDe(m[3]); }
+      else if ((m = /(\d{1,2})\s*(?:de\s+)?([A-Za-zÁÉÍÓÚáéíóúÑñ]{3,10})\.?(?:\s*(?:de\s+|del\s+)?(\d{4}))?/.exec(l)) && numMes(m[2])) { dia = +m[1]; mes = numMes(m[2]); anio = anioDe(m[3]); }
+      else { mal++; return; }
+      var nombre = (l.slice(0, m.index) + ' ' + l.slice(m.index + m[0].length)).replace(/["“”]/g, '').replace(/^[\s,;:\-–—·|]+|[\s,;:\-–—·|]+$/g, '').replace(/\s+/g, ' ');
+      var c = limpiarCumple({ nombre: nombre, dia: dia, mes: mes, anio: anio });
+      if (c) ok.push(c); else mal++;
+    });
+    return { ok: ok, mal: mal };
+  }
+  /* Avisos de cumpleaños: a las 8:00 del día, para los de hoy y los próximos días. */
+  function planCumples(lista, ahora) {
+    var r = [], hoy = claveDia(ahora);
+    proximosCumples(lista, hoy, 4).forEach(function (p) {
+      var f = aFecha(p.clave); f.setHours(AV_MANANA, 0, 0, 0);
+      r.push({ key: 'cu:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: f.getTime(), titulo: 'Hoy cumple ' + recortarAv(p.c.nombre), cuerpo: p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños' });
+    });
+    return r;
+  }
+  function planTodo() { return planAvisos(S.tareas).concat(planCumples(CUMPLES, Date.now())); }
+  /* Archivo .ics: eventos de todo el día que se repiten cada año. */
+  function armarICSCumples(lista, ahora) {
+    var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas Diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Cumpleaños'];
+    var y = new Date(ahora).getFullYear();
+    lista.forEach(function (c) {
+      var ini = claveCumple(c, 2001), fin = sumarDias(ini, 1);
+      ini = y + ini.slice(4); fin = y + fin.slice(4);
+      if (fin < ini) fin = (y + 1) + fin.slice(4);
+      L.push('BEGIN:VEVENT', 'UID:' + c.id + '@tareas-diarias-cumple', 'DTSTAMP:' + sello,
+        'DTSTART;VALUE=DATE:' + ini.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + fin.replace(/-/g, ''),
+        'RRULE:FREQ=YEARLY', 'SUMMARY:' + escICS('Cumpleaños de ' + c.nombre),
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS('Cumpleaños de ' + c.nombre), 'TRIGGER;RELATED=START:PT8H', 'END:VALARM', 'END:VEVENT');
+    });
+    L.push('END:VCALENDAR');
+    return { texto: L.map(plegarICS).join('\r\n') + '\r\n', cantidad: lista.length };
+  }
+  function filaCumples(cum) {
+    var li = document.createElement('li');
+    li.className = 'cumple-dia';
+    var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = SVG_TORTA;
+    var tx = document.createElement('span');
+    tx.textContent = 'Cumpleaños: ' + cum.map(function (x) { return x.nombre + (x.edad > 0 ? ' (' + x.edad + ')' : ''); }).join(', ');
+    li.appendChild(ico); li.appendChild(tx);
+    return li;
+  }
+  function pintarCumplesHoy(ul) {
+    var prox = proximosCumples(CUMPLES, hoyStr(), 7);
+    if (!prox.length) return;
+    var li = document.createElement('li');
+    li.className = 'cumples-card';
+    var h = document.createElement('h2'); h.textContent = 'Cumpleaños';
+    li.appendChild(h);
+    prox.slice(0, 6).forEach(function (p) {
+      var d = document.createElement('p');
+      d.className = 'cumple-item' + (p.faltan === 0 ? ' hoy' : '');
+      var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = SVG_TORTA;
+      var cuando = p.faltan === 0 ? 'Hoy' : (p.faltan === 1 ? 'Mañana' : 'El ' + titulodia(p.clave));
+      var tx = document.createElement('span');
+      tx.textContent = cuando + ' cumple ' + p.c.nombre + (p.edad > 0 ? ' · ' + textoEdad(p.edad) : '');
+      d.appendChild(ico); d.appendChild(tx); li.appendChild(d);
+    });
+    if (prox.length > 6) {
+      var m = document.createElement('p'); m.className = 'cumple-mas';
+      m.textContent = 'y ' + (prox.length - 6) + ' más en los próximos 7 días';
+      li.appendChild(m);
+    }
+    ul.appendChild(li);
+  }
   var INICIO = lsLeer(LS_INICIO); if (INICIOS.indexOf(INICIO) < 0) INICIO = 'ultima';
   var FEED = lsLeer(LS_FEED); if (FEEDS.indexOf(FEED) < 0) FEED = 'nada';
   var EST = { abierto: false };
   /* --- sincronización: marcas de modificación, tareas borradas y configuración --- */
   var LS_SYNC401 = 'tareasdiarias.sync401';
   var LS_MODS = 'tareasdiarias.mods', LS_TOMB = 'tareasdiarias.borradas', LS_SYNC = 'tareasdiarias.sync';
-  var MODS = { hojas: 0, modelos: 0, estilos: 0 };
+  var MODS = { hojas: 0, modelos: 0, estilos: 0, cumples: 0 };
   try {
     var om = JSON.parse(lsLeer(LS_MODS) || 'null');
-    if (om && typeof om === 'object') ['hojas', 'modelos', 'estilos'].forEach(function (k) { if (typeof om[k] === 'number' && isFinite(om[k])) MODS[k] = om[k]; });
+    if (om && typeof om === 'object') ['hojas', 'modelos', 'estilos', 'cumples'].forEach(function (k) { if (typeof om[k] === 'number' && isFinite(om[k])) MODS[k] = om[k]; });
   } catch (e) {}
   var TOMB = {};
   try {
@@ -1692,7 +1911,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   function porId(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); }
   /* Forma comparable: el orden de las listas no cuenta, así dos dispositivos no se "corrigen" entre sí sin parar */
   function canonSync(m) {
-    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos };
+    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos, cumples: m.cumples.slice().sort(porId) };
   }
   function unirHojas(a, b) {
     var vistos = {}, r = [];
@@ -1715,7 +1934,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     var lim = (ahora || Date.now()) - 60 * 86400000;
     Object.keys(tomb).forEach(function (k) { if (tomb[k] < lim) delete tomb[k]; });
     var ml = loc.mods || {}, mr = rem.mods || {}, mods = {};
-    ['hojas', 'modelos', 'estilos'].forEach(function (k) { mods[k] = Math.max(ml[k] || 0, mr[k] || 0); });
+    ['hojas', 'modelos', 'estilos', 'cumples'].forEach(function (k) { mods[k] = Math.max(ml[k] || 0, mr[k] || 0); });
     function elegir(k, igual) {
       if ((mr[k] || 0) > (ml[k] || 0)) return rem[k];
       if ((mr[k] || 0) === (ml[k] || 0)) return igual();
@@ -1726,14 +1945,15 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       hojas: elegir('hojas', function () { return unirHojas(loc.hojas, rem.hojas); }),
       historial: mezclarHist(loc.historial, rem.historial),
       modelos: elegir('modelos', function () { return mezclarModelos(loc.modelos, rem.modelos); }),
-      estilos: elegir('estilos', function () { return Object.assign({}, rem.estilos, loc.estilos); })
+      estilos: elegir('estilos', function () { return Object.assign({}, rem.estilos, loc.estilos); }),
+      cumples: elegir('cumples', function () { return mezclarCumples(loc.cumples, rem.cumples); })
     };
   }
   function leerSync(texto) {
     var o;
     try { o = JSON.parse(texto); } catch (e) { return null; }
     if (!o || o.app !== 'tareas-diarias-sync' || !Array.isArray(o.tareas) || o.tareas.length > 5000) return null;
-    var vistos = {}, tareas = [], borradas = {}, mods = { hojas: 0, modelos: 0, estilos: 0 };
+    var vistos = {}, tareas = [], borradas = {}, mods = { hojas: 0, modelos: 0, estilos: 0, cumples: 0 };
     o.tareas.forEach(function (t) {
       if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !/^[A-Za-z0-9_.~:@+-]{1,200}$/.test(t.id) || t.id === '.' || t.id === '..' || vistos[t.id] || typeof t.text !== 'string' || !t.text.trim()) return;
       vistos[t.id] = 1; tareas.push(limpiar(t));
@@ -1747,7 +1967,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       hojas: Array.isArray(o.hojas) ? o.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [],
       historial: limpiarHist(o.historial),
       modelos: Array.isArray(o.modelos) ? limpiarListaModelos(o.modelos) : [],
-      estilos: limpiarEstilos(o.estilos)
+      estilos: limpiarEstilos(o.estilos),
+      cumples: Array.isArray(o.cumples) ? limpiarListaCumples(o.cumples) : []
     };
   }
   /* --- fin funciones puras --- */
@@ -2212,6 +2433,13 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       }
       if (marcas.firstChild) { marcas.setAttribute('aria-hidden', 'true'); b.appendChild(marcas); }
     }
+    var cumDia = cumplesDeClave(c);
+    if (cumDia.length) {
+      var mc = b.querySelector('.cal-marcas');
+      if (!mc) { mc = document.createElement('span'); mc.className = 'cal-marcas'; mc.setAttribute('aria-hidden', 'true'); b.appendChild(mc); }
+      var torta = document.createElement('span'); torta.className = 'cal-torta'; torta.innerHTML = SVG_TORTA; mc.appendChild(torta);
+      partes.push(cumDia.length === 1 ? 'cumpleaños de ' + cumDia[0].nombre : 'cumpleaños de ' + cumDia.length + ' personas');
+    }
     b.setAttribute('aria-label', partes.join(', '));
     b.addEventListener('click', function () { CAL.sel = c; render(); });
     return b;
@@ -2253,7 +2481,10 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     var sin = c === hoy
       ? S.tareas.filter(function (t) { return !t.plantilla && !fechaDe(t) && !t.done && pasa(t); }).sort(ordenTareas)
       : [];
+    var cumPanel = cumplesDeClave(c);
+    if (cumPanel.length) cl.appendChild(filaCumples(cumPanel));
     if (!dadas.length && !reps.length && !sin.length) {
+      if (cumPanel.length) return;
       var v = document.createElement('li');
       v.className = 'vacio';
       var st = document.createElement('strong');
@@ -2512,7 +2743,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   }
   /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
   function fotoCompleta() {
-    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales() }));
+    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES }));
   }
   function restaurarFoto(f) {
     EXTRA = f.extra; guardarHojas();
@@ -2521,12 +2752,14 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     ESTILOS = f.estilos; guardarEstilos();
     RACH = limpiarRach(f.rach); guardarRach();
     aplicarPrefs(f.prefs);
+    CUMPLES = limpiarListaCumples(f.cumples || []); guardarCumples(); pintarCumples();
   }
 
   function armarCopia(tareas, hojas, hist, modelos, estilos, extra) {
     var o = { app: 'tareas-diarias', version: 2, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], estilos: estilos || {} };
     if (extra && extra.rachas) o.rachas = extra.rachas;
     if (extra && extra.preferencias) o.preferencias = extra.preferencias;
+    if (extra && Array.isArray(extra.cumples)) o.cumples = extra.cumples;
     o.tareas = tareas;
     return JSON.stringify(o, null, 2);
   }
@@ -2548,7 +2781,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null };
   }
 
   function contarCopia(arr) {
@@ -2642,6 +2875,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       guardarRach();
     }
     if (modo === 'reemplazar') aplicarPrefs(PEND.preferencias);
+    if (PEND.cumples) { CUMPLES = modo === 'reemplazar' ? PEND.cumples.slice() : mezclarCumples(CUMPLES, PEND.cumples); guardarCumples(); pintarCumples(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -2654,7 +2888,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales() });
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES });
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -2681,7 +2915,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       var r = leerCopia(String(rd.result));
       if (r.error) { ocultarConfirma(); avisoRespaldo(r.error, true); return; }
       PEND = r;
-      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
+      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.cumples && r.cumples.length ? ', ' + r.cumples.length + ' cumpleaños' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
       $('respaldo-confirma').hidden = false;
       $('btn-sumar').focus();
     };
@@ -3361,6 +3595,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       li.appendChild(h); lista.appendChild(li);
       arr.forEach(function (t) { lista.appendChild(crearFila(t)); });
     }
+    if (S.listo && !hayFiltro()) pintarCumplesHoy(lista);
     if (S.listo) {
       if (!pend) {
         var vacio = document.createElement('li');
@@ -3693,10 +3928,10 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
   }
   function estadoLocal() {
-    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS };
+    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES };
   }
   function armarSync(m) {
-    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos });
+    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples });
   }
   function aplicarSync(m) {
     SYNC.aplicando = true;
@@ -3706,6 +3941,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       HIST = m.historial; guardarHist();
       MODELOS = m.modelos; guardarModelos(); pintarListaModelos();
       ESTILOS = m.estilos; guardarEstilos();
+      CUMPLES = m.cumples; guardarCumples(); pintarCumples();
       MODS = m.mods; lsEscribir(LS_MODS, JSON.stringify(MODS));
       SNAP = null; guardarLocal();
       SNAP = {};
@@ -3977,7 +4213,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   /* Copia de los avisos en la caché del navegador, para que el service worker pueda mostrarlos con la app cerrada. */
   function espejarAvisos(ahora, hechos, activo) {
     if (!URL_ESPEJO || typeof caches === 'undefined' || typeof Response === 'undefined') return;
-    var plan = activo ? planAvisos(S.tareas).filter(function (a) { return a.at > ahora - AV_VENTANA && a.at < ahora + 4 * 86400000; }) : [];
+    var plan = activo ? planTodo().filter(function (a) { return a.at > ahora - AV_VENTANA && a.at < ahora + 4 * 86400000; }) : [];
     var s = JSON.stringify({ plan: plan, hechos: hechos });
     if (s === AV_ULTIMO) return;
     AV_ULTIMO = s;
@@ -4002,7 +4238,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     traerHechosDelEspejo(function () {
       var hechos = leerHechos(), ahora = Date.now();
       if (activo) {
-        var r = avisosPendientes(planAvisos(S.tareas), ahora, hechos);
+        var r = avisosPendientes(planTodo(), ahora, hechos);
         r.silenciar.forEach(function (k) { hechos[k] = ahora; });
         r.mostrar.forEach(function (a) { hechos[a.key] = ahora; mostrarNotif(a.titulo, a.cuerpo, a.key); });
         Object.keys(hechos).forEach(function (k) { if (ahora - hechos[k] > 3 * 86400000) delete hechos[k]; });
@@ -4027,7 +4263,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     if (AV_MSG) txt = AV_MSG;
     else if (p === 'no') txt = 'Este navegador no permite avisos. Usá el botón de calendario: el teléfono te avisa solo.';
     else if (p === 'denied') txt = 'Los avisos están bloqueados en el navegador. Habilitalos en los ajustes del sitio.';
-    else if (act) txt = 'Avisos activados: 30 minutos antes y a la hora de las tareas con hora, y a las 8:00 de las que solo tienen fecha. Llegan con la app abierta o en segundo plano; con la app cerrada depende del navegador. Para no depender de eso, llevá las tareas al calendario.';
+    else if (act) txt = 'Avisos activados: 30 minutos antes y a la hora de las tareas con hora, y a las 8:00 de las que solo tienen fecha y de los cumpleaños. Llegan con la app abierta o en segundo plano; con la app cerrada depende del navegador. Para no depender de eso, llevá las tareas al calendario.';
     else txt = 'Avisos desactivados.';
     e.textContent = txt;
   }
@@ -4056,6 +4292,150 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     if (avisosActivos()) registrarSyncAvisos(true);
     setInterval(revisarAvisos, 30000);
     setTimeout(revisarAvisos, 1500);
+  }
+
+  /* --- cumpleaños: interfaz --- */
+  var CUM = { editando: null };
+  function msgCumples(m, error) {
+    var e = $('cumples-estado');
+    if (!e) return;
+    e.className = 'respaldo-estado' + (error ? ' error' : '');
+    e.textContent = m || '';
+  }
+  function cambiaronCumples() { guardarCumples(); pintarCumples(); render(); revisarAvisos(); }
+  function pintarCumples() {
+    var ul = $('cumples-lista');
+    if (!ul) return;
+    ul.textContent = '';
+    if (!CUMPLES.length) {
+      var v = document.createElement('li');
+      v.className = 'modelo-vacio'; v.textContent = 'Todavía no cargaste cumpleaños.';
+      ul.appendChild(v);
+    }
+    var hoy = hoyStr();
+    CUMPLES.map(function (c) { return proximoDe(c, hoy); }).sort(ordenCumples).forEach(function (p) {
+      var c = p.c;
+      var li = document.createElement('li');
+      li.className = 'modelo';
+      var tx = document.createElement('div'); tx.className = 'modelo-texto';
+      var st = document.createElement('strong'); st.textContent = c.nombre;
+      var meta = document.createElement('span'); meta.className = 'modelo-meta';
+      var partes = [textoFechaCumple(c)];
+      if (p.edad > 0) partes.push('cumple ' + textoEdad(p.edad));
+      partes.push(p.faltan === 0 ? 'hoy' : (p.faltan === 1 ? 'mañana' : 'en ' + p.faltan + ' días'));
+      meta.textContent = partes.join(' · ');
+      tx.appendChild(st); tx.appendChild(meta);
+      var edit = boton('Editar', '', function () { abrirEdicionCumple(c); });
+      edit.setAttribute('data-key', 'cumple-lista:editar:' + c.id);
+      edit.setAttribute('aria-label', 'Editar el cumpleaños de ' + c.nombre);
+      var del = boton('Borrar', '', function () { quitarCumple(c.id); });
+      del.setAttribute('data-key', 'cumple-lista:borrar:' + c.id);
+      del.setAttribute('aria-label', 'Borrar el cumpleaños de ' + c.nombre);
+      li.appendChild(tx); li.appendChild(edit); li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+  function cerrarEdicionCumple() {
+    CUM.editando = null;
+    $('cumple-nombre').value = ''; $('cumple-dia').value = ''; $('cumple-mes').value = ''; $('cumple-anio').value = '';
+    $('cumple-guardar').textContent = 'Agregar cumpleaños';
+    $('cumple-cancelar').hidden = true;
+  }
+  function abrirEdicionCumple(c) {
+    CUM.editando = c.id;
+    $('cumple-nombre').value = c.nombre; $('cumple-dia').value = String(c.dia); $('cumple-mes').value = String(c.mes); $('cumple-anio').value = c.anio ? String(c.anio) : '';
+    $('cumple-guardar').textContent = 'Guardar cambios';
+    $('cumple-cancelar').hidden = false;
+    msgCumples('Editando el cumpleaños de ' + c.nombre + '.');
+    $('cumple-nombre').focus();
+    try { $('cumple-form').scrollIntoView({ block: 'nearest' }); } catch (e) {}
+  }
+  function quitarCumple(id) {
+    var i = CUMPLES.map(function (c) { return c.id; }).indexOf(id);
+    if (i < 0) return;
+    var c = CUMPLES[i];
+    CUMPLES.splice(i, 1);
+    if (CUM.editando === id) cerrarEdicionCumple();
+    cambiaronCumples();
+    var viejo = document.querySelector('[data-key^="cumple-lista:editar:"]');
+    (viejo || $('cumple-nombre')).focus();
+    avisar('Cumpleaños de «' + c.nombre + '» borrado', function () {
+      var k = claveNombreCumple(c);
+      if (CUMPLES.length >= MAX_CUMPLES || CUMPLES.some(function (x) { return claveNombreCumple(x) === k; })) return;
+      CUMPLES.splice(Math.min(i, CUMPLES.length), 0, c);
+      cambiaronCumples();
+    });
+  }
+  function importarCumples(texto) {
+    var r = parsearCumples(texto), nuevos = 0, rep = 0, lleno = 0, ks = {};
+    CUMPLES.forEach(function (c) { ks[claveNombreCumple(c)] = 1; });
+    r.ok.forEach(function (c) {
+      var k = claveNombreCumple(c);
+      if (ks[k]) { rep++; return; }
+      if (CUMPLES.length >= MAX_CUMPLES) { lleno++; return; }
+      ks[k] = 1; CUMPLES.push(c); nuevos++;
+    });
+    if (nuevos) cambiaronCumples();
+    if (!r.ok.length) { msgCumples(r.mal ? 'No entendí ninguna línea. Cada una necesita un nombre y una fecha, por ejemplo: Ana, 15/03.' : 'No encontré nada para importar.', true); return 0; }
+    var p = [nuevos ? 'Se agregaron ' + nuevos + (nuevos === 1 ? ' cumpleaños.' : ' cumpleaños.') : 'No se agregó ninguno.'];
+    if (rep) p.push(rep + (rep === 1 ? ' ya estaba.' : ' ya estaban.'));
+    if (r.mal) p.push('No entendí ' + r.mal + (r.mal === 1 ? ' línea.' : ' líneas.'));
+    if (lleno) p.push('No entraron ' + lleno + ' por el máximo de ' + MAX_CUMPLES + '.');
+    msgCumples(p.join(' '), !nuevos);
+    return nuevos;
+  }
+  if ($('cumple-form')) {
+    (function () {
+      var sel = $('cumple-mes');
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Elegí el mes'; sel.appendChild(o0);
+      MESES.forEach(function (m, i) { var o = document.createElement('option'); o.value = String(i + 1); o.textContent = m.charAt(0).toUpperCase() + m.slice(1); sel.appendChild(o); });
+    })();
+    $('cumple-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nombre = $('cumple-nombre').value.replace(/\s+/g, ' ').trim();
+      var dia = parseInt($('cumple-dia').value, 10), mes = parseInt($('cumple-mes').value, 10);
+      var anioTxt = $('cumple-anio').value.trim(), anio = anioTxt ? parseInt(anioTxt, 10) : undefined;
+      var hoyAnio = new Date().getFullYear();
+      if (!nombre) { msgCumples('Escribí el nombre.', true); $('cumple-nombre').focus(); return; }
+      if (!(dia >= 1 && dia <= 31)) { msgCumples('Escribí el día, un número del 1 al 31.', true); $('cumple-dia').focus(); return; }
+      if (!(mes >= 1 && mes <= 12)) { msgCumples('Elegí el mes.', true); $('cumple-mes').focus(); return; }
+      if (dia > diasMaxMes(mes)) { msgCumples(MESES[mes - 1].charAt(0).toUpperCase() + MESES[mes - 1].slice(1) + ' no tiene día ' + dia + '.', true); $('cumple-dia').focus(); return; }
+      if (anioTxt && !(anio >= 1900 && anio <= hoyAnio)) { msgCumples('El año tiene que estar entre 1900 y ' + hoyAnio + ', o dejalo vacío.', true); $('cumple-anio').focus(); return; }
+      var c = limpiarCumple({ id: CUM.editando || undefined, nombre: nombre, dia: dia, mes: mes, anio: anio });
+      var k = claveNombreCumple(c);
+      if (CUMPLES.some(function (x) { return x.id !== c.id && claveNombreCumple(x) === k; })) { msgCumples('Ese cumpleaños ya está cargado.', true); $('cumple-nombre').focus(); return; }
+      var idx = CUM.editando ? CUMPLES.map(function (x) { return x.id; }).indexOf(CUM.editando) : -1;
+      if (idx < 0 && CUMPLES.length >= MAX_CUMPLES) { msgCumples('Llegaste al máximo de ' + MAX_CUMPLES + ' cumpleaños.', true); return; }
+      if (idx >= 0) CUMPLES[idx] = c; else CUMPLES.push(c);
+      cambiaronCumples();
+      cerrarEdicionCumple();
+      msgCumples(idx >= 0 ? 'Cambios guardados.' : 'Se agregó el cumpleaños de ' + nombre + '.');
+      $('cumple-nombre').focus();
+    });
+    $('cumple-cancelar').addEventListener('click', function () { cerrarEdicionCumple(); msgCumples(''); $('cumple-nombre').focus(); });
+    $('cumple-importar-btn').addEventListener('click', function () {
+      var t = $('cumple-texto').value;
+      if (!t.trim()) { msgCumples('Pegá primero la lista.', true); $('cumple-texto').focus(); return; }
+      if (importarCumples(t)) $('cumple-texto').value = '';
+    });
+    $('cumple-archivo-btn').addEventListener('click', function () { var i = $('cumple-archivo'); i.value = ''; i.click(); });
+    $('cumple-archivo').addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      if (f.size > 1024 * 1024) { msgCumples('El archivo es demasiado grande para ser una lista de cumpleaños.', true); return; }
+      var rd = new FileReader();
+      rd.onload = function () { importarCumples(String(rd.result)); };
+      rd.onerror = function () { msgCumples('No se pudo leer el archivo.', true); };
+      rd.readAsText(f);
+    });
+    $('cumple-ics').addEventListener('click', function () {
+      if (!CUMPLES.length) { msgCumples('Primero cargá algún cumpleaños.', true); return; }
+      var r = armarICSCumples(CUMPLES, Date.now());
+      Promise.resolve(descargarArchivo('cumpleanos.ics', r.texto, 'text/calendar')).then(function () {
+        msgCumples('Se descargó cumpleanos.ics con ' + r.cantidad + (r.cantidad === 1 ? ' cumpleaños' : ' cumpleaños') + '. Abrilo y elegí agregarlo al calendario del teléfono: ahí se repiten todos los años y suenan aunque esta app esté cerrada.');
+      }, function () { msgCumples('No se pudo descargar el archivo.', true); });
+    });
+    pintarCumples();
   }
 
   /* --- plantillas: interfaz --- */
