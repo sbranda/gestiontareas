@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tareas diarias</title>
+<title>Tareas Diarias</title>
 <meta name="description" content="Planilla de tareas diarias con hojas propias (Instituto, Casa, Proyectos…). Funciona sin conexión.">
 <meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E161C" media="(prefers-color-scheme: dark)">
@@ -524,7 +524,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   <div class="instalar" id="instalar" role="region" aria-labelledby="instalar-t" data-no-print hidden>
     <img src="icon-192.png" alt="" width="36" height="36" class="instalar-ico">
     <div class="instalar-txt">
-      <strong id="instalar-t">Instalá Tareas diarias</strong>
+      <strong id="instalar-t">Instalá Tareas Diarias</strong>
       <span id="instalar-msg">Abre como una app y funciona sin conexión.</span>
     </div>
     <div class="instalar-bot">
@@ -546,7 +546,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       </button>
     </div>
     <div class="sr-only" id="sync-aviso" role="status" aria-live="polite"></div>
-    <h1>Tareas diarias</h1>
+    <h1>Tareas Diarias</h1>
     <div class="progreso">
       <div class="progreso-linea">
         <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
@@ -1538,7 +1538,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   }
   function armarICS(tareas, ahora) {
     var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Tareas diarias'];
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas Diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Tareas Diarias'];
     var n = 0;
     tareas.forEach(function (t) {
       if (t.done || t.plantilla || t.due == null || t.due < ahora) return;
@@ -2536,7 +2536,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     var obj;
     try { obj = JSON.parse(texto); } catch (e) { return { error: 'El archivo no es una copia válida.' }; }
     var arr = Array.isArray(obj) ? obj : (obj && obj.app === 'tareas-diarias' && Array.isArray(obj.tareas) ? obj.tareas : null);
-    if (!arr) return { error: 'El archivo no parece una copia de Tareas diarias.' };
+    if (!arr) return { error: 'El archivo no parece una copia de Tareas Diarias.' };
     if (arr.length > 5000) return { error: 'La copia tiene demasiadas tareas (el máximo es 5000).' };
     var vistos = {}, res = [];
     arr.forEach(function (t) {
@@ -3082,7 +3082,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     var lun = lunesImpresion(), sem = semanaImpresa(S.tareas, lun), box = $('impresion');
     box.textContent = '';
     function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
-    box.appendChild(el('h1', '', 'Tareas diarias · ' + textoSemana(lun)));
+    box.appendChild(el('h1', '', 'Tareas Diarias · ' + textoSemana(lun)));
     function fila(t) {
       var li = el('li', '');
       var txt = (t.done ? '☑ ' : '☐ ') + (t.urgente ? '★ ' : '') + t.text;
@@ -3265,7 +3265,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   function pintarReloj() {
     var r = restanteEnf();
     $('enf-reloj').textContent = formatoTemp(r);
-    if (ENF.fin && VISTA === 'enfoque') document.title = formatoTemp(r) + ' · Enfoque · Tareas diarias';
+    if (ENF.fin && VISTA === 'enfoque') document.title = formatoTemp(r) + ' · Enfoque · Tareas Diarias';
   }
   function programarEnf() {
     clearInterval(ENF_T); ENF_T = null;
@@ -3303,7 +3303,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     $('enf-card').hidden = !cur;
     $('enf-vacio').hidden = !!cur || !S.listo;
     pintarFinDia($('enf-fin'), S.listo && !cur && (HIST[hoyStr()] || 0) > 0);
-    if (!cur) { document.title = 'Enfoque · Tareas diarias'; return; }
+    if (!cur) { document.title = 'Enfoque · Tareas Diarias'; return; }
     var pos = q.todas.indexOf(cur) + 1, partes = [];
     if (cur.urgente) partes.push('★ Urgente');
     if (cur.due != null && cur.due < AHORA) partes.push('Atrasada'); else if (fechaDe(cur) === hoyStr()) partes.push('Para hoy');
@@ -3405,7 +3405,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   function render() {
     AHORA = Date.now();
     sincronizarHojas();
-    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Tareas diarias';
+    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Tareas Diarias';
     pintarRespaldo();
     var esHoy = VISTA === 'hoy';
     var enCal = VISTA !== 'lista' && !esHoy;
@@ -3456,7 +3456,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         p.textContent = 'Escribí una tarea, elegí los días en Repetir y tocá Agregar.';
       } else if (S.hoja === 'diarias' && S.tareas.length === 0 && Object.keys(HIST).length === 0) {
         li.className = 'vacio bienvenida';
-        st.textContent = '¡Bienvenido a Tareas diarias!';
+        st.textContent = '¡Bienvenido a Tareas Diarias!';
         p.textContent = 'Anotá lo que tenés que hacer hoy: escribís, tocás Agregar y listo.';
         li.appendChild(st); li.appendChild(p);
         var primera = document.createElement('button');
