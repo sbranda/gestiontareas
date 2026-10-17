@@ -407,6 +407,10 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .cumple-dia { list-style: none; margin: 0 0 8px; padding: 10px 14px; background: var(--accent-soft); border-radius: 8px; }
 .cumple-ico { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; color: var(--accent); }
 .cumple-ico svg { width: 20px; height: 20px; }
+.cumples-filtros { display: grid; gap: 6px; margin: 0 0 8px; }
+.cumples-filtros[hidden] { display: none; }
+.cumples-filtros label { margin-top: 6px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+.cumples-filtros input, .cumples-filtros select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cal-torta { display: inline-grid; place-items: center; color: var(--accent); }
 .cal-torta svg { width: 13px; height: 13px; }
 .cal-dia-btn.sel .cal-torta { color: var(--accent-ink); }
@@ -859,6 +863,17 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         <input type="file" id="cumple-archivo" accept=".txt,.csv,text/plain,text/csv" hidden>
       </div>
     </details>
+    <div class="cumples-filtros" id="cumples-filtros" role="search" aria-label="Buscar y ordenar cumpleaños" hidden>
+      <label for="cumple-buscar">Buscar por nombre o mes</label>
+      <input type="search" id="cumple-buscar" maxlength="60" autocomplete="off">
+      <label for="cumple-orden">Ordenar por</label>
+      <select id="cumple-orden">
+        <option value="proximo">Próximo cumpleaños</option>
+        <option value="nombre">Nombre (A–Z)</option>
+        <option value="mes">Mes del año</option>
+      </select>
+    </div>
+    <p class="respaldo-estado" id="cumples-cuenta" role="status"></p>
     <ul class="modelos-lista" id="cumples-lista"></ul>
     <div class="respaldo-botones">
       <button type="button" class="mini" id="cumple-ics">Llevar al calendario del teléfono</button>
@@ -4303,7 +4318,9 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   }
 
   /* --- cumpleaños: interfaz --- */
-  var CUM = { editando: null };
+  var LS_CUMORDEN = 'tareasdiarias.cumples.orden';
+  function ordenCumplesGuardado() { var o = lsLeer(LS_CUMORDEN); return (o === 'nombre' || o === 'mes') ? o : 'proximo'; }
+  var CUM = { editando: null, q: '', orden: ordenCumplesGuardado() };
   function msgCumples(m, error) {
     var e = $('cumples-estado');
     if (!e) return;
@@ -4316,13 +4333,25 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     var ul = $('cumples-lista');
     if (!ul) return;
     ul.textContent = '';
-    if (!CUMPLES.length) {
-      var v = document.createElement('li');
-      v.className = 'modelo-vacio'; v.textContent = 'Todavía no cargaste cumpleaños.';
-      ul.appendChild(v);
-    }
+    var ver = CUMPLES.length >= 6;
+    var fil = $('cumples-filtros');
+    if (fil) fil.hidden = !ver;
+    var q = ver ? quitarTildes(CUM.q).toLowerCase().trim() : '', orden = ver ? CUM.orden : 'proximo';
     var hoy = hoyStr();
-    CUMPLES.map(function (c) { return proximoDe(c, hoy); }).sort(ordenCumples).forEach(function (p) {
+    var todos = CUMPLES.map(function (c) { return proximoDe(c, hoy); });
+    var lista = todos.filter(function (p) { return !q || quitarTildes(p.c.nombre + ' ' + textoFechaCumple(p.c)).toLowerCase().indexOf(q) >= 0; });
+    var porNombre = function (a, b) { return a.c.nombre.localeCompare(b.c.nombre, 'es', { sensitivity: 'base' }); };
+    lista.sort(orden === 'nombre' ? function (a, b) { return porNombre(a, b) || ordenCumples(a, b); }
+      : orden === 'mes' ? function (a, b) { return (a.c.mes - b.c.mes) || (a.c.dia - b.c.dia) || porNombre(a, b); }
+      : ordenCumples);
+    var cuenta = $('cumples-cuenta');
+    if (cuenta) cuenta.textContent = !ver ? '' : (q ? (lista.length ? 'Mostrando ' + lista.length + ' de ' + todos.length + '.' : 'Ningún cumpleaños coincide con «' + CUM.q.trim() + '».') : todos.length + ' cumpleaños.');
+    if (!CUMPLES.length || !lista.length) {
+      var vacio = document.createElement('li');
+      vacio.className = 'modelo-vacio'; vacio.textContent = CUMPLES.length ? 'No hay coincidencias.' : 'Todavía no cargaste cumpleaños.';
+      ul.appendChild(vacio);
+    }
+    lista.forEach(function (p) {
       var c = p.c;
       var li = document.createElement('li');
       li.className = 'modelo';
@@ -4460,6 +4489,9 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       $('cumple-borrar-no').focus();
     });
     $('cumple-borrar-no').addEventListener('click', function () { ocultarConfirmaCumples(); $('cumple-borrar-todos').focus(); });
+    $('cumple-buscar').addEventListener('input', function () { CUM.q = this.value; pintarCumples(); });
+    $('cumple-orden').value = CUM.orden;
+    $('cumple-orden').addEventListener('change', function () { CUM.orden = this.value; lsEscribir(LS_CUMORDEN, this.value); pintarCumples(); });
     $('cumple-borrar-si').addEventListener('click', function () {
       var quitados = CUMPLES.slice();
       CUMPLES = [];
