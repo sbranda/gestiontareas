@@ -831,7 +831,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
 
   <section class="respaldo" aria-labelledby="respaldo-t">
     <h2 id="respaldo-t">Copia de respaldo</h2>
-    <p>Guardá tus tareas en un archivo para no perderlas. También sirve para pasarlas de la compu al celular: exportás en uno e importás en el otro.</p>
+    <p>Guardá tus tareas, hojas, historial, plantillas, rachas y preferencias de apariencia en un archivo para no perderlas. También sirve para pasarlas de la compu al celular: exportás en uno e importás en el otro.</p>
     <div class="respaldo-botones">
       <button type="button" class="mini primario" id="btn-exportar">Exportar</button>
       <button type="button" class="mini" id="btn-importar">Importar</button>
@@ -840,7 +840,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     <p class="respaldo-estado" id="respaldo-estado" role="status"></p>
     <div class="respaldo-confirma" id="respaldo-confirma" hidden>
       <p id="confirma-texto"></p>
-      <p><b>Sumar</b> agrega lo nuevo y actualiza las tareas que ya tenés con la versión del archivo. <b>Reemplazar</b> borra lo que tenés ahora y deja solo lo del archivo.</p>
+      <p><b>Sumar</b> agrega lo nuevo y actualiza las tareas que ya tenés con la versión del archivo. <b>Reemplazar</b> borra lo que tenés ahora y deja solo lo del archivo, incluidos el tema y el tamaño de letra. Después podés deshacer.</p>
       <div class="respaldo-botones">
         <button type="button" class="mini primario" id="btn-sumar">Sumar a mis tareas</button>
         <button type="button" class="mini" id="btn-reemplazar">Reemplazar todo</button>
@@ -2491,8 +2491,44 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   var RESP = { msg: '', error: false, t: null };
   var PEND = null;
 
-  function armarCopia(tareas, hojas, hist, modelos, estilos) {
-    return JSON.stringify({ app: 'tareas-diarias', version: 1, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], estilos: estilos || {}, tareas: tareas }, null, 2);
+  /* Preferencias que viajan en la copia. Los avisos no: dependen del permiso del navegador en cada dispositivo. */
+  function prefsActuales() { return { tema: tema, letra: letraPct, inicio: INICIO, feedback: FEED }; }
+  function limpiarPrefs(p) {
+    if (!p || typeof p !== 'object') return null;
+    var r = {};
+    if (TEMAS.indexOf(p.tema) >= 0) r.tema = p.tema;
+    if (LETRAS.indexOf(p.letra) >= 0) r.letra = p.letra;
+    if (INICIOS.indexOf(p.inicio) >= 0) r.inicio = p.inicio;
+    if (FEEDS.indexOf(p.feedback) >= 0) r.feedback = p.feedback;
+    return Object.keys(r).length ? r : null;
+  }
+  function aplicarPrefs(p) {
+    if (!p) return;
+    if (p.tema) { tema = p.tema; lsEscribir(LS_TEMA, tema); }
+    if (p.letra) { letraPct = p.letra; lsEscribir(LS_LETRA, String(letraPct)); }
+    if (p.inicio) { INICIO = p.inicio; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO; }
+    if (p.feedback) { FEED = p.feedback; lsEscribir(LS_FEED, FEED); pintarFeed(); }
+    aplicarApariencia('');
+  }
+  /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
+  function fotoCompleta() {
+    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales() }));
+  }
+  function restaurarFoto(f) {
+    EXTRA = f.extra; guardarHojas();
+    HIST = f.hist; guardarHist();
+    MODELOS = f.modelos; guardarModelos(); pintarListaModelos();
+    ESTILOS = f.estilos; guardarEstilos();
+    RACH = limpiarRach(f.rach); guardarRach();
+    aplicarPrefs(f.prefs);
+  }
+
+  function armarCopia(tareas, hojas, hist, modelos, estilos, extra) {
+    var o = { app: 'tareas-diarias', version: 2, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], estilos: estilos || {} };
+    if (extra && extra.rachas) o.rachas = extra.rachas;
+    if (extra && extra.preferencias) o.preferencias = extra.preferencias;
+    o.tareas = tareas;
+    return JSON.stringify(o, null, 2);
   }
 
   /* Lee el texto de un archivo de copia. Devuelve { tareas, omitidas } o { error }. */
@@ -2512,7 +2548,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null };
   }
 
   function contarCopia(arr) {
@@ -2587,6 +2623,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   function aplicarCopia(modo) {
     if (!PEND || !S.listo) return;
     var previo = S.tareas.slice();
+    var foto = fotoCompleta();
     var existe = {};
     S.tareas.forEach(function (t) { existe[t.id] = true; });
     var total = PEND.tareas.length;
@@ -2600,19 +2637,24 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     if (PEND.historial) { HIST = modo === 'reemplazar' ? PEND.historial : mezclarHist(HIST, PEND.historial); guardarHist(); }
     if (PEND.modelos && PEND.modelos.length) { MODELOS = modo === 'reemplazar' ? PEND.modelos.slice() : mezclarModelos(MODELOS, PEND.modelos); guardarModelos(); pintarListaModelos(); }
     if (PEND.estilos && Object.keys(PEND.estilos).length) { ESTILOS = modo === 'reemplazar' ? PEND.estilos : Object.assign({}, ESTILOS, PEND.estilos); guardarEstilos(); }
+    if (PEND.rachas) {
+      RACH = modo === 'reemplazar' ? PEND.rachas : { ok: Object.assign({}, RACH.ok, PEND.rachas.ok), vis: Object.assign({}, RACH.vis, PEND.rachas.vis) };
+      guardarRach();
+    }
+    if (modo === 'reemplazar') aplicarPrefs(PEND.preferencias);
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
       ? 'Se reemplazaron tus tareas por las de la copia (' + total + ').'
       : 'Copia importada: ' + nuevas + (nuevas === 1 ? ' nueva' : ' nuevas') + ' y ' + (total - nuevas) + (total - nuevas === 1 ? ' actualizada.' : ' actualizadas.');
-    avisar(msg, function () { volcarEstado(previo); });
+    avisar(msg, function () { restaurarFoto(foto); volcarEstado(previo); });
     avisoRespaldo(msg);
     setTimeout(generarRepetidas, 500);
   }
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS);
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales() });
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -2639,7 +2681,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       var r = leerCopia(String(rd.result));
       if (r.error) { ocultarConfirma(); avisoRespaldo(r.error, true); return; }
       PEND = r;
-      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
+      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
       $('respaldo-confirma').hidden = false;
       $('btn-sumar').focus();
     };
