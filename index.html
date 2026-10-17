@@ -224,6 +224,18 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .instalar-txt { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
 .instalar-txt strong { font-size: 1rem; }
 .instalar-bot { display: flex; flex-wrap: wrap; gap: 8px; }
+.barra-sup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.barra-sup .fecha { min-width: 0; overflow-wrap: anywhere; }
+.btn-engranaje { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.panel { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
+.panel-in { max-width: 720px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.panel-barra { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.panel-barra h2 { margin: 0; font-family: var(--font-display); font-size: 1.375rem; font-weight: 700; }
+.panel-barra h2:focus { outline: none; }
+.panel .respaldo:first-of-type { margin-top: 16px; }
+.panel .prefs-cuerpo { padding: 0; }
+body.panel-abierto { overflow: hidden; }
+.panel #ajuste-tema { margin-left: 0; }
 .respaldo { margin-top: 28px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .respaldo h2 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
 .respaldo p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
@@ -468,31 +480,13 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     </div>
   </div>
   <header>
-    <div class="ajustes" role="group" aria-label="Apariencia y tamaño de letra">
-      <button type="button" class="ajuste" id="ajuste-menos" aria-label="A−, achicar letra">A−</button>
-      <button type="button" class="ajuste" id="ajuste-reset" aria-label="Tamaño de letra: 100 %. Tocar para volver al tamaño normal">100 %</button>
-      <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
-      <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
+    <div class="barra-sup">
+      <div class="fecha" id="fecha"></div>
+      <button type="button" class="ajuste btn-engranaje" id="btn-ajustes" aria-haspopup="dialog" aria-expanded="false" aria-controls="panel">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        <span>Ajustes</span>
+      </button>
     </div>
-    <details class="prefs" id="prefs">
-      <summary>Más ajustes</summary>
-      <div class="prefs-cuerpo">
-        <label for="sel-inicio">Al abrir la app, mostrar
-          <select id="sel-inicio">
-            <option value="ultima">La última vista que usé</option>
-            <option value="hoy">Hoy</option>
-            <option value="lista">Lista</option>
-            <option value="calendario">Calendario</option>
-            <option value="historial">Historial</option>
-            <option value="enfoque">Enfoque</option>
-          </select>
-        </label>
-        <button type="button" class="ajuste" id="btn-feed">Al tildar: nada</button>
-        <p class="prefs-nota">Al tildar una tarea podés sentir una vibración suave o escuchar un sonido corto. La vibración no funciona en iPhone.</p>
-      </div>
-    </details>
-    <div class="sr-only" id="ajuste-aviso" role="status" aria-live="polite"></div>
-    <div class="fecha" id="fecha"></div>
     <h1>Tareas diarias</h1>
     <div class="progreso">
       <div class="progreso-linea">
@@ -668,6 +662,41 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
   <p class="ayuda" id="ayuda"></p>
   <p class="estado" id="estado" role="status"></p>
+  </main>
+
+  <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-t" data-no-print hidden>
+    <div class="panel-in">
+      <div class="panel-barra">
+        <h2 id="panel-t" tabindex="-1">Ajustes</h2>
+        <button type="button" class="mini primario" id="btn-panel-cerrar">Listo</button>
+      </div>
+      <div class="sr-only" id="ajuste-aviso" role="status" aria-live="polite"></div>
+      <section class="respaldo" aria-labelledby="ap-t">
+        <h2 id="ap-t">Apariencia</h2>
+        <div class="ajustes" role="group" aria-label="Apariencia y tamaño de letra">
+          <button type="button" class="ajuste" id="ajuste-menos" aria-label="A−, achicar letra">A−</button>
+          <button type="button" class="ajuste" id="ajuste-reset" aria-label="Tamaño de letra: 100 %. Tocar para volver al tamaño normal">100 %</button>
+          <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
+          <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
+        </div>
+      </section>
+      <section class="respaldo" aria-labelledby="pf-t">
+        <h2 id="pf-t">Al abrir y al tildar</h2>
+      <div class="prefs-cuerpo">
+        <label for="sel-inicio">Al abrir la app, mostrar
+          <select id="sel-inicio">
+            <option value="ultima">La última vista que usé</option>
+            <option value="hoy">Hoy</option>
+            <option value="lista">Lista</option>
+            <option value="calendario">Calendario</option>
+            <option value="historial">Historial</option>
+            <option value="enfoque">Enfoque</option>
+          </select>
+        </label>
+        <button type="button" class="ajuste" id="btn-feed">Al tildar: nada</button>
+        <p class="prefs-nota">Al tildar una tarea podés sentir una vibración suave o escuchar un sonido corto. La vibración no funciona en iPhone.</p>
+      </div>
+      </section>
 
   <section class="respaldo" id="sync" aria-labelledby="sync-t">
     <h2 id="sync-t">Sincronizar entre dispositivos</h2>
@@ -746,7 +775,8 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       </div>
     </div>
   </section>
-  </main>
+    </div>
+  </div>
 
   <footer class="credito">Desarrollado por @sebranda</footer>
 </div>
@@ -3600,6 +3630,52 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         mostrar();
       }, 3500);
     }
+  })();
+
+  /* --- panel de ajustes --- */
+  (function () {
+    var panel = document.getElementById('panel'), abrir = document.getElementById('btn-ajustes'),
+        cerrar = document.getElementById('btn-panel-cerrar'), titulo = document.getElementById('panel-t');
+    if (!panel || !abrir || !cerrar) return;
+    var envolvedor = panel.parentNode, bloqueados = [], conHistoria = false;
+    function foco() {
+      return Array.prototype.slice.call(panel.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+        .filter(function (el) { return !el.hidden && el.offsetParent !== null; });
+    }
+    function abierto() { return !panel.hidden; }
+    function abrirPanel() {
+      if (abierto()) return;
+      panel.hidden = false;
+      abrir.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('panel-abierto');
+      bloqueados = Array.prototype.filter.call(envolvedor.children, function (el) { return el !== panel && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE'; });
+      bloqueados.forEach(function (el) { el.setAttribute('inert', ''); });
+      try { history.pushState({ panel: 1 }, ''); conHistoria = true; } catch (e) { conHistoria = false; }
+      panel.scrollTop = 0;
+      if (titulo) titulo.focus();
+    }
+    function cerrarPanel(desdeHistoria) {
+      if (!abierto()) return;
+      panel.hidden = true;
+      abrir.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('panel-abierto');
+      bloqueados.forEach(function (el) { el.removeAttribute('inert'); });
+      bloqueados = [];
+      if (!desdeHistoria && conHistoria) { conHistoria = false; try { history.back(); } catch (e) {} }
+      conHistoria = false;
+      try { abrir.focus(); } catch (e) {}
+    }
+    abrir.addEventListener('click', abrirPanel);
+    cerrar.addEventListener('click', function () { cerrarPanel(false); });
+    panel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(false); return; }
+      if (e.key !== 'Tab') return;
+      var f = foco(); if (!f.length) return;
+      var a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === a || document.activeElement === titulo)) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    });
+    window.addEventListener('popstate', function () { if (abierto()) cerrarPanel(true); });
   })();
 
   /* Refresca las vencidas cada minuto y al volver a la app */
