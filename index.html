@@ -315,6 +315,8 @@ body.panel-abierto { overflow: hidden; }
 .estilo-grupo > span { font-size: 0.8125rem; color: var(--muted); }
 .estilo-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .sw, .ic { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-weight: 700; cursor: pointer; }
+.sw { width: 70px; height: 62px; padding: 2px; grid-template-rows: auto auto; align-content: center; gap: 0; font-size: 0.75rem; font-weight: 600; line-height: 1.15; }
+.sw .m { font-size: 1.125rem; line-height: 1.1; min-height: 1.1em; }
 .sw[data-color] { background: var(--hc); color: var(--accent-ink); border-color: var(--hc); }
 .sw[aria-pressed="true"], .ic[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
 .ic[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
@@ -1053,6 +1055,22 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       </div>
     </div>
   </section>
+  <section class="respaldo" aria-labelledby="reset-t">
+    <h2 id="reset-t">Restablecer</h2>
+    <p>Para dejar la app como nueva. Antes de borrar todo conviene hacer una copia con Exportar. Después de restablecer podés deshacerlo enseguida.</p>
+    <div class="respaldo-botones">
+      <button type="button" class="mini" id="btn-reset-apariencia">Restablecer apariencia</button>
+      <button type="button" class="mini" id="btn-reset-todo">Borrar todo y empezar de cero</button>
+    </div>
+    <div class="respaldo-confirma" id="reset-confirma" hidden>
+      <p id="reset-confirma-texto"></p>
+      <div class="respaldo-botones">
+        <button type="button" class="mini primario" id="reset-si">Sí, restablecer</button>
+        <button type="button" class="mini" id="reset-no">Cancelar</button>
+      </div>
+    </div>
+    <p class="respaldo-estado" id="reset-estado" role="status"></p>
+  </section>
     </div>
   </div>
 
@@ -1072,9 +1090,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   /* --- colores e íconos por hoja, vista inicial y sensación al tildar --- */
   var COLORES = [
-    { id: 'azul', nombre: 'Azul' }, { id: 'rojo', nombre: 'Rojo' }, { id: 'verde', nombre: 'Verde' }, { id: 'naranja', nombre: 'Naranja' },
-    { id: 'violeta', nombre: 'Violeta' }, { id: 'rosa', nombre: 'Rosa' }, { id: 'marron', nombre: 'Marrón' }, { id: 'gris', nombre: 'Gris' },
-    { id: 'turquesa', nombre: 'Turquesa' }, { id: 'indigo', nombre: 'Índigo' }, { id: 'ocre', nombre: 'Ocre' }, { id: 'bordo', nombre: 'Bordó' }, { id: 'lima', nombre: 'Lima' }, { id: 'fucsia', nombre: 'Fucsia' }, { id: 'cielo', nombre: 'Cielo' }
+    { id: 'rojo', nombre: 'Rojo' }, { id: 'naranja', nombre: 'Naranja' }, { id: 'ocre', nombre: 'Ocre' }, { id: 'lima', nombre: 'Lima' },
+    { id: 'verde', nombre: 'Verde' }, { id: 'turquesa', nombre: 'Turquesa' }, { id: 'azul', nombre: 'Petróleo' }, { id: 'cielo', nombre: 'Azul' },
+    { id: 'indigo', nombre: 'Índigo' }, { id: 'violeta', nombre: 'Violeta' }, { id: 'fucsia', nombre: 'Fucsia' }, { id: 'rosa', nombre: 'Rosa' },
+    { id: 'bordo', nombre: 'Bordó' }, { id: 'marron', nombre: 'Marrón' }, { id: 'gris', nombre: 'Gris' }
   ];
   var ICONOS = {
     libro: { nombre: 'Libro', d: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/>' },
@@ -3316,6 +3335,62 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   });
   $('btn-sumar').addEventListener('click', function () { aplicarCopia('sumar'); });
   $('btn-reemplazar').addEventListener('click', function () { aplicarCopia('reemplazar'); });
+
+  /* --- Restablecer: apariencia o todo --- */
+  var RESET = { modo: null };
+  function msgReset(t, error) { var el = $('reset-estado'); el.className = 'respaldo-estado' + (error ? ' error' : ''); el.textContent = t || ''; }
+  function ocultarReset() { RESET.modo = null; $('reset-confirma').hidden = true; }
+  function pedirReset(modo) {
+    if (!S.listo) return;
+    RESET.modo = modo; msgReset('');
+    var sync = (typeof SYNC !== 'undefined' && SYNC && SYNC.cfg) ? ' Como tenés la sincronización activada, el cambio también llega a tus otros dispositivos.' : '';
+    $('reset-confirma-texto').textContent = modo === 'apariencia'
+      ? 'Se quitan los colores e íconos de las hojas, y el tema, el tamaño de letra y las filas compactas vuelven a lo original. No se toca ninguna tarea ni cumpleaños.'
+      : 'Se borra todo: ' + S.tareas.length + (S.tareas.length === 1 ? ' tarea' : ' tareas') + ', ' + EXTRA.length + (EXTRA.length === 1 ? ' hoja' : ' hojas') + ', ' + CUMPLES.length + (CUMPLES.length === 1 ? ' cumpleaños' : ' cumpleaños') + ', el historial, las plantillas y las rachas, y la apariencia vuelve a lo original.' + sync;
+    $('reset-confirma').hidden = false;
+    $('reset-no').focus();
+  }
+  function aparienciaDeFabrica() {
+    ESTILOS = {}; guardarEstilos();
+    tema = 'automático'; letraPct = 100; lsEscribir(LS_TEMA, tema); lsEscribir(LS_LETRA, '100');
+    try { localStorage.removeItem(LS_COMPACTO); } catch (e) {}
+    aplicarApariencia(''); pintarCompacto(false);
+  }
+  function aplicarReset() {
+    if (!RESET.modo || !S.listo) return;
+    var modo = RESET.modo, previo = S.tareas.slice(), foto = fotoCompleta(), compPrev = lsLeer(LS_COMPACTO), btn = modo === 'apariencia' ? 'btn-reset-apariencia' : 'btn-reset-todo';
+    EDIT.id = null; REP.id = null;
+    if (modo === 'apariencia') {
+      aparienciaDeFabrica();
+      render();
+    } else {
+      BORRADAS = {};
+      EXTRA = []; guardarHojas();
+      HIST = {}; guardarHist();
+      MODELOS = []; guardarModelos(); pintarListaModelos();
+      RACH = { ok: {}, vis: {} }; guardarRach();
+      CUMPLES = []; guardarCumples(); pintarCumples();
+      aparienciaDeFabrica();
+      INICIO = 'ultima'; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO;
+      S.hoja = 'diarias';
+      volcarEstado([]);
+    }
+    ocultarReset();
+    var msg = modo === 'apariencia' ? 'Apariencia restablecida.' : 'Se borró todo. La app quedó como nueva.';
+    avisar(msg, function () {
+      restaurarFoto(foto);
+      if (modo === 'todo') volcarEstado(previo);
+      if (compPrev === null) { try { localStorage.removeItem(LS_COMPACTO); } catch (e) {} } else lsEscribir(LS_COMPACTO, compPrev);
+      pintarCompacto(false); render();
+    });
+    msgReset(msg);
+    $(btn).focus();
+  }
+  $('btn-reset-apariencia').addEventListener('click', function () { pedirReset('apariencia'); });
+  $('btn-reset-todo').addEventListener('click', function () { pedirReset('todo'); });
+  $('reset-no').addEventListener('click', function () { var m = RESET.modo; ocultarReset(); $(m === 'apariencia' ? 'btn-reset-apariencia' : 'btn-reset-todo').focus(); });
+  $('reset-si').addEventListener('click', aplicarReset);
+  $('reset-confirma').addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); $('reset-no').click(); } });
   $('btn-cancelar-copia').addEventListener('click', ocultarConfirma);
 
   /* ---------- Vista ---------- */
@@ -3812,7 +3887,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var activo = (es.color || '') === c.id;
       b.setAttribute('aria-pressed', activo ? 'true' : 'false');
       if (c.id) b.setAttribute('data-color', c.id);
-      b.textContent = activo ? '✓' : (c.id ? '' : '∅');
+      var mk = document.createElement('span'); mk.className = 'm'; mk.setAttribute('aria-hidden', 'true'); mk.textContent = activo ? '✓' : (c.id ? '' : '∅');
+      var nm = document.createElement('span'); nm.setAttribute('aria-hidden', 'true'); nm.textContent = c.nombre;
+      b.appendChild(mk); b.appendChild(nm);
       b.addEventListener('click', function () { setEstilo(h, { color: c.id }); anunciar('Color de ' + nombreHoja(h) + ': ' + c.nombre); });
       fc.appendChild(b);
     });
