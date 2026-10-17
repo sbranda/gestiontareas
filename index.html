@@ -226,6 +226,18 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .instalar-bot { display: flex; flex-wrap: wrap; gap: 8px; }
 .barra-sup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .barra-sup .fecha { min-width: 0; overflow-wrap: anywhere; }
+.barra-izq { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+.sync-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-left: -4px; padding: 0 4px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 0.8125rem; text-align: left; cursor: pointer; }
+.sync-chip:hover #sync-chip-txt { text-decoration: underline; }
+.sync-chip[hidden] { display: none; }
+.sync-ico { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; font-weight: 700; line-height: 1; }
+.sync-chip[data-estado="ocupado"] .sync-ico { animation: sync-giro 1s linear infinite; }
+.sync-chip[data-estado="err"] { color: var(--ink); font-weight: 600; }
+.sync-chip[data-estado="err"] .sync-ico { background: var(--danger-soft); color: var(--danger); }
+.sync-chip[data-estado="off"] .sync-ico { background: var(--warn-soft); color: var(--warn); }
+@keyframes sync-giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sync-chip[data-estado="ocupado"] .sync-ico { animation: none; } }
+.panel .respaldo { scroll-margin-top: 76px; }
 .btn-engranaje { display: inline-flex; align-items: center; gap: 8px; flex: none; }
 .panel { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
 .panel-in { max-width: 720px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -481,12 +493,18 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   </div>
   <header>
     <div class="barra-sup">
-      <div class="fecha" id="fecha"></div>
+      <div class="barra-izq">
+        <div class="fecha" id="fecha"></div>
+        <button type="button" class="sync-chip" id="sync-chip" data-estado="ok" hidden>
+          <span class="sync-ico" id="sync-ico" aria-hidden="true">✓</span><span id="sync-chip-txt"></span>
+        </button>
+      </div>
       <button type="button" class="ajuste btn-engranaje" id="btn-ajustes" aria-haspopup="dialog" aria-expanded="false" aria-controls="panel">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
         <span>Ajustes</span>
       </button>
     </div>
+    <div class="sr-only" id="sync-aviso" role="status" aria-live="polite"></div>
     <h1>Tareas diarias</h1>
     <div class="progreso">
       <div class="progreso-linea">
@@ -836,6 +854,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   var FEED = lsLeer(LS_FEED); if (FEEDS.indexOf(FEED) < 0) FEED = 'nada';
   var EST = { abierto: false };
   /* --- sincronización: marcas de modificación, tareas borradas y configuración --- */
+  var LS_SYNC401 = 'tareasdiarias.sync401';
   var LS_MODS = 'tareasdiarias.mods', LS_TOMB = 'tareasdiarias.borradas', LS_SYNC = 'tareasdiarias.sync';
   var MODS = { hojas: 0, modelos: 0, estilos: 0 };
   try {
@@ -3560,7 +3579,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       SYNC.error = '';
     }).catch(function (e) {
       SYNC.error = textoErrorSync(e);
-      if (e && e.status === 401) { SYNC.cfg = null; guardarCfg(); }
+      if (e && e.status === 401) { SYNC.cfg = null; guardarCfg(); lsEscribir(LS_SYNC401, '1'); }
     }).then(function () {
       SYNC.enCurso = false;
       pintarSync(SYNC.error || SYNC.resultado || '');
@@ -3583,11 +3602,42 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       if ($('sync-ultima').textContent !== u) $('sync-ultima').textContent = u;
     }
     if (aviso != null && $('sync-estado').textContent !== aviso) $('sync-estado').textContent = aviso;
+    pintarChip();
   }
+  var CHIP_PREV = '';
+  function estadoChip() {
+    if (!SYNC.cfg) return lsLeer(LS_SYNC401) === '1' ? { k: 'err', i: '!', t: 'Reconectá la sincronización' } : null;
+    if (SYNC.enCurso) return { k: 'ocupado', i: '↻', t: 'Sincronizando…' };
+    if (SYNC.error) return { k: 'err', i: '!', t: /Sin conexión/.test(SYNC.error) ? 'Sin conexión con GitHub' : 'No se pudo sincronizar' };
+    if (navigator.onLine === false) return { k: 'off', i: '!', t: 'Sin conexión: se sincroniza al volver' };
+    if (!SYNC.cfg.ultima) return { k: 'ocupado', i: '↻', t: 'Por sincronizar' };
+    return { k: 'ok', i: '✓', t: 'Sincronizado ' + haceTexto(SYNC.cfg.ultima) };
+  }
+  function pintarChip() {
+    var chip = $('sync-chip'); if (!chip) return;
+    var e = estadoChip();
+    if (!e) { chip.hidden = true; CHIP_PREV = ''; return; }
+    chip.hidden = false;
+    if (chip.getAttribute('data-estado') !== e.k) chip.setAttribute('data-estado', e.k);
+    if ($('sync-ico').textContent !== e.i) $('sync-ico').textContent = e.i;
+    if ($('sync-chip-txt').textContent !== e.t) $('sync-chip-txt').textContent = e.t;
+    /* se anuncia solo cuando aparece o se arregla un problema, no en cada sincronización */
+    var grave = e.k === 'err' || e.k === 'off';
+    if (grave && CHIP_PREV !== e.t) $('sync-aviso').textContent = e.t;
+    else if (!grave && CHIP_PREV) $('sync-aviso').textContent = 'Sincronización restablecida';
+    CHIP_PREV = grave ? e.t : '';
+  }
+  $('sync-chip').addEventListener('click', function () {
+    $('btn-ajustes').click();
+    var sec = $('sync'); if (sec && sec.scrollIntoView) { try { sec.scrollIntoView({ block: 'start' }); } catch (e) {} }
+    var h = $('sync-t'); if (h) { h.setAttribute('tabindex', '-1'); try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
+  });
+  window.addEventListener('offline', function () { pintarSync(); });
   $('btn-sync-activar').addEventListener('click', function () {
     var tk = $('sync-token').value.trim();
     if (!/^[A-Za-z0-9_-]{20,300}$/.test(tk)) { pintarSync('Pegá el token completo de GitHub (sin espacios).'); $('sync-token').focus(); return; }
     SYNC.cfg = { token: tk, gistId: '', ultima: 0 }; guardarCfg();
+    try { localStorage.removeItem(LS_SYNC401); } catch (e) {}
     $('sync-token').value = '';
     pintarSync('Conectando…');
     $('btn-sync-ahora').focus();
@@ -3596,6 +3646,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   $('btn-sync-ahora').addEventListener('click', function () { sincronizar(); });
   $('btn-sync-parar').addEventListener('click', function () {
     clearTimeout(SYNC.t); SYNC.cfg = null; guardarCfg();
+    try { localStorage.removeItem(LS_SYNC401); } catch (e) {}
     pintarSync('Este dispositivo ya no sincroniza. Tus tareas siguen acá y en el gist.');
     $('sync-token').focus();
   });
