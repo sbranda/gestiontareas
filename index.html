@@ -559,6 +559,16 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   .btn-agregar { padding: 0 14px; }
   .solapa { padding: 10px 12px; gap: 6px; }
 }
+/* Celular: las solapas van en una sola fila que se desliza; las inactivas muestran el nombre recortado. */
+@media (max-width: 600px) {
+  .solapas { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 3px 2px 1px; }
+  .solapas::-webkit-scrollbar { display: none; }
+  .solapa { flex: none; padding: 10px 9px; gap: 4px; }
+  .solapa[aria-pressed="true"] { padding-bottom: 11px; }
+  .solapa .nom { max-width: 7ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .solapa[aria-pressed="true"] .nom { max-width: 16ch; }
+  .solapa .n { min-width: 18px; padding: 1px 4px; }
+}
 @media (forced-colors: active) {
   .btn-agregar, .mini.primario, .btn-voz { border: 2px solid ButtonText; }
   .dia[aria-pressed="true"], .ajuste[aria-pressed="true"], .mini[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
@@ -3363,7 +3373,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         var es = ESTILOS[hoja];
         if (es && es.color) b.setAttribute('data-color', es.color);
         if (es && es.icono) { var ic = document.createElement('span'); ic.className = 'ico'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = iconoSvg(es.icono); b.appendChild(ic); }
-        b.appendChild(document.createTextNode(nombreHoja(hoja) + ' '));
+        var nom = document.createElement('span'); nom.className = 'nom'; nom.textContent = nombreHoja(hoja);
+        b.title = nombreHoja(hoja); b.appendChild(nom); b.appendChild(document.createTextNode(' '));
         var n = document.createElement('span');
         n.className = 'n'; n.textContent = '0';
         if (hoja === 'diarias' || hoja === 'repetidas') n.id = 'n-' + hoja;
@@ -3383,6 +3394,11 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       b.querySelector('.n').textContent = h === 'repetidas' ? tareasDeHoja(h).length : tareasDeHoja(h).filter(function (t) { return !t.done; }).length;
     });
     $('btn-hoja-nueva').setAttribute('aria-expanded', HOJAFORM ? 'true' : 'false');
+    var act = cont.querySelector('.solapa[aria-pressed="true"]');
+    if (act && cont.scrollWidth > cont.clientWidth && cont.getAttribute('data-vista') !== S.hoja) {
+      cont.setAttribute('data-vista', S.hoja);
+      cont.scrollLeft = Math.max(0, act.offsetLeft - (cont.clientWidth - act.offsetWidth) / 2);
+    }
   }
 
   function pintarFiltros() {
