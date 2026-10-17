@@ -290,6 +290,16 @@ body.panel-abierto { overflow: hidden; }
 [data-color="rosa"] { --hc: var(--c-rosa); }
 [data-color="marron"] { --hc: var(--c-marron); }
 [data-color="gris"] { --hc: var(--c-gris); }
+:root { --c-turquesa: #00796B; --c-indigo: #3F51B5; --c-ocre: #8A6100; --c-bordo: #8E1B3A; --c-lima: #4E7A00; --c-fucsia: #A3178A; --c-cielo: #01579B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c-turquesa: #4DD0C0; --c-indigo: #9FA8F0; --c-ocre: #F2CB4A; --c-bordo: #F28BA0; --c-lima: #B5DE5A; --c-fucsia: #F28BE0; --c-cielo: #6EC3F7; } }
+:root[data-theme="dark"] { --c-turquesa: #4DD0C0; --c-indigo: #9FA8F0; --c-ocre: #F2CB4A; --c-bordo: #F28BA0; --c-lima: #B5DE5A; --c-fucsia: #F28BE0; --c-cielo: #6EC3F7; }
+[data-color="turquesa"] { --hc: var(--c-turquesa); }
+[data-color="indigo"] { --hc: var(--c-indigo); }
+[data-color="ocre"] { --hc: var(--c-ocre); }
+[data-color="bordo"] { --hc: var(--c-bordo); }
+[data-color="lima"] { --hc: var(--c-lima); }
+[data-color="fucsia"] { --hc: var(--c-fucsia); }
+[data-color="cielo"] { --hc: var(--c-cielo); }
 .solapa[data-color] { border-top: 3px solid var(--hc); }
 .solapa .ico, .pase .ico { display: inline-flex; flex: none; color: var(--hc, currentColor); }
 .solapa[data-color][aria-pressed="true"] .n { background: var(--hc); color: var(--accent-ink); }
@@ -340,9 +350,10 @@ body.panel-abierto { overflow: hidden; }
 .form-hoja input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .form-hoja .mini { height: 44px; }
 .hoja-acciones { margin-top: 10px; text-align: right; }
-.pase { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pase { overflow: hidden; }
+.pase .nombre { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; line-height: 1.15; text-align: center; overflow-wrap: break-word; }
 .planilla { background: var(--surface); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; overflow: hidden; }
-.fila, .cols { display: grid; grid-template-columns: 48px minmax(0, 1fr) 92px 44px; align-items: center; }
+.fila, .cols { display: grid; grid-template-columns: 48px minmax(0, 1fr) 128px 44px; align-items: center; }
 .cols {
   background: var(--tab); border-bottom: 1px solid var(--line);
   font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
@@ -483,7 +494,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 .mini.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
 .pase {
-  justify-self: center; min-height: 44px; width: 84px; padding: 0 8px;
+  justify-self: center; min-height: 44px; width: 120px; padding: 2px 8px;
   border: 1.5px solid var(--accent); border-radius: 22px; background: transparent; color: var(--accent);
   font-size: 0.8125rem; font-weight: 600;
 }
@@ -567,7 +578,11 @@ body.compacto .tilde { width: 36px; height: 44px; }
 body.compacto .texto { column-gap: 8px; padding: 6px 4px 6px 2px; }
 body.compacto .limite, body.compacto button.nota { min-height: 34px; font-size: 0.75rem; padding: 0; }
 body.compacto .nota { padding-bottom: 2px; }
-body.compacto .pase { min-height: 36px; width: 56px; padding: 0 2px; font-size: 0.75rem; }
+body.compacto .pase { min-height: 36px; width: 56px; padding: 0 3px; font-size: 0.75rem; }
+body.compacto .pase .nombre { -webkit-line-clamp: 1; overflow-wrap: normal; text-overflow: ellipsis; }
+body.compacto .pase .ico ~ .nombre { display: none; }
+body.compacto .cols span:first-child { visibility: hidden; }
+body.compacto .pase .ico svg { width: 20px; height: 20px; }
 body.compacto .borrar { width: 32px; height: 40px; }
 body.compacto .pasos { padding-bottom: 6px; }
 body.compacto .posponer { gap: 6px; padding-bottom: 6px; }
@@ -575,13 +590,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 /* Celular: las solapas van en una sola fila que se desliza; las inactivas muestran el nombre recortado. */
 @media (max-width: 600px) {
   body.compacto .corte { display: block; flex: 0 0 100%; height: 0; }
-  .solapas { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 3px 2px 1px; }
+  .solapas { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; gap: 6px; padding: 3px 2px 1px; }
   .solapas::-webkit-scrollbar { display: none; }
-  .solapa { flex: none; padding: 10px 9px; gap: 4px; }
-  .solapa[aria-pressed="true"] { padding-bottom: 11px; }
-  .solapa .nom { max-width: 7ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .solapa[aria-pressed="true"] .nom { max-width: 16ch; }
-  .solapa .n { min-width: 18px; padding: 1px 4px; }
+  .solapa { flex: none; padding: 12px 16px; min-height: 52px; gap: 8px; font-size: 1.0625rem; }
+  .solapa[aria-pressed="true"] { padding-bottom: 13px; }
+  .solapa .nom { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .solapa[aria-pressed="true"] .nom { max-width: 22ch; }
+  .solapa .ico svg { width: 20px; height: 20px; }
+  .solapa .n { min-width: 24px; padding: 2px 7px; font-size: 0.8125rem; }
+  .solapa.mas { min-width: 52px; font-size: 1.375rem; }
 }
 @media (forced-colors: active) {
   .btn-agregar, .mini.primario, .btn-voz { border: 2px solid ButtonText; }
@@ -1056,7 +1073,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* --- colores e íconos por hoja, vista inicial y sensación al tildar --- */
   var COLORES = [
     { id: 'azul', nombre: 'Azul' }, { id: 'rojo', nombre: 'Rojo' }, { id: 'verde', nombre: 'Verde' }, { id: 'naranja', nombre: 'Naranja' },
-    { id: 'violeta', nombre: 'Violeta' }, { id: 'rosa', nombre: 'Rosa' }, { id: 'marron', nombre: 'Marrón' }, { id: 'gris', nombre: 'Gris' }
+    { id: 'violeta', nombre: 'Violeta' }, { id: 'rosa', nombre: 'Rosa' }, { id: 'marron', nombre: 'Marrón' }, { id: 'gris', nombre: 'Gris' },
+    { id: 'turquesa', nombre: 'Turquesa' }, { id: 'indigo', nombre: 'Índigo' }, { id: 'ocre', nombre: 'Ocre' }, { id: 'bordo', nombre: 'Bordó' }, { id: 'lima', nombre: 'Lima' }, { id: 'fucsia', nombre: 'Fucsia' }, { id: 'cielo', nombre: 'Cielo' }
   ];
   var ICONOS = {
     libro: { nombre: 'Libro', d: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/>' },
@@ -1068,9 +1086,28 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     carrito: { nombre: 'Compras', d: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/>' },
     reloj: { nombre: 'Reloj', d: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
     planta: { nombre: 'Planta', d: '<path d="M12 22v-8"/><path d="M12 14C7 14 5 10 5 5c5 0 7 3 7 9z"/><path d="M12 11c0-4 2-7 7-7 0 5-2 8-7 8z"/>' },
-    pelota: { nombre: 'Deporte', d: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>' }
+    pelota: { nombre: 'Deporte', d: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>' },
+    auto: { nombre: 'Auto', d: '<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><path d="M6 17v2M18 17v2M7 14h.01M17 14h.01"/>' },
+    avion: { nombre: 'Viaje', d: '<path d="M21 3L3 10l7 3 3 7z"/><path d="M10 13L21 3"/>' },
+    telefono: { nombre: 'Celular', d: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>' },
+    dinero: { nombre: 'Dinero', d: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.2A2.8 2.2 0 0 0 12 8c-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2a2.8 2.2 0 0 1-2.5-1.2M12 6v2M12 16v2"/>' },
+    regalo: { nombre: 'Regalo', d: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9M12 8C10 3 6 4 7.5 7M12 8c2-5 6-4 4.5-1"/>' },
+    musica: { nombre: 'Música', d: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>' },
+    camara: { nombre: 'Fotos', d: '<path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="3.5"/>' },
+    llave: { nombre: 'Arreglos', d: '<path d="M14.5 6.5a4 4 0 0 1-5.2 5.2L4 17l3 3 5.3-5.3a4 4 0 0 0 5.2-5.2l-2.5 2.5-2.5-.5-.5-2.5z"/>' },
+    cafe: { nombre: 'Café', d: '<path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h2a2 2 0 0 1 0 4h-2M8 2v3M12 2v3"/>' },
+    mascota: { nombre: 'Mascota', d: '<circle cx="7" cy="9" r="1.8"/><circle cx="12" cy="6.5" r="1.8"/><circle cx="17" cy="9" r="1.8"/><path d="M12 12c-3 0-5 3-5 5 0 1.5 1.5 2 3 1.5 1-.3 1.5-.5 2-.5s1 .2 2 .5c1.5.5 3 0 3-1.5 0-2-2-5-5-5z"/>' },
+    salud: { nombre: 'Salud', d: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/>' },
+    lugar: { nombre: 'Lugar', d: '<path d="M12 22s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>' },
+    rayo: { nombre: 'Rápido', d: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>' },
+    bandera: { nombre: 'Meta', d: '<path d="M5 22V3M5 4h13l-2 4 2 4H5"/>' },
+    personas: { nombre: 'Personas', d: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5c2 .7 3.5 2.5 3.5 5.5"/>' },
+    calendario: { nombre: 'Calendario', d: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>' },
+    campana: { nombre: 'Aviso', d: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/>' },
+    comida: { nombre: 'Comida', d: '<path d="M7 3v8M4 3v6a3 3 0 0 0 6 0V3M7 11v10M17 21V3c-3 2-3 8 0 10"/>' },
+    idea: { nombre: 'Idea', d: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>' }
   };
-  var ORDEN_ICONOS = ['libro', 'casa', 'maletin', 'birrete', 'estrella', 'corazon', 'carrito', 'reloj', 'planta', 'pelota'];
+  var ORDEN_ICONOS = ['libro', 'casa', 'maletin', 'birrete', 'estrella', 'corazon', 'carrito', 'reloj', 'planta', 'pelota', 'auto', 'avion', 'telefono', 'dinero', 'regalo', 'musica', 'camara', 'llave', 'cafe', 'mascota', 'salud', 'lugar', 'rayo', 'bandera', 'personas', 'calendario', 'campana', 'comida', 'idea'];
   var INICIOS = ['ultima', 'hoy', 'lista', 'calendario', 'historial', 'enfoque'];
   var FEEDS = ['nada', 'vibración', 'sonido', 'vibración y sonido'];
   function iconoSvg(id) {
@@ -3379,7 +3416,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function crearPase(t) {
     var pase = document.createElement('button');
     pase.type = 'button'; pase.className = 'pase';
-    pase.textContent = t.dest || 'Hoja';
+    var nomP = document.createElement('span'); nomP.className = 'nombre'; nomP.textContent = t.dest || 'Hoja'; pase.appendChild(nomP);
     var esp = t.dest ? ESTILOS[t.dest] : null;
     if (esp && esp.color) pase.setAttribute('data-color', esp.color);
     if (esp && esp.icono) { var ico = document.createElement('span'); ico.className = 'ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = iconoSvg(esp.icono); pase.insertBefore(ico, pase.firstChild); }
