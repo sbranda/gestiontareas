@@ -75,7 +75,7 @@ button { cursor: pointer; }
 
 header { display: grid; gap: 6px; margin-bottom: 20px; }
 .fecha { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.875rem, 8vw, 2.5rem); line-height: 1.05; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.625rem, 8vw, 2.5rem); line-height: 1.05; letter-spacing: -0.01em; text-wrap: balance; overflow-wrap: anywhere; }
 .progreso { display: grid; gap: 8px; margin-top: 10px; }
 .progreso-linea { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .progreso-venc { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; color: var(--danger); }
@@ -234,12 +234,14 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .instalar-txt { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
 .instalar-txt strong { font-size: 1rem; }
 .instalar-bot { display: flex; flex-wrap: wrap; gap: 8px; }
-.barra-sup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.barra-sup { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
 .barra-sup .fecha { min-width: 0; overflow-wrap: anywhere; }
 .barra-izq { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
 .sync-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-left: -4px; padding: 0 4px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 0.8125rem; text-align: left; cursor: pointer; }
 .sync-chip:hover #sync-chip-txt { text-decoration: underline; }
 .sync-chip[hidden] { display: none; }
+.sync-chip { max-width: 100%; min-width: 0; }
+#sync-chip-txt { min-width: 0; overflow-wrap: anywhere; }
 .sync-ico { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; font-weight: 700; line-height: 1; }
 .sync-chip[data-estado="ocupado"] .sync-ico { animation: sync-giro 1s linear infinite; }
 .sync-chip[data-estado="err"] { color: var(--ink); font-weight: 600; }
@@ -868,6 +870,11 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   <section class="respaldo" aria-labelledby="cumples-t">
     <h2 id="cumples-t">Cumpleaños</h2>
     <p>Cargá los cumpleaños y la app los muestra en Hoy y en el Calendario. Con los avisos activados, te avisa a las 8:00 del día. El año de nacimiento es opcional: sirve para decir cuántos años cumple.</p>
+    <label class="cumple-antes" for="cumple-sync"><input type="checkbox" id="cumple-sync" aria-describedby="cumple-sync-ayuda"> Sincronizar los cumpleaños con mis otros dispositivos</label>
+    <p class="modelo-meta" id="cumple-sync-ayuda"></p>
+    <div class="respaldo-botones" id="cumple-sync-borrar-caja" hidden>
+      <button type="button" class="mini" id="cumple-sync-borrar">Borrar los cumpleaños guardados en GitHub</button>
+    </div>
     <label class="cumple-antes" for="cumple-antes"><input type="checkbox" id="cumple-antes" aria-describedby="cumple-antes-ayuda"> Avisar también el día anterior</label>
     <p class="modelo-meta" id="cumple-antes-ayuda">Con los avisos activados, además del aviso de las 8:00 del día, llega otro a las 8:00 de la mañana anterior, para que llegues a preparar un saludo o una tarjeta. Si llevás los cumpleaños al calendario del teléfono, también suena el día anterior.</p>
     <div class="cumple-saludo">
@@ -1067,6 +1074,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   var CUMPLES = [];
   var LS_CUMHOY = 'tareasdiarias.cumples.hoy', MAX_GRUPO = 30;
   var HOYG = lsLeer(LS_CUMHOY) || '';
+  var LS_CUMNOSYNC = 'tareasdiarias.cumples.nosync', LS_CUMUNIR = 'tareasdiarias.cumples.unir', CUM_SYNC = lsLeer(LS_CUMNOSYNC) !== '1';
   var LS_SALUDO = 'tareasdiarias.cumples.saludo', SALUDO_DEF = '¡Feliz cumple, {nombre}!';
   function limpiarSaludo(t) { return String(t == null ? '' : t).replace(/\s+/g, ' ').trim().slice(0, 300); }
   var SALUDO = limpiarSaludo(lsLeer(LS_SALUDO)) || SALUDO_DEF;
@@ -4231,6 +4239,24 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       return f.content;
     });
   }
+  /* Sin sincronizar cumpleaños: se ven como una lista vacía que nunca se modificó, y en GitHub se deja tal cual estaba. */
+  function sinCumples(m) { return Object.assign({}, m, { cumples: [], mods: Object.assign({}, m.mods, { cumples: 0 }) }); }
+  function conCumplesDe(m, orig) { return Object.assign({}, m, { cumples: orig.cumples, mods: Object.assign({}, m.mods, { cumples: (orig.mods && orig.mods.cumples) || 0 }) }); }
+  function borrarCumplesRemotos() {
+    if (!SYNC.cfg) return Promise.reject({ code: 'sin-sync' });
+    if (SYNC.enCurso) return Promise.reject({ code: 'ocupado' });
+    SYNC.enCurso = true;
+    return Promise.resolve(SYNC.cfg.gistId || buscarGist()).then(function (id) {
+      if (!id) return 'nada';
+      return leerGist(id).then(function (txt) {
+        var rem = leerSync(txt);
+        if (!rem) { var e = new Error('invalido'); e.code = 'invalido'; throw e; }
+        if (!rem.cumples.length && !(rem.mods && rem.mods.cumples)) return 'nada';
+        var f = {}; f[SYNC_ARCHIVO] = { content: armarSync(sinCumples(rem)) };
+        return api('PATCH', '/gists/' + id, { files: f }).then(function () { return 'borrado'; });
+      });
+    }).then(function (r) { SYNC.enCurso = false; return r; }, function (e) { SYNC.enCurso = false; throw e; });
+  }
   function estadoLocal() {
     return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES };
   }
@@ -4245,8 +4271,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       HIST = m.historial; guardarHist();
       MODELOS = m.modelos; guardarModelos(); pintarListaModelos();
       ESTILOS = m.estilos; guardarEstilos();
-      CUMPLES = m.cumples; guardarCumples(); pintarCumples();
-      MODS = m.mods; lsEscribir(LS_MODS, JSON.stringify(MODS));
+      if (CUM_SYNC) { CUMPLES = m.cumples; guardarCumples(); pintarCumples(); }
+      MODS = CUM_SYNC ? m.mods : Object.assign({}, m.mods, { cumples: MODS.cumples }); lsEscribir(LS_MODS, JSON.stringify(MODS));
       SNAP = null; guardarLocal();
       SNAP = {};
       S.tareas.forEach(function (t) { var c = Object.assign({}, t); delete c.mod; SNAP[t.id] = JSON.stringify(c); });
@@ -4279,19 +4305,22 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         return { id: id, rem: rem };
       });
     }).then(function (r) {
-      var loc = estadoLocal(), m = loc, cambiaRemoto = true;
-      if (r.rem) {
-        m = fusionarSync(loc, r.rem, Date.now());
-        if (estable(canonSync(m)) !== estable(canonSync(loc))) { aplicarSync(m); trajo = true; m = estadoLocal(); }
-        cambiaRemoto = estable(canonSync(m)) !== estable(canonSync(r.rem));
+      var loc = estadoLocal(), m = loc, cambiaRemoto = true, rem = r.rem;
+      if (!CUM_SYNC) { loc = sinCumples(loc); m = loc; if (rem) rem = sinCumples(rem); }
+      else if (rem && lsLeer(LS_CUMUNIR) === '1') loc = Object.assign({}, loc, { mods: Object.assign({}, loc.mods, { cumples: (rem.mods && rem.mods.cumples) || 0 }) });
+      if (rem) {
+        m = fusionarSync(loc, rem, Date.now());
+        if (estable(canonSync(m)) !== estable(canonSync(loc))) { aplicarSync(m); trajo = true; m = CUM_SYNC ? estadoLocal() : sinCumples(estadoLocal()); }
+        cambiaRemoto = estable(canonSync(m)) !== estable(canonSync(rem));
       }
       if (r.id && !cambiaRemoto) return r.id;
-      var cont = armarSync(m);
+      var cont = armarSync(!CUM_SYNC && r.rem ? conCumplesDe(m, r.rem) : m);
       if (r.id) return api('PATCH', '/gists/' + r.id, { files: (function () { var f = {}; f[SYNC_ARCHIVO] = { content: cont }; return f; })() }).then(function () { return r.id; });
       var fs = {}; fs[SYNC_ARCHIVO] = { content: cont };
       return api('POST', '/gists', { description: SYNC_DESC, public: false, files: fs }).then(function (g) { return g.id; });
     }).then(function (id) {
       cfg.gistId = id; cfg.ultima = Date.now(); guardarCfg();
+      if (CUM_SYNC && lsLeer(LS_CUMUNIR) === '1') lsEscribir(LS_CUMUNIR, '0');
       SYNC.resultado = trajo ? 'Sincronizado: se sumaron los cambios del otro dispositivo.' : 'Sincronizado.';
       SYNC.error = '';
     }).catch(function (e) {
@@ -4320,6 +4349,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     }
     if (aviso != null && $('sync-estado').textContent !== aviso) $('sync-estado').textContent = aviso;
     pintarChip();
+    if (PINTAR_CUMSYNC) PINTAR_CUMSYNC();
   }
   var CHIP_PREV = '';
   function estadoChip() {
@@ -4601,6 +4631,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   /* --- cumpleaños: interfaz --- */
   var LS_CUMORDEN = 'tareasdiarias.cumples.orden';
   function ordenCumplesGuardado() { var o = lsLeer(LS_CUMORDEN); return (o === 'nombre' || o === 'mes') ? o : 'proximo'; }
+  var PINTAR_CUMSYNC = null;
   var CUM = { editando: null, q: '', orden: ordenCumplesGuardado(), grupo: '', firma: '', prefill: null };
   function msgCumples(m, error) {
     var e = $('cumples-estado');
@@ -4868,6 +4899,31 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       vistaSaludo();
     });
     vistaSaludo();
+    function pintarCumSync() {
+      if (!$('cumple-sync')) return;
+      $('cumple-sync').checked = CUM_SYNC;
+      $('cumple-sync-ayuda').textContent = CUM_SYNC
+        ? (SYNC.cfg ? 'Los nombres, fechas, grupos y notas se guardan también en tu gist privado de GitHub. Si no querés que estén ahí, desmarcá esta opción: quedan solo en este dispositivo.' : 'La sincronización con GitHub no está activada, así que los cumpleaños están solo en este dispositivo. Si la activás, se sincronizan salvo que desmarques esta opción.')
+        : 'Los cumpleaños quedan solo en este dispositivo: no se suben ni se bajan. Lo que ya se hubiera subido antes sigue en GitHub hasta que lo borres.';
+      $('cumple-sync-borrar-caja').hidden = CUM_SYNC || !SYNC.cfg;
+    }
+    $('cumple-sync').addEventListener('change', function () {
+      CUM_SYNC = this.checked;
+      lsEscribir(LS_CUMNOSYNC, CUM_SYNC ? '0' : '1');
+      if (CUM_SYNC) lsEscribir(LS_CUMUNIR, '1');
+      pintarCumSync();
+      msgCumples(CUM_SYNC ? 'Listo: los cumpleaños se sincronizan otra vez. En la próxima sincronización se unen con los que haya en GitHub.' : 'Listo: los cumpleaños quedan solo en este dispositivo.');
+      programarSync(500);
+    });
+    $('cumple-sync-borrar').addEventListener('click', function () {
+      borrarCumplesRemotos().then(function (r) {
+        msgCumples(r === 'borrado' ? 'Se borraron los cumpleaños de GitHub. En este dispositivo siguen cargados.' : 'No había cumpleaños guardados en GitHub.');
+      }, function (e) {
+        msgCumples(e && e.code === 'ocupado' ? 'Hay una sincronización en curso. Probá de nuevo en unos segundos.' : (e && e.code === 'sin-sync' ? 'La sincronización no está activada.' : textoErrorSync(e)), true);
+      });
+    });
+    PINTAR_CUMSYNC = pintarCumSync;
+    pintarCumSync();
     $('cumple-antes').checked = CUM_ANTES;
     $('cumple-antes').addEventListener('change', function () {
       CUM_ANTES = this.checked;
