@@ -229,7 +229,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .limite.fija { color: var(--muted); }
 .fila.proyectada { opacity: 0.85; }
 
-.instalar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 14px; padding: 12px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; }
+.instalar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; padding: 8px 12px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; }
 .instalar-ico { border-radius: 10px; flex: none; }
 .instalar-txt { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
 .instalar-txt strong { font-size: 1rem; }
@@ -448,6 +448,17 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 .pie span { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
 .btn-limpiar { min-height: 44px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
+.como { margin: 12px 0 0; }
+.como summary { display: flex; align-items: center; min-height: 44px; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
+.como summary::before { content: '▸'; display: inline-block; width: 1.1em; color: var(--muted); }
+.como[open] summary::before { content: '▾'; }
+.como .ayuda { margin-top: 4px; }
+body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
+.bienvenida { display: grid; justify-items: center; gap: 10px; }
+.bienvenida .mini { min-height: 48px; padding: 0 18px; font-size: 1rem; }
+.bienvenida-tips { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; text-align: left; max-width: 34em; font-size: 0.875rem; color: var(--ink); }
+.bienvenida-tips li { position: relative; padding-left: 22px; }
+.bienvenida-tips li::before { content: '✓'; position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 700; }
 .ayuda { margin: 12px 0 0; padding: 10px 14px; background: var(--accent-soft); color: var(--ink); border-radius: 8px; font-size: 0.875rem; }
 .estado { margin: 12px 2px 0; font-size: 0.8125rem; color: var(--muted); }
 .estado.error { color: var(--danger); }
@@ -509,10 +520,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
 <div class="wrap">
   <div class="instalar" id="instalar" role="region" aria-labelledby="instalar-t" data-no-print hidden>
-    <img src="icon-192.png" alt="" width="44" height="44" class="instalar-ico">
+    <img src="icon-192.png" alt="" width="36" height="36" class="instalar-ico">
     <div class="instalar-txt">
       <strong id="instalar-t">Instalá Tareas diarias</strong>
-      <span id="instalar-msg">Queda en tu pantalla de inicio y abre como una app, también sin conexión.</span>
+      <span id="instalar-msg">Abre como una app y funciona sin conexión.</span>
     </div>
     <div class="instalar-bot">
       <button type="button" class="mini primario" id="btn-instalar">Instalar</button>
@@ -717,7 +728,10 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     <p class="cal-leyenda">Se cuenta cada vez que tildás una tarea y se descuenta si la destildás. Los números quedan guardados aunque borres las tareas hechas. El historial vive en este dispositivo; la copia de respaldo lo incluye.</p>
   </section>
 
-  <p class="ayuda" id="ayuda"></p>
+  <details class="como" id="como">
+    <summary>¿Cómo funciona esta hoja?</summary>
+    <p class="ayuda" id="ayuda"></p>
+  </details>
   <p class="estado" id="estado" role="status"></p>
   </main>
 
@@ -3293,6 +3307,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var pend = gAll.atrasadas.length + gAll.hoy.length + gAll.urgentes.length;
     var pendF = g.atrasadas.length + g.hoy.length + g.urgentes.length;
     lista.textContent = '';
+    document.body.classList.remove('primera-vez');
     function grupo(titulo, arr, rojo) {
       if (!arr.length) return;
       var li = document.createElement('li');
@@ -3384,6 +3399,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var hechasF = filtradas.filter(function (t) { return t.done; }).length;
 
     lista.textContent = '';
+    document.body.classList.remove('primera-vez');
     if (!S.listo) {
       /* primer cuadro: nada que mostrar hasta que respondan las tareas guardadas */
     } else if (visibles.length === 0) {
@@ -3394,6 +3410,28 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       if (S.hoja === 'repetidas') {
         st.textContent = 'No hay tareas repetidas';
         p.textContent = 'Escribí una tarea, elegí los días en Repetir y tocá Agregar.';
+      } else if (S.hoja === 'diarias' && S.tareas.length === 0 && Object.keys(HIST).length === 0) {
+        li.className = 'vacio bienvenida';
+        st.textContent = '¡Bienvenido a Tareas diarias!';
+        p.textContent = 'Anotá lo que tenés que hacer hoy: escribís, tocás Agregar y listo.';
+        li.appendChild(st); li.appendChild(p);
+        var primera = document.createElement('button');
+        primera.type = 'button'; primera.className = 'mini primario'; primera.id = 'btn-primera'; primera.textContent = 'Agregar mi primera tarea';
+        primera.addEventListener('click', function () {
+          try { input.scrollIntoView({ block: 'center' }); } catch (e) {}
+          input.focus();
+        });
+        li.appendChild(primera);
+        var tips = document.createElement('ul'); tips.className = 'bienvenida-tips';
+        ['Tildá la casilla para marcar una tarea como hecha.',
+         'En «¿Para cuándo?» elegís Hoy, Mañana u otro día.',
+         '☆ Urgente la manda arriba de todo.',
+         'En Ajustes activás los avisos' + (document.getElementById('sync') ? ' y la sincronización entre celular y compu' : '') + '.'
+        ].forEach(function (t) { var x = document.createElement('li'); x.textContent = t; tips.appendChild(x); });
+        li.appendChild(tips);
+        lista.appendChild(li);
+        document.body.classList.add('primera-vez');
+        st = null;
       } else if (S.hoja === 'diarias') {
         st.textContent = 'No hay tareas en Diarias';
         p.textContent = 'Escribí una arriba y tocá Agregar.';
@@ -3401,7 +3439,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
         st.textContent = S.hoja + ' está vacía';
         p.textContent = 'En Diarias, tocá el botón de hoja de una tarea hasta que diga ' + S.hoja + '.';
       }
-      li.appendChild(st); li.appendChild(p); lista.appendChild(li);
+      if (st) { li.appendChild(st); li.appendChild(p); lista.appendChild(li); }
     } else {
       if (!filtradas.length) lista.appendChild(vacioFiltro());
       filtradas.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
@@ -3794,7 +3832,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault(); evento = e;
       btnI.hidden = false;
-      msg.textContent = 'Queda en tu pantalla de inicio y abre como una app, también sin conexión.';
+      msg.textContent = 'Abre como una app y funciona sin conexión.';
       mostrar();
     });
     window.addEventListener('appinstalled', function () { evento = null; ocultar(); lsEscribir(LS_INST, '1'); });
