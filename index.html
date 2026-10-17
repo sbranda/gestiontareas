@@ -432,7 +432,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 
 .credito { margin: 28px 0 0; text-align: center; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
 .aviso-wrap {
-  position: fixed; left: 0; right: 0; bottom: 0; pointer-events: none;
+  position: fixed; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 70;
   padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   display: flex; justify-content: center;
 }
@@ -1824,12 +1824,18 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     ta.setAttribute('data-key', t.id + ':notaedit');
     ta.addEventListener('input', function () { NOTA.txt = ta.value; });
     var guardar = boton('Guardar', 'primario', function () {
-      cambiarTarea(t.id, { nota: NOTA.txt.trim().slice(0, 300) });
+      var nueva = NOTA.txt.trim().slice(0, 300), antesNota = t.nota || '';
+      cambiarTarea(t.id, { nota: nueva });
       cerrarNota(t.id);
+      if (antesNota && nueva !== antesNota) avisar(nueva ? 'Detalle modificado' : 'Detalle quitado', function () { cambiarTarea(t.id, { nota: antesNota }); });
     });
     box.appendChild(ta); box.appendChild(guardar);
     if (t.nota) {
-      box.appendChild(boton('Quitar', '', function () { cambiarTarea(t.id, { nota: '' }); cerrarNota(t.id); }));
+      box.appendChild(boton('Quitar', '', function () {
+        var antesNota = t.nota || '';
+        cambiarTarea(t.id, { nota: '' }); cerrarNota(t.id);
+        avisar('Detalle quitado', function () { cambiarTarea(t.id, { nota: antesNota }); });
+      }));
     }
     box.appendChild(boton('Cancelar', '', function () { cerrarNota(t.id); }));
     box.addEventListener('keydown', function (e) {
@@ -1877,15 +1883,20 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     h.setAttribute('data-key', t.id + ':hora');
     h.addEventListener('input', function () { EDIT.h = h.value; });
     var guardar = boton('Guardar', 'primario', function () {
-      var l = armarLimite(EDIT.f, EDIT.h);
+      var l = armarLimite(EDIT.f, EDIT.h), antesLim = { due: t.due, hora: t.hora };
       cambiarTarea(t.id, l ? { due: l.due, hora: l.hora } : { due: null, hora: false });
       cerrarEdicion(t.id);
+      if (antesLim.due != null && (!l || l.due !== antesLim.due || l.hora !== antesLim.hora)) {
+        avisar(l ? 'Fecha límite cambiada' : 'Fecha límite quitada', function () { cambiarTarea(t.id, antesLim); });
+      }
     });
     box.appendChild(f); box.appendChild(h); box.appendChild(guardar);
     if (t.due != null) {
       box.appendChild(boton('Quitar', '', function () {
+        var antesLim = { due: t.due, hora: t.hora };
         cambiarTarea(t.id, { due: null, hora: false });
         cerrarEdicion(t.id);
+        avisar('Fecha límite quitada', function () { cambiarTarea(t.id, antesLim); });
       }));
     }
     box.appendChild(boton('Cancelar', '', function () { cerrarEdicion(t.id); }));
@@ -2312,11 +2323,17 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var q = tareaEnfoque();
     if (!q.cur) return;
     var sig = q.cola.filter(function (t) { return t.id !== q.cur.id; })[0];
+    var idHecha = q.cur.id, textoHecha = q.cur.text;
     ENF.fin = null; ENF.pausa = null; ENF.id = sig ? sig.id : null;
     ENF.msg = 'Hecha. ' + (sig ? 'Siguiente: ' + sig.text : 'No quedan tareas pendientes.');
     guardarEnf(); programarEnf();
     sentirTilde();
-    cambiarTarea(q.cur.id, { done: true });
+    cambiarTarea(idHecha, { done: true });
+    avisar('Hecha: ' + recortarAv(textoHecha), function () {
+      cambiarTarea(idHecha, { done: false });
+      ENF.id = idHecha; ENF.fin = null; ENF.pausa = null; ENF.msg = 'Volvió a pendiente: ' + textoHecha;
+      guardarEnf(); programarEnf(); render();
+    });
     var t = $('enf-titulo'); if (!$('enf-card').hidden) t.focus();
   });
   programarEnf();
@@ -2706,8 +2723,9 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     cb.addEventListener('change', function () {
       if (cb.checked) sentirTilde();
       cambiarTarea(t.id, { done: cb.checked });
-      if (VISTA === 'lista' && indiceHoja(S.hoja) >= 0 && cb.checked) {
-        avisar('Hecha: sale de ' + S.hoja + ' y queda tachada en Diarias', function () { cambiarTarea(t.id, { done: false }); });
+      if (cb.checked) {
+        var sale = VISTA === 'lista' && indiceHoja(S.hoja) >= 0;
+        avisar(sale ? 'Hecha: sale de ' + S.hoja + ' y queda tachada en Diarias' : 'Hecha: ' + recortarAv(t.text), function () { cambiarTarea(t.id, { done: false }); });
       }
     });
     var caja = document.createElement('span');
@@ -2784,11 +2802,19 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
     var ids = grupoOrden(t).map(function (x) { return x.id; });
     var nuevo = ordenNuevo(ids, id, haciaId);
     if (nuevo.join() === ids.join()) { if (mensaje) avisar(mensaje, null); return; }
-    var pos = {};
-    nuevo.forEach(function (x, i) { pos[x] = (i + 1) * 10; });
+    var pos = {}, previos = {};
+    nuevo.forEach(function (x, i) { pos[x] = (i + 1) * 10; var o = tareaActual(x); previos[x] = o && typeof o.orden === 'number' ? o.orden : null; });
     S.tareas = S.tareas.map(function (x) { return pos[x.id] ? Object.assign({}, x, { orden: pos[x.id] }) : x; });
     guardarLocal(); render();
-    avisar('Movida a la posición ' + (nuevo.indexOf(id) + 1) + ' de ' + nuevo.length, null);
+    avisar('Movida a la posición ' + (nuevo.indexOf(id) + 1) + ' de ' + nuevo.length, function () {
+      S.tareas = S.tareas.map(function (x) {
+        if (!Object.prototype.hasOwnProperty.call(previos, x.id)) return x;
+        var c = Object.assign({}, x);
+        if (previos[x.id] === null) delete c.orden; else c.orden = previos[x.id];
+        return c;
+      });
+      guardarLocal(); render();
+    });
   }
   function crearMover(t) {
     var div = document.createElement('div');
@@ -3315,16 +3341,34 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
   }
 
   /* ---------- Aviso con deshacer ---------- */
-  var aviso = $('aviso'), temporizador = null;
+  var aviso = $('aviso'), temporizador = null, DESHACER = null, PAUSA_AV = false;
+  function programarOcultar(ms) {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(function () { if (PAUSA_AV) programarOcultar(2000); else ocultarAviso(); }, ms);
+  }
   function avisar(msg, deshacer) {
     $('aviso-texto').textContent = msg;
     aviso.hidden = false;
     $('aviso-deshacer').hidden = !deshacer;
-    $('aviso-deshacer').onclick = function () { ocultarAviso(); if (deshacer) deshacer(); };
-    clearTimeout(temporizador);
-    temporizador = setTimeout(ocultarAviso, 6000);
+    DESHACER = deshacer || null;
+    $('aviso-deshacer').onclick = function () { var f = DESHACER; ocultarAviso(); if (f) f(); };
+    programarOcultar(deshacer ? 9000 : 6000);
   }
-  function ocultarAviso() { aviso.hidden = true; clearTimeout(temporizador); }
+  function ocultarAviso() { aviso.hidden = true; DESHACER = null; PAUSA_AV = false; clearTimeout(temporizador); }
+  /* mientras el mouse o el foco están sobre el aviso, no se esconde */
+  aviso.addEventListener('pointerenter', function () { PAUSA_AV = true; });
+  aviso.addEventListener('pointerleave', function () { PAUSA_AV = aviso.contains(document.activeElement); });
+  aviso.addEventListener('focusin', function () { PAUSA_AV = true; });
+  aviso.addEventListener('focusout', function () { PAUSA_AV = false; });
+  /* Ctrl+Z (o Cmd+Z) deshace lo último mientras el aviso está a la vista */
+  document.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key !== 'z' && e.key !== 'Z')) return;
+    if (aviso.hidden || !DESHACER) return;
+    var t = e.target, tag = t && t.tagName;
+    if ((tag === 'INPUT' && t.type !== 'checkbox') || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+    e.preventDefault();
+    var f = DESHACER; ocultarAviso(); f();
+  });
 
   /* ---------- Eventos ---------- */
   $('form-nueva').addEventListener('submit', function (e) {
@@ -3648,7 +3692,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
       panel.hidden = false;
       abrir.setAttribute('aria-expanded', 'true');
       document.body.classList.add('panel-abierto');
-      bloqueados = Array.prototype.filter.call(envolvedor.children, function (el) { return el !== panel && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE'; });
+      bloqueados = Array.prototype.filter.call(envolvedor.children, function (el) { return el !== panel && el.tagName !== 'SCRIPT' && el.tagName !== 'STYLE' && !el.classList.contains('aviso-wrap') && !el.contains(document.getElementById('aviso')); });
       bloqueados.forEach(function (el) { el.setAttribute('inert', ''); });
       try { history.pushState({ panel: 1 }, ''); conHistoria = true; } catch (e) { conHistoria = false; }
       panel.scrollTop = 0;
