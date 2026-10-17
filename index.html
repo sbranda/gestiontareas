@@ -404,6 +404,8 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .cumple-grupo-acciones[hidden] { display: none; }
 .cumple-grupo-acciones label { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
 .cumple-grupo-acciones input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.cumple-antes { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; font-weight: 600; color: var(--ink); cursor: pointer; }
+.cumple-antes input { width: 24px; height: 24px; flex: none; margin: 0; }
 .cumples-card label { display: block; margin: 4px 0 4px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
 .cumples-card select { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 0 0 6px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
 .cumple-importar code { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--ink); overflow-wrap: anywhere; }
@@ -419,6 +421,17 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .cumples-filtros[hidden] { display: none; }
 .cumples-filtros label { margin-top: 6px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
 .cumples-filtros input, .cumples-filtros select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.cal-cumples { margin: 14px 0 0; padding: 12px 14px; background: var(--accent-soft); border-radius: 8px; }
+.cal-cumples[hidden] { display: none; }
+.cal-cumples h3 { margin: 0 0 6px; font-size: 1rem; font-weight: 700; color: var(--ink); }
+.cal-cumples label { display: block; margin: 6px 0 4px; font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+.cal-cumples select { display: block; width: 100%; min-width: 0; min-height: 44px; margin: 0 0 6px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; }
+.cal-cumples-cuenta { margin: 0 0 4px; font-size: 0.8125rem; color: var(--muted); }
+.cal-cumples ul { list-style: none; margin: 0; padding: 0; }
+.cal-cum-fila { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.9375rem; color: var(--ink); overflow-wrap: anywhere; }
+.cal-cum-fila.hoy { font-weight: 700; }
+.cal-cum-dia { flex: none; min-width: 4.25rem; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-cum-fila.hoy .cal-cum-dia { color: var(--ink); }
 .cal-torta { display: inline-grid; place-items: center; color: var(--accent); }
 .cal-torta svg { width: 13px; height: 13px; }
 .cal-dia-btn.sel .cal-torta { color: var(--accent-ink); }
@@ -739,6 +752,15 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       </form>
       <section class="planilla"><ul class="lista" id="cal-lista"></ul></section>
     </div>
+    <section class="cal-cumples" id="cal-cumples" aria-labelledby="cal-cum-t" hidden>
+      <h3 id="cal-cum-t"></h3>
+      <div id="cal-cum-filtro" hidden>
+        <label for="cal-cum-grupo">Grupo</label>
+        <select id="cal-cum-grupo" data-key="cal-cum:grupo"></select>
+      </div>
+      <p class="cal-cumples-cuenta" id="cal-cum-cuenta" role="status"></p>
+      <ul id="cal-cum-lista"></ul>
+    </section>
   </section>
 
   <section id="vista-hist" hidden aria-label="Historial semanal">
@@ -838,6 +860,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   <section class="respaldo" aria-labelledby="cumples-t">
     <h2 id="cumples-t">Cumpleaños</h2>
     <p>Cargá los cumpleaños y la app los muestra en Hoy y en el Calendario. Con los avisos activados, te avisa a las 8:00 del día. El año de nacimiento es opcional: sirve para decir cuántos años cumple.</p>
+    <label class="cumple-antes" for="cumple-antes"><input type="checkbox" id="cumple-antes" aria-describedby="cumple-antes-ayuda"> Avisar también el día anterior</label>
+    <p class="modelo-meta" id="cumple-antes-ayuda">Con los avisos activados, además del aviso de las 8:00 del día, llega otro a las 8:00 de la mañana anterior, para que llegues a preparar un saludo o una tarjeta. Si llevás los cumpleaños al calendario del teléfono, también suena el día anterior.</p>
     <form class="modelo-form" id="cumple-form" autocomplete="off">
       <label for="cumple-nombre">Nombre</label>
       <input type="text" id="cumple-nombre" maxlength="60">
@@ -866,7 +890,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     </form>
     <details class="cumple-importar" id="cumple-importar">
       <summary>Importar una lista</summary>
-      <p>Un cumpleaños por línea, con el día y el mes (día/mes). Por ejemplo: <code>Ana Pérez, 15/03/2012</code>, <code>Juan 7/9</code> o <code>12 de octubre Luis</code>. También podés elegir un archivo de texto o CSV.</p>
+      <p>Un cumpleaños por línea, con el día y el mes (día/mes). Por ejemplo: <code>Ana Pérez, 15/03/2012</code>, <code>Juan 7/9</code> o <code>12 de octubre Luis</code>. También podés elegir un archivo de texto o CSV. Para traer los cumpleaños de tus contactos, exportalos como vCard (.vcf) desde la app de Contactos o desde contacts.google.com y elegí ese archivo: se usan los contactos que tienen fecha de cumpleaños. El archivo se lee en este dispositivo y no se sube a ningún lado.</p>
       <label for="cumple-imp-grupo">Grupo para toda la lista (opcional)</label>
       <input type="text" id="cumple-imp-grupo" maxlength="30" list="cumple-grupos" autocomplete="off" aria-describedby="cumple-imp-grupo-ayuda">
       <p class="modelo-meta" id="cumple-imp-grupo-ayuda">Por ejemplo, el curso de esta lista. Si esos nombres ya estaban cargados sin grupo, se les pone este grupo.</p>
@@ -874,8 +898,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       <textarea id="cumple-texto" rows="6"></textarea>
       <div class="respaldo-botones">
         <button type="button" class="mini primario" id="cumple-importar-btn">Importar lo pegado</button>
-        <button type="button" class="mini" id="cumple-archivo-btn">Elegir archivo</button>
-        <input type="file" id="cumple-archivo" accept=".txt,.csv,text/plain,text/csv" hidden>
+        <button type="button" class="mini" id="cumple-archivo-btn">Elegir archivo o contactos (.vcf)</button>
+        <input type="file" id="cumple-archivo" accept=".txt,.csv,.vcf,text/plain,text/csv,text/vcard,text/x-vcard" hidden>
       </div>
     </details>
     <div class="cumples-filtros" id="cumples-filtros" role="search" aria-label="Buscar y ordenar cumpleaños" hidden>
@@ -1024,6 +1048,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   var CUMPLES = [];
   var LS_CUMHOY = 'tareasdiarias.cumples.hoy', MAX_GRUPO = 30;
   var HOYG = lsLeer(LS_CUMHOY) || '';
+  var LS_CUMANTES = 'tareasdiarias.cumples.antes', CUM_ANTES = lsLeer(LS_CUMANTES) === '1';
   try { CUMPLES = limpiarListaCumples(JSON.parse(lsLeer(LS_CUMPLES) || 'null')); } catch (e) {}
   function guardarCumples() { lsEscribir(LS_CUMPLES, JSON.stringify(CUMPLES)); if (typeof tocarMod === 'function') tocarMod('cumples'); }
   function esBisiesto(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
@@ -1168,18 +1193,67 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
     return { ok: ok, mal: mal };
   }
+  /* Contactos exportados (vCard, .vcf): toma nombre y cumpleaños (BDAY) de cada contacto. Todo se lee en el dispositivo. */
+  function esVCF(t) { return /BEGIN:VCARD/i.test(String(t == null ? '' : t)); }
+  function parsearVCF(texto, grupo) {
+    var lineas = [], ok = [], total = 0, sinFecha = 0, mal = 0, cur = null;
+    String(texto == null ? '' : texto).split(/\r\n|\r|\n/).forEach(function (l) {
+      var n = lineas.length - 1;
+      if (n >= 0 && /^[ \t]/.test(l)) lineas[n] += l.slice(1);
+      else if (n >= 0 && /QUOTED-PRINTABLE/i.test(lineas[n].split(':')[0]) && /=$/.test(lineas[n])) lineas[n] = lineas[n].slice(0, -1) + l;
+      else lineas.push(l);
+    });
+    function valor(raw, params) {
+      var v = raw;
+      if (/QUOTED-PRINTABLE/i.test(params)) { try { v = decodeURIComponent(v.replace(/%/g, '%25').replace(/=([0-9A-Fa-f]{2})/g, '%$1')); } catch (e) { v = raw.replace(/=([0-9A-Fa-f]{2})/g, ''); } }
+      return v;
+    }
+    function sinEscape(v) { return v.replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1'); }
+    function cerrar() {
+      if (!cur) return;
+      total++;
+      var nombre = cur.fn;
+      if (!nombre && cur.n) { var p = cur.n.split(';'); nombre = ((p[1] || '') + ' ' + (p[0] || '')).trim(); }
+      if (!cur.bday) { sinFecha++; cur = null; return; }
+      var m = /^(?:(\d{4})-?|--)(\d{2})-?(\d{2})/.exec(cur.bday.trim());
+      var c = m ? limpiarCumple({ nombre: sinEscape(nombre || ''), dia: +m[3], mes: +m[2], anio: m[1] ? +m[1] : undefined, grupo: grupo }) : null;
+      if (c) ok.push(c); else mal++;
+      cur = null;
+    }
+    lineas.forEach(function (l) {
+      if (/^BEGIN:VCARD/i.test(l)) { cerrar(); cur = { fn: '', n: '', bday: '' }; return; }
+      if (/^END:VCARD/i.test(l)) { cerrar(); return; }
+      if (!cur) return;
+      var i = l.indexOf(':');
+      if (i < 1) return;
+      var cab = l.slice(0, i).split(';'), prop = cab[0].replace(/^.*\./, '').toUpperCase(), params = cab.slice(1).join(';');
+      if (prop !== 'FN' && prop !== 'N' && prop !== 'BDAY') return;
+      var v = valor(l.slice(i + 1), params).trim();
+      if (prop === 'FN') cur.fn = sinEscape(v).replace(/\s+/g, ' ').trim();
+      else if (prop === 'N') cur.n = v;
+      else if (v && !cur.bday) cur.bday = v;
+    });
+    cerrar();
+    return { ok: ok, mal: mal, sinFecha: sinFecha, total: total };
+  }
   /* Avisos de cumpleaños: a las 8:00 del día, para los de hoy y los próximos días. */
-  function planCumples(lista, ahora) {
+  function planCumples(lista, ahora, antes) {
     var r = [], hoy = claveDia(ahora);
-    proximosCumples(lista, hoy, 4).forEach(function (p) {
-      var f = aFecha(p.clave); f.setHours(AV_MANANA, 0, 0, 0);
-      r.push({ key: 'cu:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: f.getTime(), titulo: 'Hoy cumple ' + recortarAv(p.c.nombre), cuerpo: p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños' });
+    proximosCumples(lista, hoy, 5).forEach(function (p) {
+      if (p.faltan <= 4) {
+        var f = aFecha(p.clave); f.setHours(AV_MANANA, 0, 0, 0);
+        r.push({ key: 'cu:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: f.getTime(), titulo: 'Hoy cumple ' + recortarAv(p.c.nombre), cuerpo: p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños' });
+      }
+      if (antes && p.faltan >= 1) {
+        var v = aFecha(sumarDias(p.clave, -1)); v.setHours(AV_MANANA, 0, 0, 0);
+        r.push({ key: 'cb:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: v.getTime(), titulo: 'Mañana cumple ' + recortarAv(p.c.nombre), cuerpo: (p.c.grupo ? recortarAv(p.c.grupo) + ' · ' : '') + (p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños') });
+      }
     });
     return r;
   }
-  function planTodo() { return planAvisos(S.tareas).concat(planCumples(CUMPLES, Date.now())); }
+  function planTodo() { return planAvisos(S.tareas).concat(planCumples(CUMPLES, Date.now(), CUM_ANTES)); }
   /* Archivo .ics: eventos de todo el día que se repiten cada año. */
-  function armarICSCumples(lista, ahora) {
+  function armarICSCumples(lista, ahora, antes) {
     var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
     var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas Diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Cumpleaños'];
     var y = new Date(ahora).getFullYear();
@@ -1190,7 +1264,9 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       L.push('BEGIN:VEVENT', 'UID:' + c.id + '@tareas-diarias-cumple', 'DTSTAMP:' + sello,
         'DTSTART;VALUE=DATE:' + ini.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + fin.replace(/-/g, ''),
         'RRULE:FREQ=YEARLY', 'SUMMARY:' + escICS('Cumpleaños de ' + c.nombre),
-        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS('Cumpleaños de ' + c.nombre), 'TRIGGER;RELATED=START:PT8H', 'END:VALARM', 'END:VEVENT');
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS('Cumpleaños de ' + c.nombre), 'TRIGGER;RELATED=START:PT8H', 'END:VALARM');
+      if (antes) L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS('Mañana es el cumpleaños de ' + c.nombre), 'TRIGGER;RELATED=START:-PT16H', 'END:VALARM');
+      L.push('END:VEVENT');
     });
     L.push('END:VCALENDAR');
     return { texto: L.map(plegarICS).join('\r\n') + '\r\n', cantidad: lista.length };
@@ -2620,6 +2696,50 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     }
   }
 
+  /* Lista de los cumpleaños del mes que se está viendo, aparte de la tarjeta de Hoy. */
+  var CALG = '';
+  function pintarCumplesMes(hoy) {
+    var sec = $('cal-cumples');
+    if (!sec) return;
+    sec.hidden = !CUMPLES.length;
+    if (!CUMPLES.length) return;
+    var mes = MESES[CAL.m];
+    $('cal-cum-t').textContent = 'Cumpleaños de ' + mes + (CAL.y !== new Date().getFullYear() ? ' de ' + CAL.y : '');
+    var grupos = gruposCumples(CUMPLES);
+    CALG = filtroGrupoValido(CALG, grupos);
+    var caja = $('cal-cum-filtro'), sel = $('cal-cum-grupo');
+    caja.hidden = !grupos.length;
+    if (grupos.length) {
+      var firma = JSON.stringify([grupos.map(function (g) { return [g.clave, g.nombre]; }), CUMPLES.some(function (c) { return !c.grupo; })]);
+      if (sel.getAttribute('data-firma') !== firma) { sel.setAttribute('data-firma', firma); opcionesGrupo(sel, grupos, CALG, 'Todos los grupos', true); }
+      sel.value = CALG;
+    }
+    var lista = [];
+    CUMPLES.forEach(function (c) {
+      if (!pasaGrupo(c, CALG)) return;
+      var k = claveCumple(c, CAL.y);
+      if (parseInt(k.slice(5, 7), 10) !== CAL.m + 1) return;
+      lista.push({ c: c, clave: k, dia: parseInt(k.slice(8, 10), 10), edad: c.anio ? CAL.y - c.anio : null });
+    });
+    lista.sort(function (a, b) { return (a.dia - b.dia) || a.c.nombre.localeCompare(b.c.nombre, 'es', { sensitivity: 'base' }); });
+    var ul = $('cal-cum-lista');
+    ul.textContent = '';
+    $('cal-cum-cuenta').textContent = lista.length
+      ? lista.length + (lista.length === 1 ? ' cumpleaños' : ' cumpleaños') + ' en ' + mes + (CALG ? ' en este grupo' : '') + '.'
+      : (CALG ? 'Nadie de este grupo cumple años en ' + mes + '.' : 'Nadie cumple años en ' + mes + '.');
+    var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    lista.forEach(function (p) {
+      var li = document.createElement('li');
+      li.className = 'cal-cum-fila' + (p.clave === hoy ? ' hoy' : '');
+      var d = document.createElement('span'); d.className = 'cal-cum-dia';
+      d.textContent = dias[aFecha(p.clave).getDay()] + ' ' + p.dia;
+      var t = document.createElement('span');
+      var pasado = p.clave < hoy;
+      t.textContent = (p.clave === hoy ? 'Hoy · ' : '') + p.c.nombre + (p.edad > 0 ? ' · ' + (pasado ? 'cumplió ' : 'cumple ') + textoEdad(p.edad) : '') + (p.c.grupo ? ' · ' + p.c.grupo : '');
+      li.appendChild(d); li.appendChild(t); ul.appendChild(li);
+    });
+  }
+
   function renderCalendario() {
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
@@ -2642,6 +2762,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     for (var i = 0; i < off; i++) grid.appendChild(document.createElement('div'));
     for (var d = 1; d <= total; d++) grid.appendChild(crearCeldaDia(d, res, hoy));
     renderPanelDia(hoy);
+    pintarCumplesMes(hoy);
     if (clave) {
       var el = document.querySelector('[data-key="' + clave + '"]');
       if (el) el.focus();
@@ -4519,7 +4640,8 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
   }
   function importarCumples(texto, grupo) {
     grupo = grupoCanonico(grupo);
-    var r = parsearCumples(texto, grupo), nuevos = 0, rep = 0, lleno = 0, ks = {}, agregados = [], asignados = [], previos = {};
+    var vcf = esVCF(texto);
+    var r = vcf ? parsearVCF(texto, grupo) : parsearCumples(texto, grupo), nuevos = 0, rep = 0, lleno = 0, ks = {}, agregados = [], asignados = [], previos = {};
     CUMPLES.forEach(function (c) { ks[claveNombreCumple(c)] = c; });
     r.ok.forEach(function (c) {
       var k = claveNombreCumple(c), ya = ks[k];
@@ -4540,11 +4662,12 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
         msgCumples('Se deshizo la importación.');
       });
     }
-    if (!r.ok.length) { msgCumples(r.mal ? 'No entendí ninguna línea. Cada una necesita un nombre y una fecha, por ejemplo: Ana, 15/03.' : 'No encontré nada para importar.', true); return 0; }
+    if (!r.ok.length) { msgCumples(vcf ? 'No encontré contactos con fecha de cumpleaños en el archivo' + (r.total ? ' (' + r.total + (r.total === 1 ? ' contacto' : ' contactos') + ' sin fecha)' : '') + '. Revisá que tengan el cumpleaños cargado.' : (r.mal ? 'No entendí ninguna línea. Cada una necesita un nombre y una fecha, por ejemplo: Ana, 15/03.' : 'No encontré nada para importar.'), true); return 0; }
     var p = [nuevos ? 'Se agregaron ' + nuevos + ' cumpleaños' + (grupo ? ' al grupo «' + grupo + '».' : '.') : 'No se agregó ninguno.'];
     if (asignados.length) p.push('A ' + asignados.length + (asignados.length === 1 ? ' que ya estaba' : ' que ya estaban') + ' se le' + (asignados.length === 1 ? '' : 's') + ' puso el grupo «' + grupo + '».');
     if (rep) p.push(rep + (rep === 1 ? ' ya estaba.' : ' ya estaban.'));
-    if (r.mal) p.push('No entendí ' + r.mal + (r.mal === 1 ? ' línea.' : ' líneas.'));
+    if (vcf && r.sinFecha) p.push(r.sinFecha + (r.sinFecha === 1 ? ' contacto no tiene cumpleaños y se omitió.' : ' contactos no tienen cumpleaños y se omitieron.'));
+    if (r.mal) p.push('No entendí ' + r.mal + (vcf ? (r.mal === 1 ? ' contacto.' : ' contactos.') : (r.mal === 1 ? ' línea.' : ' líneas.')));
     if (lleno) p.push('No entraron ' + lleno + ' por el máximo de ' + MAX_CUMPLES + '.');
     msgCumples(p.join(' '), !nuevos && !asignados.length);
     return nuevos + asignados.length;
@@ -4589,7 +4712,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     $('cumple-archivo').addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f) return;
-      if (f.size > 1024 * 1024) { msgCumples('El archivo es demasiado grande para ser una lista de cumpleaños.', true); return; }
+      if (f.size > (/\.vcf$/i.test(f.name || '') ? 25 : 1) * 1024 * 1024) { msgCumples(/\.vcf$/i.test(f.name || '') ? 'El archivo de contactos es demasiado grande (máximo 25 MB).' : 'El archivo es demasiado grande para ser una lista de cumpleaños.', true); return; }
       var rd = new FileReader();
       rd.onload = function () { if (importarCumples(String(rd.result), $('cumple-imp-grupo').value)) $('cumple-imp-grupo').value = ''; };
       rd.onerror = function () { msgCumples('No se pudo leer el archivo.', true); };
@@ -4597,7 +4720,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
     });
     $('cumple-ics').addEventListener('click', function () {
       if (!CUMPLES.length) { msgCumples('Primero cargá algún cumpleaños.', true); return; }
-      var r = armarICSCumples(CUMPLES, Date.now());
+      var r = armarICSCumples(CUMPLES, Date.now(), CUM_ANTES);
       Promise.resolve(descargarArchivo('cumpleanos.ics', r.texto, 'text/calendar')).then(function () {
         msgCumples('Se descargó cumpleanos.ics con ' + r.cantidad + (r.cantidad === 1 ? ' cumpleaños' : ' cumpleaños') + '. Abrilo y elegí agregarlo al calendario del teléfono: ahí se repiten todos los años y suenan aunque esta app esté cerrada.');
       }, function () { msgCumples('No se pudo descargar el archivo.', true); });
@@ -4610,6 +4733,7 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       $('cumple-borrar-no').focus();
     });
     $('cumple-borrar-no').addEventListener('click', function () { ocultarConfirmaCumples(); $('cumple-borrar-todos').focus(); });
+    if ($('cal-cum-grupo')) $('cal-cum-grupo').addEventListener('change', function () { CALG = this.value; render(); });
     $('cumple-filtro-grupo').addEventListener('change', function () { CUM.grupo = this.value; pintarCumples(); });
     function miembrosGrupo(f) { return CUMPLES.filter(function (c) { return pasaGrupo(c, f) && c.grupo; }); }
     function cambiarGrupo(f, nuevoNombre, textoOk, textoDeshacer) {
@@ -4648,6 +4772,13 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
       var n = miembrosGrupo(f).length;
       cambiarGrupo(f, '', 'Se quitó el grupo «' + actual + '» a ' + n + ' cumpleaños. Los cumpleaños siguen cargados.', 'Grupo «' + actual + '» quitado');
       ($('cumple-filtro-grupo-caja').hidden ? $('cumple-nombre') : $('cumple-filtro-grupo')).focus();
+    });
+    $('cumple-antes').checked = CUM_ANTES;
+    $('cumple-antes').addEventListener('change', function () {
+      CUM_ANTES = this.checked;
+      lsEscribir(LS_CUMANTES, CUM_ANTES ? '1' : '0');
+      revisarAvisos();
+      msgCumples(CUM_ANTES ? 'Listo: también te aviso a las 8:00 del día anterior.' : 'Listo: solo te aviso el mismo día, a las 8:00.');
     });
     $('cumple-buscar').addEventListener('input', function () { CUM.q = this.value; pintarCumples(); });
     $('cumple-orden').value = CUM.orden;
