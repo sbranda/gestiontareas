@@ -367,6 +367,10 @@ body.panel-abierto { overflow: hidden; }
 .form-hoja input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .form-hoja .mini { height: 44px; }
 .hoja-acciones { margin-top: 10px; text-align: right; }
+.hoja-ops { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-bottom: 6px; }
+.hoja-ops .mini { min-height: 44px; padding: 0 14px; }
+.hoja-ops .mini:disabled { opacity: .45; cursor: default; }
+.hoja-acciones .form-hoja[hidden] { display: none; }
 .pase { overflow: hidden; }
 .pase .nombre { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; line-height: 1.15; text-align: center; overflow-wrap: break-word; }
 .planilla { background: var(--surface); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; overflow: hidden; }
@@ -830,6 +834,16 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <div class="estilo-panel" id="estilo-panel" hidden></div>
   </div>
   <div class="hoja-acciones" id="hoja-acciones" hidden>
+    <form class="form-hoja" id="form-renombrar" autocomplete="off" hidden>
+      <input type="text" id="input-renombrar" maxlength="20" aria-label="Nuevo nombre de la hoja">
+      <button type="submit" class="mini primario">Guardar</button>
+      <button type="button" class="mini" id="btn-renombrar-cancelar">Cancelar</button>
+    </form>
+    <div class="hoja-ops" role="group" aria-label="Organizar esta hoja">
+      <button type="button" class="mini" id="btn-hoja-izq">◀ Mover antes</button>
+      <button type="button" class="mini" id="btn-hoja-der">Mover después ▶</button>
+      <button type="button" class="mini" id="btn-renombrar">✎ Cambiar nombre</button>
+    </div>
     <button type="button" class="btn-limpiar" id="btn-borrar-hoja">Eliminar esta hoja</button>
   </div>
 
@@ -4251,6 +4265,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var propia = indiceHoja(S.hoja) >= 0;
     $('form-hoja').hidden = enCal || esHoy || !HOJAFORM;
     $('hoja-acciones').hidden = enCal || esHoy || !propia;
+    if (RENFORM && RENDE !== S.hoja) RENFORM = false;
+    $('form-renombrar').hidden = !(RENFORM && propia);
+    var posH = indiceHoja(S.hoja);
+    $('btn-hoja-izq').disabled = posH <= 0;
+    $('btn-hoja-der').disabled = posH < 0 || posH >= EXTRA.length - 1;
     pintarModelos(!enCal && !esHoy && S.hoja !== 'repetidas');
     $('filtros-tareas').hidden = enCal || (!esHoy && S.hoja === 'repetidas');
     if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
@@ -4451,6 +4470,63 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     avisar('Hoja ' + n + ' creada. Con el botón de cada tarea la pasás acá.', null);
   });
   $('btn-hoja-cancelar').addEventListener('click', function () { $('input-hoja').value = ''; mostrarFormHoja(false); });
+  var RENFORM = false, RENDE = '';
+  function renombrarHoja(viejo, nuevo) {
+    var pos = indiceHoja(viejo);
+    if (pos < 0) return 'Esa hoja ya no existe';
+    var n = nombreValido(nuevo);
+    if (!n) return 'Escribí un nombre para la hoja (no puede ser Diarias ni Repetidas)';
+    var j = indiceHoja(n);
+    if (j >= 0 && j !== pos) return 'Ya existe una hoja llamada ' + EXTRA[j];
+    viejo = EXTRA[pos];
+    if (n === viejo) return '';
+    if (n.toLowerCase() !== viejo.toLowerCase()) BORRADAS[viejo.toLowerCase()] = true;
+    delete BORRADAS[n.toLowerCase()];
+    var activa = indiceHoja(S.hoja) === pos;
+    EXTRA[pos] = n; guardarHojas();
+    if (ESTILOS[viejo]) { ESTILOS[n] = ESTILOS[viejo]; delete ESTILOS[viejo]; guardarEstilos(); }
+    var cm = false;
+    MODELOS = MODELOS.map(function (m) { if (m.dest === viejo) { cm = true; return Object.assign({}, m, { dest: n }); } return m; });
+    if (cm) { guardarModelos(); pintarListaModelos(); }
+    if (activa) { S.hoja = n; lsEscribir(LS_HOJA, n); }
+    if (CAL.filtro === viejo) CAL.filtro = n;
+    S.tareas = S.tareas.map(function (t) { return t.dest === viejo ? Object.assign({}, t, { dest: n }) : t; });
+    guardarLocal(); render();
+    return '';
+  }
+  function ponerHoja(h, lugar) {
+    var pos = indiceHoja(h);
+    if (pos < 0 || lugar < 0 || lugar >= EXTRA.length || pos === lugar) return;
+    EXTRA.splice(pos, 1); EXTRA.splice(lugar, 0, h); guardarHojas(); render();
+  }
+  function moverHoja(d, btn) {
+    var h = S.hoja, pos = indiceHoja(h), nu = pos + d;
+    if (pos < 0 || nu < 0 || nu >= EXTRA.length) return;
+    ponerHoja(EXTRA[pos], nu);
+    var foco = btn.disabled ? $(d < 0 ? 'btn-hoja-der' : 'btn-hoja-izq') : btn;
+    if (foco && !foco.disabled) foco.focus();
+    avisar('Hoja ' + EXTRA[nu] + ': lugar ' + (nu + 1) + ' de ' + EXTRA.length, function () { ponerHoja(EXTRA[nu], pos); });
+  }
+  $('btn-hoja-izq').addEventListener('click', function () { moverHoja(-1, this); });
+  $('btn-hoja-der').addEventListener('click', function () { moverHoja(1, this); });
+  function cerrarRenombrar() { RENFORM = false; $('form-renombrar').hidden = true; $('btn-renombrar').focus(); }
+  $('btn-renombrar').addEventListener('click', function () {
+    var pos = indiceHoja(S.hoja); if (pos < 0) return;
+    RENFORM = true; RENDE = S.hoja;
+    $('form-renombrar').hidden = false;
+    var inp = $('input-renombrar'); inp.value = EXTRA[pos]; inp.focus(); inp.select();
+  });
+  $('btn-renombrar-cancelar').addEventListener('click', cerrarRenombrar);
+  $('input-renombrar').addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); cerrarRenombrar(); } });
+  $('form-renombrar').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var viejo = S.hoja, err = renombrarHoja(viejo, $('input-renombrar').value);
+    if (err) { avisar(err, null); return; }
+    var nuevo = S.hoja;
+    cerrarRenombrar();
+    if (nuevo === viejo) return;
+    avisar('Hoja renombrada: ' + viejo + ' → ' + nuevo, function () { renombrarHoja(nuevo, viejo); });
+  });
   $('btn-borrar-hoja').addEventListener('click', function () {
     var h = S.hoja, pos = indiceHoja(h);
     if (pos < 0) return;
