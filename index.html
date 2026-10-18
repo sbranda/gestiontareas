@@ -316,6 +316,9 @@ body.panel-abierto { overflow: hidden; }
 .estilo-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .sw, .ic { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-weight: 700; cursor: pointer; }
 .sw { width: 70px; height: 62px; padding: 2px; grid-template-rows: auto auto; align-content: center; gap: 0; font-size: 0.75rem; font-weight: 600; line-height: 1.15; }
+.ic { width: 70px; height: 62px; padding: 2px; grid-template-rows: auto auto; align-content: center; gap: 2px; font-size: 0.6875rem; font-weight: 600; line-height: 1.1; }
+.ic .m { display: grid; place-items: center; min-height: 24px; font-size: 1.125rem; }
+.ic .rot { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sw .m { font-size: 1.125rem; line-height: 1.1; min-height: 1.1em; }
 .sw[data-color] { background: var(--hc); color: var(--accent-ink); border-color: var(--hc); }
 .sw[aria-pressed="true"], .ic[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
@@ -3900,7 +3903,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var nom = id ? ICONOS[id].nombre : 'Sin ícono';
       b.setAttribute('aria-label', nom);
       b.setAttribute('aria-pressed', (es.icono || '') === id ? 'true' : 'false');
-      if (id) b.innerHTML = iconoSvg(id).replace('width="16" height="16"', 'width="22" height="22"'); else b.textContent = '∅';
+      var gl = document.createElement('span'); gl.className = 'm'; gl.setAttribute('aria-hidden', 'true');
+      if (id) gl.innerHTML = iconoSvg(id).replace('width="16" height="16"', 'width="24" height="24"'); else gl.textContent = '∅';
+      var rot = document.createElement('span'); rot.className = 'rot'; rot.setAttribute('aria-hidden', 'true'); rot.textContent = nom;
+      b.appendChild(gl); b.appendChild(rot);
       b.addEventListener('click', function () { setEstilo(h, { icono: id }); anunciar('Ícono de ' + nombreHoja(h) + ': ' + nom); });
       fi.appendChild(b);
     });
