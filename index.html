@@ -1104,6 +1104,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       </div>
     </div>
   </section>
+  <section class="respaldo" aria-labelledby="inst-t">
+    <h2 id="inst-t">Instalar la app</h2>
+    <p>Para abrirla como una app desde la pantalla de inicio y que funcione sin conexión. Si descartaste el aviso de arriba, este botón lo vuelve a mostrar.</p>
+    <div class="respaldo-botones">
+      <button type="button" class="mini primario" id="btn-instalar-ajustes">Mostrar cómo instalar</button>
+    </div>
+    <p class="respaldo-estado" id="instalar-estado" role="status"></p>
+  </section>
+
   <section class="respaldo" aria-labelledby="reset-t">
     <h2 id="reset-t">Restablecer</h2>
     <p>Para dejar la app como nueva. Antes de borrar todo conviene hacer una copia con Exportar. Después de restablecer podés deshacerlo enseguida.</p>
@@ -3420,6 +3429,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       RACH = { ok: {}, vis: {} }; guardarRach();
       CUMPLES = []; guardarCumples(); pintarCumples();
       aparienciaDeFabrica();
+      try { localStorage.removeItem('tareasdiarias.instalar'); } catch (e) {}
       INICIO = 'ultima'; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO;
       S.hoja = 'diarias';
       volcarEstado([]);
@@ -4660,6 +4670,22 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }
     function mostrar() { if (!instalada() && lsLeer(LS_INST) !== '1') caja.hidden = false; }
     function ocultar() { caja.hidden = true; }
+    var bAj = document.getElementById('btn-instalar-ajustes'), estI = document.getElementById('instalar-estado');
+    if (bAj) bAj.addEventListener('click', function () {
+      if (instalada()) { if (estI) estI.textContent = 'Ya estás usando la app instalada.'; return; }
+      try { localStorage.removeItem(LS_INST); } catch (e) {}
+      if (evento) { btnI.hidden = false; msg.textContent = 'Abre como una app y funciona sin conexión.'; }
+      else {
+        btnI.hidden = true;
+        msg.textContent = esIOS ? 'Tocá el botón Compartir de Safari y elegí «Agregar a pantalla de inicio».'
+          : (esAndroid ? 'Abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a pantalla de inicio».'
+            : 'Buscá el ícono de instalar en la barra de direcciones del navegador, o en su menú: «Instalar Tareas Diarias».');
+      }
+      caja.hidden = false;
+      if (estI) estI.textContent = 'El aviso de instalación volvió a aparecer arriba.';
+      var cp = document.getElementById('btn-panel-cerrar'); if (cp) cp.click();
+      setTimeout(function () { caja.scrollIntoView({ block: 'start' }); }, 60);
+    });
     if (instalada()) return;
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault(); evento = e;
