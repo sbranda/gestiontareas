@@ -525,6 +525,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 .borrar svg { width: 16px; height: 16px; }
 .borrar:hover { color: var(--danger); background: var(--tab); }
 
+.ver-mas { padding: 14px; text-align: center; list-style: none; }
 .vacio { padding: 36px 20px; text-align: center; color: var(--muted); }
 .vacio strong { display: block; margin-bottom: 6px; color: var(--ink); font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
 
@@ -1606,6 +1607,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   var EDT = { id: null, txt: '', err: '' };
   var POSP = { id: null };
   var FILT = { q: '', tag: '', firma: '' };
+  var TRAMO = 200, VER_N = 200, VER_SIG = '';   /* la lista dibuja de a tramos para seguir rápida con miles de tareas */
   var LS_HIST = 'tareasdiarias.historial';
   var HIST = {};           /* tareas hechas por día: { 'AAAA-MM-DD': cantidad } */
   try { HIST = limpiarHist(JSON.parse(lsLeer(LS_HIST) || 'null')); } catch (e) { HIST = {}; }
@@ -4314,7 +4316,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       if (st) { li.appendChild(st); li.appendChild(p); lista.appendChild(li); }
     } else {
       if (!filtradas.length) lista.appendChild(vacioFiltro());
-      filtradas.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
+      var sigV = S.hoja + '|' + FILT.q + '|' + FILT.tag;
+      if (sigV !== VER_SIG) { VER_SIG = sigV; VER_N = TRAMO; }
+      var mostrar = S.hoja === 'repetidas' ? filtradas : filtradas.slice(0, VER_N);
+      mostrar.forEach(function (t) { lista.appendChild(S.hoja === 'repetidas' ? crearFilaRep(t) : crearFila(t)); });
+      if (mostrar.length < filtradas.length) lista.appendChild(crearVerMas(filtradas.length - mostrar.length));
     }
     if (S.hoja !== 'repetidas') pintarBarraBusqueda(visibles, filtradas.length);
     pintarFinDia($('fin-dia'), S.listo && S.hoja !== 'repetidas' && visibles.length > 0 && hechas === visibles.length);
@@ -5461,6 +5467,17 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* --- buscador y etiquetas: interfaz --- */
   function hayFiltro() { return !!(FILT.tag || FILT.q.trim()); }
   function pasaFiltro(t) { return !hayFiltro() || coincideFiltro(t, FILT.q, FILT.tag); }
+  function crearVerMas(quedan) {
+    var li = document.createElement('li'); li.className = 'ver-mas';
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mini';
+    var n = Math.min(TRAMO, quedan);
+    b.textContent = 'Ver ' + n + ' más (quedan ' + quedan + ')';
+    b.addEventListener('click', function () {
+      var antes = VER_N; VER_N += TRAMO; render();
+      var f = $('lista').children[antes]; var el = f && f.querySelector('input,button'); if (el) el.focus();
+    });
+    li.appendChild(b); return li;
+  }
   function vacioFiltro() {
     var li = document.createElement('li');
     li.className = 'vacio';
