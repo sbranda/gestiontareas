@@ -366,6 +366,25 @@ body.panel-abierto { overflow: hidden; }
 .form-hoja { display: flex; gap: 8px; margin: 0 0 12px; }
 .form-hoja input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .form-hoja .mini { height: 44px; }
+/* ---------- Anotaciones ---------- */
+.notas-h { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.375rem; }
+.notas-ayuda { margin: 0 0 14px; color: var(--muted); font-size: 0.9375rem; }
+.nota-form, .nota-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.nota-form input, .nota-form textarea, .nota-editor input, .nota-editor textarea, .nota-buscar input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; box-sizing: border-box; }
+.nota-form textarea, .nota-editor textarea { resize: vertical; line-height: 1.4; }
+.nota-form .mini, .nota-editor .mini { align-self: flex-start; min-height: 44px; padding: 0 16px; }
+.nota-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.nota-buscar { margin-bottom: 8px; }
+.notas-cuenta { margin: 0 0 10px; color: var(--muted); font-size: 0.875rem; }
+.notas-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.nota { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.nota.fijada { border-left: 4px solid var(--accent); }
+.nota-titulo { margin: 0 0 4px; font-size: 1.0625rem; font-weight: 700; overflow-wrap: anywhere; }
+.nota-texto { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.nota-fecha { margin: 0 0 8px; color: var(--muted); font-size: 0.8125rem; }
+.nota .mini { min-height: 44px; padding: 0 12px; }
+.nota .mini[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.notas-vacio { padding: 28px 16px; text-align: center; color: var(--muted); }
 .hoja-acciones { margin-top: 10px; text-align: right; }
 .hoja-ops { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-bottom: 6px; }
 .hoja-ops .mini { min-height: 44px; padding: 0 14px; }
@@ -576,12 +595,12 @@ body.primera-vez #filtros-tareas, body.primera-vez .cols { display: none; }
 /* Celular: las vistas pasan a una barra fija abajo, al alcance del pulgar */
 @media (max-width: 640px) {
   body:not(.nav-arriba) .vistas {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 2px; max-width: none; margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--surface);
     padding: 4px max(4px, env(safe-area-inset-right, 0px)) calc(4px + env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
   }
-  body:not(.nav-arriba) .vista { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: 56px; padding: 4px 2px; font-size: 0.6875rem; line-height: 1.1; border-radius: 10px; }
+  body:not(.nav-arriba) .vista { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: 56px; padding: 4px 1px; font-size: 0.625rem; letter-spacing: -0.01em; line-height: 1.1; border-radius: 10px; }
   body:not(.nav-arriba) .vista span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   body:not(.nav-arriba) .vista-ico { display: block; width: 24px; height: 24px; flex: none; }
   body:not(.nav-arriba) .vista:focus-visible { outline-offset: -3px; }
@@ -717,6 +736,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <button type="button" class="vista" data-vista="calendario" aria-pressed="false"><svg class="vista-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Calendario</span></button>
     <button type="button" class="vista" data-vista="historial" aria-pressed="false"><svg class="vista-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Historial</span></button>
     <button type="button" class="vista" data-vista="enfoque" aria-pressed="false"><svg class="vista-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>Enfoque</span></button>
+    <button type="button" class="vista" data-vista="notas" aria-pressed="false"><svg class="vista-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h5"/></svg><span>Notas</span></button>
   </div>
 
   <form class="nueva" id="form-nueva" autocomplete="off">
@@ -790,6 +810,25 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   </div>
 
   <div id="impresion" aria-hidden="true"></div>
+
+  <section id="vista-notas" hidden aria-label="Hoja de anotaciones">
+    <h2 class="notas-h">Anotaciones</h2>
+    <p class="notas-ayuda">Guardá acá datos importantes: números, direcciones, códigos de aula. Quedan en este dispositivo y sin cifrar, así que evitá contraseñas.</p>
+    <form class="nota-form" id="form-nota" autocomplete="off">
+      <label for="nota-titulo" class="sr-only">Título de la nota (opcional)</label>
+      <input type="text" id="nota-titulo" maxlength="60" placeholder="Título (opcional)">
+      <label for="nota-texto" class="sr-only">Texto de la nota</label>
+      <textarea id="nota-texto" rows="4" maxlength="2000" placeholder="Escribí el dato importante"></textarea>
+      <p class="editor-error" id="nota-error" role="alert" hidden></p>
+      <button type="submit" class="mini primario">Guardar nota</button>
+    </form>
+    <div class="nota-buscar">
+      <label for="nota-buscar" class="sr-only">Buscar en las notas</label>
+      <input type="search" id="nota-buscar" placeholder="Buscar en las notas" maxlength="60">
+    </div>
+    <p class="notas-cuenta" id="notas-cuenta" role="status"></p>
+    <ul class="notas-lista" id="notas-lista" aria-label="Notas guardadas"></ul>
+  </section>
 
   <section id="vista-enfoque" hidden aria-label="Modo enfoque">
     <div class="enf-card" id="enf-card">
@@ -1632,6 +1671,24 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     programarSync();
   }
   var LS_ENF = 'tareasdiarias.enfoque';
+  var LS_NOTAS = 'tareasdiarias.notas', MAX_NOTAS = 200;
+  function limpiarListaNotas(a) {
+    var r = [], vistos = {};
+    (Array.isArray(a) ? a : []).forEach(function (n) {
+      if (!n || typeof n !== 'object' || r.length >= MAX_NOTAS) return;
+      var id = typeof n.id === 'string' ? n.id.slice(0, 40) : '';
+      var tit = String(n.titulo == null ? '' : n.titulo).replace(/\s+/g, ' ').trim().slice(0, 60);
+      var tx = String(n.texto == null ? '' : n.texto).replace(/\r\n?/g, '\n').trim().slice(0, 2000);
+      if (!id || vistos[id] || (!tit && !tx)) return;
+      vistos[id] = true;
+      var cr = isFinite(+n.creada) ? +n.creada : 0;
+      r.push({ id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: isFinite(+n.editada) && +n.editada ? +n.editada : cr });
+    });
+    return r;
+  }
+  var NOTAS = [];
+  try { NOTAS = limpiarListaNotas(JSON.parse(lsLeer(LS_NOTAS) || '[]')); } catch (e) {}
+  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); }
   var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
   try {
     var oe = JSON.parse(lsLeer(LS_ENF) || 'null');
@@ -2886,7 +2943,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   /* ---------- Calendario mensual ---------- */
   var LS_VISTA = 'tareasdiarias.vista';
-  var VISTA = INICIO !== 'ultima' ? INICIO : ((lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque') ? lsLeer(LS_VISTA) : 'lista');
+  var VISTA = INICIO !== 'ultima' ? INICIO : ((lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque' || lsLeer(LS_VISTA) === 'notas') ? lsLeer(LS_VISTA) : 'lista');
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
 
   function crearCeldaDia(d, res, hoy) {
@@ -3280,7 +3337,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
   function fotoCompleta() {
-    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES }));
+    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES, notas: NOTAS }));
   }
   function restaurarFoto(f) {
     EXTRA = f.extra; guardarHojas();
@@ -3290,6 +3347,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     RACH = limpiarRach(f.rach); guardarRach();
     aplicarPrefs(f.prefs);
     CUMPLES = limpiarListaCumples(f.cumples || []); guardarCumples(); pintarCumples();
+    NOTAS = limpiarListaNotas(f.notas || []); guardarNotas();
   }
 
   function armarCopia(tareas, hojas, hist, modelos, estilos, extra) {
@@ -3297,6 +3355,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (extra && extra.rachas) o.rachas = extra.rachas;
     if (extra && extra.preferencias) o.preferencias = extra.preferencias;
     if (extra && Array.isArray(extra.cumples)) o.cumples = extra.cumples;
+    if (extra && Array.isArray(extra.notas) && extra.notas.length) o.notas = extra.notas;
     o.tareas = tareas;
     return JSON.stringify(o, null, 2);
   }
@@ -3318,7 +3377,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     });
     if (!res.length) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
   }
 
   function contarCopia(arr) {
@@ -3412,6 +3471,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       guardarRach();
     }
     if (modo === 'reemplazar') aplicarPrefs(PEND.preferencias);
+    if (PEND.notas && PEND.notas.length) { NOTAS = modo === 'reemplazar' ? PEND.notas.slice() : mezclarNotas(NOTAS, PEND.notas); guardarNotas(); }
     if (PEND.cumples) { CUMPLES = modo === 'reemplazar' ? PEND.cumples.slice() : mezclarCumples(CUMPLES, PEND.cumples); guardarCumples(); pintarCumples(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
@@ -3425,7 +3485,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES });
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES, notas: NOTAS });
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -3496,6 +3556,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       MODELOS = []; guardarModelos(); pintarListaModelos();
       RACH = { ok: {}, vis: {} }; guardarRach();
       CUMPLES = []; guardarCumples(); pintarCumples();
+      NOTAS = []; guardarNotas();
       aparienciaDeFabrica();
       try { localStorage.removeItem('tareasdiarias.instalar'); } catch (e) {}
       INICIO = 'ultima'; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO;
@@ -4102,6 +4163,121 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (!RACH.vis[k] && urgPend(null) > 0) { RACH.vis[k] = 1; guardarRach(); }
   }
 
+
+  /* ---------- Anotaciones ---------- */
+  var NOTAUI = { edit: null, q: '' };
+  function nuevoIdNota() { return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function mezclarNotas(a, b) {
+    var ids = {}, r = a.slice();
+    a.forEach(function (n) { ids[n.id] = true; });
+    b.forEach(function (n) { if (!ids[n.id] && r.length < MAX_NOTAS) { ids[n.id] = true; r.push(n); } });
+    return r;
+  }
+  function textoFechaNota(ms) {
+    if (!ms) return '';
+    var d = new Date(ms);
+    return dos(d.getDate()) + '/' + dos(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + dos(d.getHours()) + ':' + dos(d.getMinutes());
+  }
+  function errorNota(el, msg) { el.textContent = msg || ''; el.hidden = !msg; }
+  function copiarNota(txt, ok) {
+    function listo() { avisar(ok, null); }
+    function viejo() {
+      var ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var bien = false; try { bien = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      avisar(bien ? ok : 'No se pudo copiar. Seleccioná el texto y copialo a mano.', null);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(listo, viejo); else viejo();
+  }
+  function crearBotonNota(txt, aria, fn) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'mini'; b.textContent = txt;
+    b.setAttribute('aria-label', aria); b.addEventListener('click', fn); return b;
+  }
+  function crearNota(n) {
+    var li = document.createElement('li'); li.className = 'nota' + (n.fijada ? ' fijada' : ''); li.setAttribute('data-nota', n.id);
+    var nom = n.titulo || 'sin título';
+    if (n.titulo) { var h = document.createElement('h3'); h.className = 'nota-titulo'; h.textContent = n.titulo; li.appendChild(h); }
+    if (n.texto) { var p = document.createElement('p'); p.className = 'nota-texto'; p.textContent = n.texto; li.appendChild(p); }
+    var f = document.createElement('p'); f.className = 'nota-fecha';
+    f.textContent = (n.editada && n.editada !== n.creada ? 'Editada ' : 'Creada ') + textoFechaNota(n.editada || n.creada);
+    li.appendChild(f);
+    var ac = document.createElement('div'); ac.className = 'nota-acciones';
+    var fj = crearBotonNota(n.fijada ? '📌 Fijada' : '📌 Fijar', 'Fijar arriba la nota ' + nom, function () {
+      NOTAS = NOTAS.map(function (x) { return x.id === n.id ? Object.assign({}, x, { fijada: !x.fijada }) : x; });
+      guardarNotas(); renderNotas(); var b = document.querySelector('[data-nota="' + n.id + '"] [data-acc="fijar"]'); if (b) b.focus();
+    });
+    fj.setAttribute('aria-pressed', n.fijada ? 'true' : 'false'); fj.setAttribute('data-acc', 'fijar'); ac.appendChild(fj);
+    var ed = crearBotonNota('✎ Editar', 'Editar la nota ' + nom, function () { NOTAUI.edit = n.id; renderNotas(); var t = $('nota-edit-texto'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } });
+    ac.appendChild(ed);
+    ac.appendChild(crearBotonNota('Copiar', 'Copiar el texto de la nota ' + nom, function () { copiarNota((n.titulo ? n.titulo + '\n' : '') + n.texto, 'Nota copiada'); }));
+    ac.appendChild(crearBotonNota('Borrar', 'Borrar la nota ' + nom, function () {
+      var pos = NOTAS.findIndex(function (x) { return x.id === n.id; });
+      NOTAS = NOTAS.filter(function (x) { return x.id !== n.id; }); guardarNotas(); renderNotas();
+      avisar('Nota borrada', function () { if (!NOTAS.some(function (x) { return x.id === n.id; })) { NOTAS.splice(Math.min(pos, NOTAS.length), 0, n); guardarNotas(); renderNotas(); } });
+    }));
+    li.appendChild(ac);
+    return li;
+  }
+  function crearEditorAnot(n) {
+    var li = document.createElement('li'); li.className = 'nota'; li.setAttribute('data-nota', n.id);
+    var f = document.createElement('form'); f.className = 'nota-editor'; f.autocomplete = 'off';
+    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = 60; ti.value = n.titulo; ti.id = 'nota-edit-titulo'; ti.setAttribute('aria-label', 'Título de la nota');
+    var tx = document.createElement('textarea'); tx.rows = 5; tx.maxLength = 2000; tx.value = n.texto; tx.id = 'nota-edit-texto'; tx.setAttribute('aria-label', 'Texto de la nota');
+    var er = document.createElement('p'); er.className = 'editor-error'; er.setAttribute('role', 'alert'); er.hidden = true;
+    var ac = document.createElement('div'); ac.className = 'nota-acciones';
+    var g = document.createElement('button'); g.type = 'submit'; g.className = 'mini primario'; g.textContent = 'Guardar';
+    var c = document.createElement('button'); c.type = 'button'; c.className = 'mini'; c.textContent = 'Cancelar';
+    function cerrar() { NOTAUI.edit = null; renderNotas(); var b = document.querySelector('[data-nota="' + n.id + '"] .nota-acciones .mini:nth-child(2)'); if (b) b.focus(); }
+    c.addEventListener('click', cerrar);
+    f.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); cerrar(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
+    });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var tit = ti.value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = tx.value.replace(/\r\n?/g, '\n').trim().slice(0, 2000);
+      if (!tit && !txt) { errorNota(er, 'Escribí algo para guardar la nota.'); return; }
+      if (tit === n.titulo && txt === n.texto) { cerrar(); return; }
+      var antes = n;
+      NOTAS = NOTAS.map(function (x) { return x.id === n.id ? Object.assign({}, x, { titulo: tit, texto: txt, editada: Date.now() }) : x; });
+      guardarNotas(); NOTAUI.edit = null; renderNotas();
+      avisar('Nota modificada', function () { NOTAS = NOTAS.map(function (x) { return x.id === antes.id ? antes : x; }); guardarNotas(); renderNotas(); });
+    });
+    ac.appendChild(g); ac.appendChild(c);
+    f.appendChild(ti); f.appendChild(tx); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
+    return li;
+  }
+  function renderNotas() {
+    document.title = 'Anotaciones · Tareas Diarias';
+    var ul = $('notas-lista'); ul.textContent = '';
+    var q = NOTAUI.q.trim().toLowerCase();
+    var orden = NOTAS.slice().sort(function (a, b) { return (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || (b.editada || 0) - (a.editada || 0); });
+    var vis = q ? orden.filter(function (n) { return (n.titulo + '\n' + n.texto).toLowerCase().indexOf(q) >= 0; }) : orden;
+    $('notas-cuenta').textContent = !NOTAS.length ? '' : (q ? vis.length + ' de ' + NOTAS.length + (NOTAS.length === 1 ? ' nota' : ' notas') : NOTAS.length + (NOTAS.length === 1 ? ' nota' : ' notas'));
+    if (!NOTAS.length) {
+      var li = document.createElement('li'); li.className = 'notas-vacio'; li.textContent = 'Todavía no hay notas. Escribí la primera arriba.'; ul.appendChild(li); return;
+    }
+    if (!vis.length) { var l2 = document.createElement('li'); l2.className = 'notas-vacio'; l2.textContent = 'Ninguna nota coincide con la búsqueda.'; ul.appendChild(l2); return; }
+    vis.forEach(function (n) { ul.appendChild(n.id === NOTAUI.edit ? crearEditorAnot(n) : crearNota(n)); });
+  }
+  $('form-nota').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var er = $('nota-error');
+    var tit = $('nota-titulo').value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = $('nota-texto').value.replace(/\r\n?/g, '\n').trim().slice(0, 2000);
+    if (!tit && !txt) { errorNota(er, 'Escribí algo para guardar la nota.'); $('nota-texto').focus(); return; }
+    if (NOTAS.length >= MAX_NOTAS) { errorNota(er, 'Llegaste al máximo de ' + MAX_NOTAS + ' notas. Borrá alguna para agregar otra.'); return; }
+    errorNota(er, '');
+    var ahora = Date.now(), nota = { id: nuevoIdNota(), titulo: tit, texto: txt, fijada: false, creada: ahora, editada: ahora };
+    NOTAS.unshift(nota); guardarNotas();
+    $('nota-titulo').value = ''; $('nota-texto').value = ''; NOTAUI.q = ''; $('nota-buscar').value = '';
+    renderNotas(); $('nota-titulo').focus();
+    avisar('Nota guardada', function () { NOTAS = NOTAS.filter(function (x) { return x.id !== nota.id; }); guardarNotas(); renderNotas(); });
+  });
+  $('nota-titulo').addEventListener('input', function () { errorNota($('nota-error'), ''); });
+  $('nota-texto').addEventListener('input', function () { errorNota($('nota-error'), ''); });
+  $('nota-buscar').addEventListener('input', function () { NOTAUI.q = this.value; renderNotas(); });
+
   /* ---------- Modo enfoque ---------- */
   function guardarEnf() { lsEscribir(LS_ENF, JSON.stringify({ id: ENF.id, dur: ENF.dur, fin: ENF.fin, pausa: ENF.pausa })); }
   function restanteEnf() { return ENF.fin ? Math.max(0, ENF.fin - Date.now()) : (ENF.pausa || ENF.dur); }
@@ -4256,6 +4432,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-cal').hidden = VISTA !== 'calendario';
     $('vista-hist').hidden = VISTA !== 'historial';
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
+    $('vista-notas').hidden = VISTA !== 'notas';
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
     pintarOrdenar(false);
@@ -4280,6 +4457,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (VISTA === 'calendario') { renderCalendario(); return; }
     if (VISTA === 'historial') { renderHistorial(); return; }
     if (VISTA === 'enfoque') { renderEnfoque(); return; }
+    if (VISTA === 'notas') { renderNotas(); return; }
     if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
