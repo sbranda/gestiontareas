@@ -491,6 +491,8 @@ button.pasos-chip.completo { color: var(--accent); font-weight: 600; }
 .paso .quitar-paso svg { width: 14px; height: 14px; }
 .paso-nuevo { display: flex; gap: 6px; margin-top: 4px; }
 .paso-nuevo input { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 0.875rem; }
+.editor-error { margin: 0; flex: 1 1 100%; color: var(--danger); font-size: 0.8125rem; font-weight: 600; }
+.editor-error[hidden] { display: none; }
 .editor textarea { flex: 1 1 100%; min-width: 0; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; font-size: 0.875rem; resize: vertical; }
 .input-nota { width: 100%; min-height: 44px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 button.limite.urg[aria-pressed="true"] { color: var(--warn); font-weight: 700; text-decoration: none; }
@@ -1601,6 +1603,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   var AHORA = Date.now();
   var EDIT = { id: null, f: '', h: '' };
   var NOTA = { id: null, txt: '' };
+  var EDT = { id: null, txt: '', err: '' };
   var POSP = { id: null };
   var FILT = { q: '', tag: '', firma: '' };
   var LS_HIST = 'tareasdiarias.historial';
@@ -2594,6 +2597,55 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     b.setAttribute('data-key', t.id + ':nota');
     b.setAttribute('aria-label', 'Agregar nota: ' + t.text);
     b.addEventListener('click', function () { empezarNota(t); });
+    return b;
+  }
+
+  /* --- editar el texto de una tarea --- */
+  function empezarTexto(t) {
+    EDT.id = t.id; EDT.txt = t.text; EDT.err = '';
+    NOTA.id = null; EDIT.id = null; POSP.id = null;
+    render();
+    var el = document.querySelector('[data-key="' + t.id + ':textoedit"]');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
+  function cerrarTexto(id) {
+    EDT.id = null; EDT.err = '';
+    render();
+    var el = document.querySelector('[data-key="' + id + ':editar"]');
+    if (el) el.focus();
+  }
+  function crearEditorTexto(t) {
+    var box = document.createElement('div');
+    box.className = 'editor';
+    var ta = document.createElement('textarea');
+    ta.rows = 2; ta.maxLength = 300; ta.value = EDT.txt;
+    ta.setAttribute('aria-label', 'Texto de la tarea');
+    ta.setAttribute('data-key', t.id + ':textoedit');
+    var err = document.createElement('p');
+    err.className = 'editor-error'; err.setAttribute('role', 'alert'); err.textContent = EDT.err; err.hidden = !EDT.err;
+    ta.addEventListener('input', function () { EDT.txt = ta.value; if (EDT.err) { EDT.err = ''; err.hidden = true; err.textContent = ''; } });
+    var guardar = boton('Guardar', 'primario', function () {
+      var nuevo = EDT.txt.replace(/\s+/g, ' ').trim().slice(0, 300), antes = t.text;
+      if (!nuevo) { EDT.err = 'Escribí el texto de la tarea para guardarla.'; err.textContent = EDT.err; err.hidden = false; ta.focus(); return; }
+      if (nuevo === antes) { cerrarTexto(t.id); return; }
+      cambiarTarea(t.id, { text: nuevo });
+      cerrarTexto(t.id);
+      avisar('Tarea modificada', function () { cambiarTarea(t.id, { text: antes }); });
+    });
+    box.appendChild(ta); box.appendChild(err); box.appendChild(guardar);
+    box.appendChild(boton('Cancelar', '', function () { cerrarTexto(t.id); }));
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); cerrarTexto(t.id); }
+      else if (e.key === 'Enter' && !e.shiftKey && e.target === ta) { e.preventDefault(); guardar.click(); }
+    });
+    return box;
+  }
+  function crearChipEditar(t) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'limite agregar'; b.textContent = '✎ Editar';
+    b.setAttribute('data-key', t.id + ':editar');
+    b.setAttribute('aria-label', 'Editar el texto de la tarea: ' + t.text);
+    b.addEventListener('click', function () { empezarTexto(t); });
     return b;
   }
 
@@ -3671,7 +3723,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     tx.className = 'texto';
     var tt = document.createElement('span');
     tt.className = 't'; escribirTitulo(tt, t.text);
-    tx.appendChild(tt);
+    if (EDT.id === t.id && !t.done) tx.appendChild(crearEditorTexto(t)); else tx.appendChild(tt);
     agregarNota(tx, t);
     var fd = fechaDe(t);
     if (VISTA === 'lista' && fd && t.due == null && fd !== claveDia(AHORA)) {
@@ -3704,6 +3756,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       tx.appendChild(mas);
     }
     if (!t.done && !t.nota && NOTA.id !== t.id) tx.appendChild(crearChipNota(t));
+    if (!t.done && EDT.id !== t.id) tx.appendChild(crearChipEditar(t));
     if (!t.done) { var corte = document.createElement('span'); corte.className = 'corte'; corte.setAttribute('aria-hidden', 'true'); tx.appendChild(corte); tx.appendChild(crearChipUrgente(t)); }
     var panelPosp = t.done ? null : agregarPosponer(tx, t);
     var panelPasos = agregarPasos(tx, t);
