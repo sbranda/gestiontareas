@@ -175,6 +175,8 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 }
 .hist-resumen { margin: 0 0 8px; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
 .hist-racha { margin: 0 0 4px; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.hist-como .hist-ayuda, .hist-como .cal-leyenda { margin: 6px 0 8px; }
+.hist-mas { padding: 8px 12px; text-align: center; border-top: 1px solid var(--line); list-style: none; }
 .hist-ayuda { margin: 0 0 14px; font-size: 0.8125rem; color: var(--muted); }
 .progreso-racha { font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; color: var(--accent); }
 .progreso-racha[hidden] { display: none; }
@@ -931,14 +933,17 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <p class="hist-total" id="hist-total" aria-live="polite"></p>
     <p class="hist-resumen" id="hist-resumen" hidden></p>
     <p class="hist-racha" id="hist-racha"></p>
-    <p class="hist-ayuda" id="hist-ayuda">Un día suma a la racha cuando tildás tus tareas urgentes y no queda ninguna urgente pendiente. Los días sin urgentes no la cortan; un día con urgentes sin cerrar, sí. Se cuenta en este dispositivo.</p>
     <div class="hist-barras" id="hist-barras" role="group" aria-label="Tareas hechas por día"></div>
     <div class="cal-panel">
       <h3 id="hist-dia-titulo"></h3>
       <ul class="hist-lista" id="hist-lista"></ul>
       <p class="hist-nota" id="hist-nota"></p>
     </div>
+    <details class="como hist-como">
+    <summary>¿Cómo se cuenta?</summary>
+    <p class="hist-ayuda" id="hist-ayuda">Un día suma a la racha cuando tildás tus tareas urgentes y no queda ninguna urgente pendiente. Los días sin urgentes no la cortan; un día con urgentes sin cerrar, sí. Se cuenta en este dispositivo.</p>
     <p class="cal-leyenda">Se cuenta cada vez que tildás una tarea y se descuenta si la destildás. Los números quedan guardados aunque borres las tareas hechas. El historial vive en este dispositivo; la copia de respaldo lo incluye.</p>
+    </details>
   </section>
 
   <details class="como" id="como">
@@ -3024,7 +3029,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('cal-dia-titulo').textContent = ttl.charAt(0).toUpperCase() + ttl.slice(1) + (c === hoy ? ' · Hoy' : '');
     var cl = $('cal-lista');
     cl.textContent = '';
-    var pasa = function (t) { return CAL.filtro === 'todas' || t.dest === CAL.filtro; };
+    var pasa = function (t) { return CAL.filtro !== SOLO_CUMPLES && (CAL.filtro === 'todas' || t.dest === CAL.filtro); };
     var dadas = S.tareas.filter(function (t) { return !t.plantilla && fechaDe(t) === c && pasa(t); }).sort(ordenTareas);
     var reps = S.tareas.filter(function (p) { return p.plantilla && pasa(p) && seCreara(p, c, hoy, S.tareas); });
     var sin = c === hoy
@@ -3037,9 +3042,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var v = document.createElement('li');
       v.className = 'vacio';
       var st = document.createElement('strong');
-      st.textContent = 'Nada para este día';
+      st.textContent = CAL.filtro === SOLO_CUMPLES ? 'Nadie cumple años este día' : 'Nada para este día';
       var p2 = document.createElement('span');
-      p2.textContent = 'Escribí una tarea arriba y tocá Agregar.';
+      p2.textContent = CAL.filtro === SOLO_CUMPLES ? 'Los días con una torta tienen cumpleaños.' : 'Escribí una tarea arriba y tocá Agregar.';
       v.appendChild(st); v.appendChild(p2); cl.appendChild(v);
       return;
     }
@@ -3054,6 +3059,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   /* Lista de los cumpleaños del mes que se está viendo, aparte de la tarjeta de Hoy. */
   var CALG = '';
+  var SOLO_CUMPLES = '@cumples';   /* filtro del calendario: solo cumpleaños */
   function pintarCumplesMes(hoy) {
     var sec = $('cal-cumples');
     if (!sec) return;
@@ -3117,6 +3123,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var off = offsetMes(CAL.y, CAL.m), total = diasDelMes(CAL.y, CAL.m);
     for (var i = 0; i < off; i++) grid.appendChild(document.createElement('div'));
     for (var d = 1; d <= total; d++) grid.appendChild(crearCeldaDia(d, res, hoy));
+    $('cal-form').hidden = CAL.filtro === SOLO_CUMPLES;
+    Array.prototype.forEach.call(document.querySelectorAll('#vista-cal > .cal-leyenda, #vista-cal > .cal-imprimir, #cal-imp-nota'), function (e) { e.hidden = CAL.filtro === SOLO_CUMPLES; });
     renderPanelDia(hoy);
     pintarCumplesMes(hoy);
     if (clave) {
@@ -3134,7 +3142,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
 
   /* ---------- Historial semanal ---------- */
-  var HI = { lunes: lunesDe(hoyStr()), sel: hoyStr() };
+  var HI = { lunes: lunesDe(hoyStr()), sel: hoyStr(), todas: false };
+  var HIST_TRAMO = 5;
   var DIA_LARGO = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   function textoSemana(l) {
     var a = aFecha(l), b = aFecha(sumarDias(l, 6));
@@ -3142,7 +3151,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function hora(ms) { var d = new Date(ms); return dos(d.getHours()) + ':' + dos(d.getMinutes()); }
   function irSemana(n) {
-    HI.lunes = sumarDias(HI.lunes, 7 * n);
+    HI.lunes = sumarDias(HI.lunes, 7 * n); HI.todas = false;
     HI.sel = sumarDias(HI.sel, 7 * n);
     render();
   }
@@ -3205,7 +3214,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       .sort(function (a, b) { return a.hechaEn - b.hechaEn; });
     var ul = $('hist-lista');
     ul.textContent = '';
-    hechas.forEach(function (t) {
+    var vistas = (HI.todas || hechas.length <= HIST_TRAMO + 2) ? hechas : hechas.slice(0, HIST_TRAMO);
+    vistas.forEach(function (t) {
       var li = document.createElement('li');
       li.className = 'hist-fila';
       var ok = document.createElement('span'); ok.className = 'ok'; ok.setAttribute('aria-hidden', 'true'); ok.textContent = '✓';
@@ -3214,6 +3224,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       li.appendChild(ok); li.appendChild(tx); li.appendChild(h);
       ul.appendChild(li);
     });
+    if (hechas.length > vistas.length || (HI.todas && hechas.length > HIST_TRAMO + 2)) {
+      var lm = document.createElement('li'); lm.className = 'hist-mas';
+      var bm = document.createElement('button'); bm.type = 'button'; bm.className = 'mini'; bm.setAttribute('data-key', 'hist:mas');
+      bm.textContent = HI.todas ? 'Ver menos' : 'Ver las ' + (hechas.length - vistas.length) + ' restantes';
+      bm.setAttribute('aria-expanded', HI.todas ? 'true' : 'false');
+      bm.addEventListener('click', function () { HI.todas = !HI.todas; render(); var n = document.querySelector('[data-key="hist:mas"]'); if (n) n.focus(); });
+      lm.appendChild(bm); ul.appendChild(lm);
+    }
     ul.hidden = hechas.length === 0;
     var resto = cnt - hechas.length;
     $('hist-nota').textContent = cnt === 0 && !hechas.length
@@ -3222,11 +3240,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   $('hist-ant').addEventListener('click', function () { irSemana(-1); });
   $('hist-sig').addEventListener('click', function () { irSemana(1); });
-  $('hist-hoy').addEventListener('click', function () { HI.lunes = lunesDe(hoyStr()); HI.sel = hoyStr(); render(); });
+  $('hist-hoy').addEventListener('click', function () { HI.lunes = lunesDe(hoyStr()); HI.sel = hoyStr(); HI.todas = false; render(); });
   $('hist-barras').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('[data-hdia]') : null;
     if (!b) return;
-    HI.sel = b.getAttribute('data-hdia');
+    HI.sel = b.getAttribute('data-hdia'); HI.todas = false;
     render();
   });
 
@@ -3738,15 +3756,16 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
 
   function pintarFiltros() {
-    if (CAL.filtro !== 'todas' && indiceHoja(CAL.filtro) < 0) CAL.filtro = 'todas';
-    var c = document.querySelector('.cal-filtro'), ops = ['todas'].concat(EXTRA), clave = ops.join('\u0001');
+    if (CAL.filtro === SOLO_CUMPLES && !CUMPLES.length) CAL.filtro = 'todas';
+    if (CAL.filtro !== 'todas' && CAL.filtro !== SOLO_CUMPLES && indiceHoja(CAL.filtro) < 0) CAL.filtro = 'todas';
+    var c = document.querySelector('.cal-filtro'), ops = ['todas'].concat(EXTRA, CUMPLES.length ? [SOLO_CUMPLES] : []), clave = ops.join('\u0001');
     if (c.getAttribute('data-clave') !== clave) {
       c.setAttribute('data-clave', clave);
       c.textContent = '';
       ops.forEach(function (h) {
         var b = document.createElement('button');
         b.type = 'button'; b.className = 'dia'; b.setAttribute('data-filtro', h); b.setAttribute('aria-pressed', 'false');
-        b.textContent = h === 'todas' ? 'Todas' : h;
+        b.textContent = h === 'todas' ? 'Todas' : (h === SOLO_CUMPLES ? 'Cumpleaños' : h);
         c.appendChild(b);
       });
     }
