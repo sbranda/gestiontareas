@@ -115,6 +115,9 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .repetir-fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .dias { display: flex; flex-wrap: wrap; gap: 4px; }
 .editor .dias { width: 100%; }
+.grupo-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 10px; }
+.grupo-chips[hidden] { display: none; }
+.grupo-chips .dia { padding: 0 12px; max-width: 100%; overflow-wrap: anywhere; }
 .dia { min-width: 44px; min-height: 44px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 0.8125rem; font-weight: 500; }
 .dia[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .dia.todos { border-style: dashed; }
@@ -1043,6 +1046,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       <label for="cumple-grupo">Grupo (opcional)</label>
       <input type="text" id="cumple-grupo" maxlength="30" list="cumple-grupos" aria-describedby="cumple-grupo-ayuda">
       <span class="modelo-meta" id="cumple-grupo-ayuda">Por ejemplo: 3.º A, Familia o Colegas. Después podés ver solo un grupo.</span>
+      <div class="grupo-chips" id="cumple-grupo-chips" role="group" aria-label="Grupos que ya usaste. Tocá uno para elegirlo" hidden></div>
       <datalist id="cumple-grupos"></datalist>
       <label for="cumple-nota">Nota (opcional)</label>
       <textarea id="cumple-nota" rows="2" maxlength="200" aria-describedby="cumple-nota-ayuda"></textarea>
@@ -1071,6 +1075,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       <p>Un cumpleaños por línea, con el día y el mes (día/mes). Por ejemplo: <code>Ana Pérez, 15/03/2012</code>, <code>Juan 7/9</code> o <code>12 de octubre Luis</code>. También podés elegir un archivo de texto o CSV. Para traer los cumpleaños de tus contactos, exportalos como vCard (.vcf) desde la app de Contactos o desde contacts.google.com y elegí ese archivo: se usan los contactos que tienen fecha de cumpleaños. El archivo se lee en este dispositivo y no se sube a ningún lado.</p>
       <label for="cumple-imp-grupo">Grupo para toda la lista (opcional)</label>
       <input type="text" id="cumple-imp-grupo" maxlength="30" list="cumple-grupos" autocomplete="off" aria-describedby="cumple-imp-grupo-ayuda">
+      <div class="grupo-chips" id="cumple-imp-grupo-chips" role="group" aria-label="Grupos que ya usaste. Tocá uno para elegirlo" hidden></div>
       <p class="modelo-meta" id="cumple-imp-grupo-ayuda">Por ejemplo, el curso de esta lista. Si esos nombres ya estaban cargados sin grupo, se les pone este grupo.</p>
       <label for="cumple-texto">Lista pegada</label>
       <textarea id="cumple-texto" rows="6"></textarea>
@@ -5217,6 +5222,37 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function ocultarConfirmaCumples() { var c = $('cumple-confirma'); if (c) c.hidden = true; }
   function cambiaronCumples() { ocultarConfirmaCumples(); guardarCumples(); pintarCumples(); render(); revisarAvisos(); }
+  /* Los grupos que ya existen, como botones: el desplegable nativo del campo casi no se ve en el celular. */
+  function marcarChipsGrupo(caja, inp) {
+    var v = quitarTildes(limpiarGrupo(inp.value)).toLowerCase();
+    Array.prototype.forEach.call(caja.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', v && quitarTildes(b.getAttribute('data-grupo')).toLowerCase() === v ? 'true' : 'false');
+    });
+  }
+  function refrescarChips() {
+    [['cumple-grupo-chips', 'cumple-grupo'], ['cumple-imp-grupo-chips', 'cumple-imp-grupo']].forEach(function (x) { var c = $(x[0]), i = $(x[1]); if (c && i) marcarChipsGrupo(c, i); });
+  }
+  function pintarChipsGrupo(idCaja, idInput, grupos) {
+    var caja = $(idCaja), inp = $(idInput);
+    if (!caja || !inp) return;
+    caja.textContent = '';
+    caja.hidden = !grupos.length;
+    grupos.forEach(function (g) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'dia'; b.setAttribute('data-grupo', g.nombre); b.setAttribute('aria-pressed', 'false');
+      b.textContent = g.nombre;
+      b.addEventListener('click', function () {
+        inp.value = (limpiarGrupo(inp.value) === g.nombre) ? '' : g.nombre;
+        marcarChipsGrupo(caja, inp);
+      });
+      caja.appendChild(b);
+    });
+    if (!inp.getAttribute('data-chips')) {
+      inp.setAttribute('data-chips', '1');
+      inp.addEventListener('input', function () { marcarChipsGrupo(caja, inp); });
+    }
+    marcarChipsGrupo(caja, inp);
+  }
   function pintarCumples() {
     var ul = $('cumples-lista');
     if (!ul) return;
@@ -5240,6 +5276,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       if (esGrupo && CUM.prefill !== CUM.grupo) { $('cumple-grupo-nuevo').value = nombreFiltroGrupo(CUM.grupo, grupos); CUM.prefill = CUM.grupo; }
       if (!esGrupo) CUM.prefill = null;
     }
+    pintarChipsGrupo('cumple-grupo-chips', 'cumple-grupo', grupos);
+    pintarChipsGrupo('cumple-imp-grupo-chips', 'cumple-imp-grupo', grupos);
     var dl = $('cumple-grupos');
     if (dl) { dl.textContent = ''; grupos.forEach(function (g) { var o = document.createElement('option'); o.value = g.nombre; dl.appendChild(o); }); }
     var q = ver ? quitarTildes(CUM.q).toLowerCase().trim() : '', orden = ver ? CUM.orden : 'proximo', fg = ver ? CUM.grupo : '';
@@ -5284,13 +5322,13 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function cerrarEdicionCumple() {
     CUM.editando = null;
-    $('cumple-nombre').value = ''; $('cumple-grupo').value = ''; $('cumple-nota').value = ''; $('cumple-dia').value = ''; $('cumple-mes').value = ''; $('cumple-anio').value = '';
+    $('cumple-nombre').value = ''; $('cumple-grupo').value = ''; refrescarChips(); $('cumple-nota').value = ''; $('cumple-dia').value = ''; $('cumple-mes').value = ''; $('cumple-anio').value = '';
     $('cumple-guardar').textContent = 'Agregar cumpleaños';
     $('cumple-cancelar').hidden = true;
   }
   function abrirEdicionCumple(c) {
     CUM.editando = c.id;
-    $('cumple-nombre').value = c.nombre; $('cumple-grupo').value = c.grupo || ''; $('cumple-nota').value = c.nota || ''; $('cumple-dia').value = String(c.dia); $('cumple-mes').value = String(c.mes); $('cumple-anio').value = c.anio ? String(c.anio) : '';
+    $('cumple-nombre').value = c.nombre; $('cumple-grupo').value = c.grupo || ''; refrescarChips(); $('cumple-nota').value = c.nota || ''; $('cumple-dia').value = String(c.dia); $('cumple-mes').value = String(c.mes); $('cumple-anio').value = c.anio ? String(c.anio) : '';
     $('cumple-guardar').textContent = 'Guardar cambios';
     $('cumple-cancelar').hidden = false;
     msgCumples('Editando el cumpleaños de ' + c.nombre + '.');
@@ -5373,7 +5411,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       if (idx >= 0) CUMPLES[idx] = c; else CUMPLES.push(c);
       cambiaronCumples();
       cerrarEdicionCumple();
-      if (idx < 0) $('cumple-grupo').value = grupo;
+      if (idx < 0) { $('cumple-grupo').value = grupo; refrescarChips(); }
       msgCumples(idx >= 0 ? 'Cambios guardados.' : 'Se agregó el cumpleaños de ' + nombre + (grupo ? ' al grupo «' + grupo + '».' : '.'));
       $('cumple-nombre').focus();
     });
