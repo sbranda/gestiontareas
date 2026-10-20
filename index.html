@@ -241,7 +241,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .instalar-bot { display: flex; flex-wrap: wrap; gap: 8px; }
 .barra-sup { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
 .barra-sup .fecha { min-width: 0; overflow-wrap: anywhere; }
-.barra-izq { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+.barra-izq { flex: 1 1 90px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
 .sync-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-left: -4px; padding: 0 4px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 0.8125rem; text-align: left; cursor: pointer; }
 .sync-chip:hover #sync-chip-txt { text-decoration: underline; }
 .sync-chip[hidden] { display: none; }
@@ -256,6 +256,26 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 @media (prefers-reduced-motion: reduce) { .sync-chip[data-estado="ocupado"] .sync-ico { animation: none; } }
 .panel .respaldo { scroll-margin-top: 76px; }
 .btn-engranaje { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+.barra-der { display: flex; align-items: center; gap: 8px; flex: none; }
+.btn-buscar { padding: 0; }
+#lista > .fila { touch-action: pan-y pinch-zoom; }
+#lista > .fila[data-desliza] { position: relative; z-index: 1; }
+#lista > .fila[data-desliza="hecha"] { background: var(--accent-soft); }
+#lista > .fila[data-desliza="borrar"] { background: var(--danger-soft); }
+#lista > .fila[data-desliza="hecha"]::after { right: auto; left: 8px; }
+#lista > .fila[data-desliza]::after { content: attr(data-pista); position: absolute; top: 4px; right: 8px; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; background: var(--accent); color: var(--accent-ink); opacity: 0.55; }
+#lista > .fila[data-desliza="borrar"]::after { background: var(--danger); color: var(--surface); }
+#lista > .fila[data-desliza][data-listo]::after { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { #lista > .fila.vuelve { transition: transform 0.18s ease; } }
+.busq-h { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.375rem; }
+.busq-grupo { margin: 16px 0 6px; font-size: 1rem; font-family: var(--font-display); }
+.busq-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.busq-res { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); text-align: left; }
+.busq-tit { overflow-wrap: anywhere; }
+.busq-sub { color: var(--muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+#busq-volver { margin-top: 14px; }
+.busq-mas, .busq-vacio { margin: 6px 0 0; color: var(--muted); font-size: 0.9375rem; }
+
 .panel { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
 .panel-in { max-width: 720px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(40px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .panel-barra { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; background: var(--bg); border-bottom: 1px solid var(--line); }
@@ -726,10 +746,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
           <span class="sync-ico" id="sync-ico" aria-hidden="true">✓</span><span id="sync-chip-txt"></span>
         </button>
       </div>
+      <div class="barra-der">
+        <button type="button" class="ajuste btn-engranaje btn-buscar" id="btn-buscar" aria-label="Buscar en todo" title="Buscar en todo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        </button>
       <button type="button" class="ajuste btn-engranaje" id="btn-ajustes" aria-haspopup="dialog" aria-expanded="false" aria-controls="panel">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
         <span>Ajustes</span>
       </button>
+      </div>
     </div>
     <div class="sr-only" id="sync-aviso" role="status" aria-live="polite"></div>
     <h1>Tareas Diarias</h1>
@@ -825,9 +850,20 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   <div id="impresion" aria-hidden="true"></div>
 
+  <section id="vista-buscar" hidden aria-label="Buscar en todo">
+    <h2 class="busq-h">Buscar en todo</h2>
+    <p class="notas-ayuda">Busca en las tareas de todas las solapas, en las notas y en los cumpleaños.</p>
+    <div class="nota-buscar">
+      <label for="busq-q" class="sr-only">Qué buscar</label>
+      <input type="search" id="busq-q" placeholder="Escribí al menos 2 letras" maxlength="60" autocomplete="off">
+    </div>
+    <p class="notas-cuenta" id="busq-cuenta" role="status"></p>
+    <div id="busq-res"></div>
+    <button type="button" class="mini" id="busq-volver">Volver</button>
+  </section>
   <section id="vista-notas" hidden aria-label="Hoja de anotaciones">
     <h2 class="notas-h">Anotaciones</h2>
-    <p class="notas-ayuda">Guardá acá datos importantes: números, direcciones, códigos de aula. Quedan en este dispositivo y sin cifrar, así que evitá contraseñas.</p>
+    <p class="notas-ayuda">Guardá acá datos importantes: números, direcciones, códigos de aula. Quedan en este dispositivo y, si activaste la sincronización con GitHub, también en tu gist privado. No están cifradas, así que evitá contraseñas.</p>
     <form class="nota-form" id="form-nota" autocomplete="off">
       <label for="nota-titulo" class="sr-only">Título de la nota (opcional)</label>
       <input type="text" id="nota-titulo" maxlength="60" placeholder="Título (opcional)">
@@ -1608,10 +1644,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* --- sincronización: marcas de modificación, tareas borradas y configuración --- */
   var LS_SYNC401 = 'tareasdiarias.sync401';
   var LS_MODS = 'tareasdiarias.mods', LS_TOMB = 'tareasdiarias.borradas', LS_SYNC = 'tareasdiarias.sync';
-  var MODS = { hojas: 0, modelos: 0, estilos: 0, cumples: 0 };
+  var MODS = { hojas: 0, modelos: 0, estilos: 0, cumples: 0, notas: 0 };
   try {
     var om = JSON.parse(lsLeer(LS_MODS) || 'null');
-    if (om && typeof om === 'object') ['hojas', 'modelos', 'estilos', 'cumples'].forEach(function (k) { if (typeof om[k] === 'number' && isFinite(om[k])) MODS[k] = om[k]; });
+    if (om && typeof om === 'object') ['hojas', 'modelos', 'estilos', 'cumples', 'notas'].forEach(function (k) { if (typeof om[k] === 'number' && isFinite(om[k])) MODS[k] = om[k]; });
   } catch (e) {}
   var TOMB = {};
   try {
@@ -1707,7 +1743,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   var NOTAS = [];
   try { NOTAS = limpiarListaNotas(JSON.parse(lsLeer(LS_NOTAS) || '[]')); } catch (e) {}
-  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); }
+  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); if (typeof tocarMod === 'function') tocarMod('notas'); }
   var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
   try {
     var oe = JSON.parse(lsLeer(LS_ENF) || 'null');
@@ -2430,7 +2466,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function porId(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); }
   /* Forma comparable: el orden de las listas no cuenta, así dos dispositivos no se "corrigen" entre sí sin parar */
   function canonSync(m) {
-    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos, cumples: m.cumples.slice().sort(porId) };
+    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos, cumples: m.cumples.slice().sort(porId), notas: (m.notas || []).slice().sort(porId) };
   }
   function unirHojas(a, b) {
     var vistos = {}, r = [];
@@ -2453,7 +2489,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var lim = (ahora || Date.now()) - 60 * 86400000;
     Object.keys(tomb).forEach(function (k) { if (tomb[k] < lim) delete tomb[k]; });
     var ml = loc.mods || {}, mr = rem.mods || {}, mods = {};
-    ['hojas', 'modelos', 'estilos', 'cumples'].forEach(function (k) { mods[k] = Math.max(ml[k] || 0, mr[k] || 0); });
+    ['hojas', 'modelos', 'estilos', 'cumples', 'notas'].forEach(function (k) { mods[k] = Math.max(ml[k] || 0, mr[k] || 0); });
     function elegir(k, igual) {
       if ((mr[k] || 0) > (ml[k] || 0)) return rem[k];
       if ((mr[k] || 0) === (ml[k] || 0)) return igual();
@@ -2465,14 +2501,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       historial: mezclarHist(loc.historial, rem.historial),
       modelos: elegir('modelos', function () { return mezclarModelos(loc.modelos, rem.modelos); }),
       estilos: elegir('estilos', function () { return Object.assign({}, rem.estilos, loc.estilos); }),
-      cumples: elegir('cumples', function () { return mezclarCumples(loc.cumples, rem.cumples); })
+      cumples: elegir('cumples', function () { return mezclarCumples(loc.cumples, rem.cumples); }),
+      notas: (function () { var a = loc.notas || [], b = rem.notas || [], x = (mr.notas || 0) - (ml.notas || 0); return x > 0 ? b : (x < 0 ? a : mezclarNotas(a, b)); })()
     };
   }
   function leerSync(texto) {
     var o;
     try { o = JSON.parse(texto); } catch (e) { return null; }
     if (!o || o.app !== 'tareas-diarias-sync' || !Array.isArray(o.tareas) || o.tareas.length > 5000) return null;
-    var vistos = {}, tareas = [], borradas = {}, mods = { hojas: 0, modelos: 0, estilos: 0, cumples: 0 };
+    var vistos = {}, tareas = [], borradas = {}, mods = { hojas: 0, modelos: 0, estilos: 0, cumples: 0, notas: 0 };
     o.tareas.forEach(function (t) {
       if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !/^[A-Za-z0-9_.~:@+-]{1,200}$/.test(t.id) || t.id === '.' || t.id === '..' || vistos[t.id] || typeof t.text !== 'string' || !t.text.trim()) return;
       vistos[t.id] = 1; tareas.push(limpiar(t));
@@ -2487,7 +2524,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       historial: limpiarHist(o.historial),
       modelos: Array.isArray(o.modelos) ? limpiarListaModelos(o.modelos) : [],
       estilos: limpiarEstilos(o.estilos),
-      cumples: Array.isArray(o.cumples) ? limpiarListaCumples(o.cumples) : []
+      cumples: Array.isArray(o.cumples) ? limpiarListaCumples(o.cumples) : [],
+      notas: Array.isArray(o.notas) ? limpiarListaNotas(o.notas) : []
     };
   }
   /* --- fin funciones puras --- */
@@ -4198,6 +4236,141 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
 
 
+  /* ---------- Deslizar una tarea: a la derecha la marca hecha, a la izquierda la borra (con Deshacer) ---------- */
+  (function () {
+    var G = null;
+    function limpiarG(fila, vuelve) {
+      if (!fila) return;
+      if (vuelve) fila.classList.add('vuelve');
+      fila.style.transform = '';
+      fila.removeAttribute('data-desliza'); fila.removeAttribute('data-pista'); fila.removeAttribute('data-listo');
+      if (vuelve) setTimeout(function () { fila.classList.remove('vuelve'); }, 220);
+    }
+    var lista = $('lista');
+    lista.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'touch' || !e.isPrimary) return;
+      var fila = e.target.closest ? e.target.closest('#lista > .fila') : null;
+      if (!fila || !fila.querySelector('.tilde input') || !fila.querySelector('button.borrar')) return;
+      if (e.target.closest('input, textarea, select, button, a, [contenteditable], .mover-asa, .editor')) return;
+      G = { fila: fila, x: e.clientX, y: e.clientY, activo: false, dx: 0, id: e.pointerId, ancho: fila.getBoundingClientRect().width };
+    });
+    lista.addEventListener('pointermove', function (e) {
+      if (!G || e.pointerId !== G.id) return;
+      var dx = e.clientX - G.x, dy = e.clientY - G.y;
+      if (!G.activo) {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { G = null; return; }
+        if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        G.activo = true;
+        try { G.fila.setPointerCapture(e.pointerId); } catch (x) {}
+      }
+      G.dx = dx;
+      var hecha = G.fila.getAttribute('data-hecha') === 'true', umbral = Math.min(110, G.ancho * 0.35);
+      var der = dx > 0;
+      G.fila.style.transform = 'translateX(' + Math.max(-G.ancho * 0.6, Math.min(G.ancho * 0.6, dx * 0.7)) + 'px)';
+      G.fila.setAttribute('data-desliza', der ? 'hecha' : 'borrar');
+      G.fila.setAttribute('data-pista', der ? (hecha ? 'Soltá: pendiente' : 'Soltá: hecha') : 'Soltá: borrar');
+      if (Math.abs(dx) >= umbral) G.fila.setAttribute('data-listo', ''); else G.fila.removeAttribute('data-listo');
+      e.preventDefault();
+    });
+    function terminar(e, cancelar) {
+      if (!G || e.pointerId !== G.id) return;
+      var g = G; G = null;
+      if (!g.activo) return;
+      var umbral = Math.min(110, g.ancho * 0.35), ok = !cancelar && Math.abs(g.dx) >= umbral;
+      var accion = g.dx > 0 ? '.tilde input' : 'button.borrar';
+      limpiarG(g.fila, true);
+      if (ok) { var el = g.fila.querySelector(accion); if (el) el.click(); }
+      /* el gesto no debe terminar en un toque sobre lo que quedó debajo */
+      var frenar = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+      lista.addEventListener('click', frenar, true);
+      setTimeout(function () { lista.removeEventListener('click', frenar, true); }, 60);
+    }
+    lista.addEventListener('pointerup', function (e) { terminar(e, false); });
+    lista.addEventListener('pointercancel', function (e) { terminar(e, true); });
+  })();
+  /* ---------- Buscador general ---------- */
+  var BUSQ = { q: '', antes: 'lista' }, BUSQ_MAX = 30;
+  function fechaCorta(c) { return c.slice(8, 10) + '/' + c.slice(5, 7) + '/' + c.slice(0, 4); }
+  function pajarBusq(txt, q) {
+    var ps = normBusq(q).split(/\s+/).filter(Boolean), p = normBusq(txt);
+    return ps.length > 0 && ps.every(function (w) { return p.indexOf(w) >= 0; });
+  }
+  function itemBusq(titulo, sub, fn) {
+    var li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.className = 'busq-res';
+    var t = document.createElement('span'); t.className = 'busq-tit'; t.textContent = titulo;
+    var s = document.createElement('span'); s.className = 'busq-sub'; s.textContent = sub;
+    b.appendChild(t); b.appendChild(s); b.addEventListener('click', fn); li.appendChild(b);
+    return li;
+  }
+  function grupoBusq(cont, titulo, items, total) {
+    if (!items.length) return;
+    var h = document.createElement('h3'); h.className = 'busq-grupo'; h.textContent = titulo + ' (' + total + ')';
+    var ul = document.createElement('ul'); ul.className = 'busq-lista'; ul.setAttribute('aria-label', titulo);
+    items.forEach(function (li) { ul.appendChild(li); });
+    cont.appendChild(h); cont.appendChild(ul);
+    if (total > items.length) { var p = document.createElement('p'); p.className = 'busq-mas'; p.textContent = 'Se muestran ' + items.length + ' de ' + total + '. Escribí más letras para afinar.'; cont.appendChild(p); }
+  }
+  function irATarea(t) {
+    VISTA = 'lista';
+    if (t.plantilla || esFutura(t)) {
+      if (t.plantilla) { S.hoja = 'repetidas'; lsEscribir(LS_HOJA, S.hoja); }
+      else { var c = fechaDe(t); CAL.y = +c.slice(0, 4); CAL.m = +c.slice(5, 7) - 1; CAL.sel = c; CAL.filtro = 'todas'; VISTA = 'calendario'; }
+    } else {
+      S.hoja = (t.dest && !t.done && indiceHoja(t.dest) >= 0) ? t.dest : 'diarias'; lsEscribir(LS_HOJA, S.hoja);
+    }
+    FILT.q = ''; FILT.tag = ''; $('buscar').value = '';
+    lsEscribir(LS_VISTA, VISTA);
+    render();
+    var fila = null, vueltas = 0;
+    while (VISTA === 'lista' && !(fila = document.querySelector('#lista > .fila[data-id="' + t.id + '"]')) && vueltas++ < 60 && VER_N < S.tareas.length + TRAMO) { VER_N += TRAMO; render(); }
+    var dest = fila ? fila.querySelector('input[type="checkbox"], button') : (VISTA === 'calendario' ? document.querySelector('.cal-dia-btn.sel') : null);
+    if (dest) { dest.focus(); if (dest.scrollIntoView) dest.scrollIntoView({ block: 'center' }); }
+  }
+  function irACumple(c) {
+    var hoy = new Date(), y = hoy.getFullYear();
+    CAL.y = y; CAL.m = c.mes - 1; CAL.sel = y + '-' + dos(c.mes) + '-' + dos(c.dia); CAL.filtro = 'todas';
+    VISTA = 'calendario'; lsEscribir(LS_VISTA, VISTA); render();
+    var d = document.querySelector('.cal-dia-btn.sel'); if (d) { d.focus(); if (d.scrollIntoView) d.scrollIntoView({ block: 'center' }); }
+  }
+  function irANota(n) {
+    NOTAUI.q = BUSQ.q.trim(); NOTAUI.edit = null; $('nota-buscar').value = NOTAUI.q;
+    VISTA = 'notas'; lsEscribir(LS_VISTA, VISTA); render();
+    var li = document.querySelector('[data-nota="' + n.id + '"]'); if (li && li.scrollIntoView) li.scrollIntoView({ block: 'center' });
+  }
+  function renderBuscar() {
+    document.title = 'Buscar · Tareas Diarias';
+    var cont = $('busq-res'), q = BUSQ.q.trim(); cont.textContent = '';
+    if (q.length < 2) { $('busq-cuenta').textContent = ''; var p0 = document.createElement('p'); p0.className = 'busq-vacio'; p0.textContent = 'Escribí al menos 2 letras para buscar.'; cont.appendChild(p0); return; }
+    var ts = S.tareas.filter(function (t) { return pajarBusq((t.text || '') + ' ' + (t.nota || '') + ' ' + (t.pasos || []).map(function (p) { return p.text; }).join(' '), q); });
+    ts.sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (b.created || 0) - (a.created || 0); });
+    var ns = NOTAS.filter(function (n) { return pajarBusq(n.titulo + ' ' + n.texto, q); });
+    var cs = CUMPLES.filter(function (c) { return pajarBusq(c.nombre + ' ' + (c.grupo || '') + ' ' + (c.nota || ''), q); });
+    var total = ts.length + ns.length + cs.length;
+    $('busq-cuenta').textContent = total ? total + (total === 1 ? ' resultado' : ' resultados') : '';
+    if (!total) { var p1 = document.createElement('p'); p1.className = 'busq-vacio'; p1.textContent = 'No se encontró nada para "' + q + '".'; cont.appendChild(p1); $('busq-cuenta').textContent = 'Sin resultados'; return; }
+    grupoBusq(cont, 'Tareas', ts.slice(0, BUSQ_MAX).map(function (t) {
+      var donde = t.plantilla ? 'Repetidas' : (esFutura(t) ? 'Programada para el ' + fechaCorta(fechaDe(t)) : (t.dest || 'Diarias') + (t.done ? ' · Hecha' : ''));
+      return itemBusq(t.text, donde, function () { irATarea(t); });
+    }), ts.length);
+    grupoBusq(cont, 'Notas', ns.slice(0, BUSQ_MAX).map(function (n) {
+      return itemBusq(n.titulo || n.texto.split('\n')[0].slice(0, 60), n.titulo ? n.texto.split('\n')[0].slice(0, 80) : 'Nota', function () { irANota(n); });
+    }), ns.length);
+    grupoBusq(cont, 'Cumpleaños', cs.slice(0, BUSQ_MAX).map(function (c) {
+      return itemBusq(c.nombre, c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
+    }), cs.length);
+  }
+  $('btn-buscar').addEventListener('click', function () {
+    if (VISTA !== 'buscar') BUSQ.antes = VISTA;
+    VISTA = 'buscar'; render();
+    $('busq-q').focus();
+  });
+  $('busq-q').addEventListener('input', function () { BUSQ.q = this.value; renderBuscar(); });
+  $('busq-volver').addEventListener('click', function () {
+    VISTA = BUSQ.antes && BUSQ.antes !== 'buscar' ? BUSQ.antes : 'lista'; render();
+    $('btn-buscar').focus();
+  });
+  $('vista-buscar').addEventListener('keydown', function (e) { if (e.key === 'Escape') $('busq-volver').click(); });
   /* ---------- Anotaciones ---------- */
   var NOTAUI = { edit: null, q: '' };
   function nuevoIdNota() { return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -4467,6 +4640,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-hist').hidden = VISTA !== 'historial';
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
     $('vista-notas').hidden = VISTA !== 'notas';
+    $('vista-buscar').hidden = VISTA !== 'buscar';
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
     pintarOrdenar(false);
@@ -4492,6 +4666,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (VISTA === 'historial') { renderHistorial(); return; }
     if (VISTA === 'enfoque') { renderEnfoque(); return; }
     if (VISTA === 'notas') { renderNotas(); return; }
+    if (VISTA === 'buscar') { renderBuscar(); return; }
     if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
@@ -4904,10 +5079,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }).then(function (r) { SYNC.enCurso = false; return r; }, function (e) { SYNC.enCurso = false; throw e; });
   }
   function estadoLocal() {
-    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES };
+    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES, notas: NOTAS };
   }
   function armarSync(m) {
-    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples });
+    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples, notas: m.notas || [] });
   }
   function aplicarSync(m) {
     SYNC.aplicando = true;
@@ -4918,6 +5093,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       MODELOS = m.modelos; guardarModelos(); pintarListaModelos();
       ESTILOS = m.estilos; guardarEstilos();
       if (CUM_SYNC) { CUMPLES = m.cumples; guardarCumples(); pintarCumples(); }
+      NOTAS = (m.notas || []).slice(); guardarNotas(); if (typeof renderNotas === 'function') renderNotas();
       MODS = CUM_SYNC ? m.mods : Object.assign({}, m.mods, { cumples: MODS.cumples }); lsEscribir(LS_MODS, JSON.stringify(MODS));
       SNAP = null; guardarLocal();
       SNAP = {};
