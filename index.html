@@ -425,6 +425,9 @@ body.panel-abierto { overflow: hidden; }
 .hoja-ops .mini:disabled { opacity: .45; cursor: default; }
 .hoja-acciones .form-hoja[hidden] { display: none; }
 .pase { overflow: hidden; }
+.pase-caja { justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pase.pendiente { border-style: dashed; }
+.pase-ok { min-height: 36px; padding: 0 12px; font-size: 0.8125rem; }
 .pase .nombre { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; line-height: 1.15; text-align: center; overflow-wrap: break-word; }
 .planilla { background: var(--surface); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; overflow: hidden; }
 .fila, .cols { display: grid; grid-template-columns: 48px minmax(0, 1fr) 128px 44px; align-items: center; }
@@ -3747,25 +3750,45 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var ops = [''].concat(EXTRA), i = ops.indexOf(actual);
     return ops[(i + 1) % ops.length];
   }
+  /* Elegir la hoja de destino y recién después confirmar: la tarea no se mueve hasta tocar "Pasar". */
+  var PASEP = {};
   function crearPase(t) {
+    var caja = document.createElement('div'); caja.className = 'pase-caja';
+    var actual = t.dest || '';
+    if (Object.prototype.hasOwnProperty.call(PASEP, t.id) && (PASEP[t.id] === actual || (PASEP[t.id] && indiceHoja(PASEP[t.id]) < 0))) delete PASEP[t.id];
+    var pend = Object.prototype.hasOwnProperty.call(PASEP, t.id), dest = pend ? PASEP[t.id] : actual;
     var pase = document.createElement('button');
-    pase.type = 'button'; pase.className = 'pase';
-    var nomP = document.createElement('span'); nomP.className = 'nombre'; nomP.textContent = t.dest || 'Hoja'; pase.appendChild(nomP);
-    var esp = t.dest ? ESTILOS[t.dest] : null;
+    pase.type = 'button'; pase.className = 'pase' + (pend ? ' pendiente' : '');
+    var nomP = document.createElement('span'); nomP.className = 'nombre'; nomP.textContent = dest || 'Hoja'; pase.appendChild(nomP);
+    var esp = dest ? ESTILOS[dest] : null;
     if (esp && esp.color) pase.setAttribute('data-color', esp.color);
     if (esp && esp.icono) { var ico = document.createElement('span'); ico.className = 'ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = iconoSvg(esp.icono); pase.insertBefore(ico, pase.firstChild); }
-    pase.title = t.dest ? 'Está en la hoja ' + t.dest : 'No está en ninguna hoja propia';
+    pase.title = pend ? 'Elegida: ' + (dest || 'ninguna hoja') + ' (falta confirmar)' : (actual ? 'Está en la hoja ' + actual : 'No está en ninguna hoja propia');
     pase.setAttribute('data-key', t.id + ':pase');
-    pase.setAttribute('aria-pressed', t.dest ? 'true' : 'false');
-    var sig = siguienteHoja(t.dest);
-    pase.setAttribute('aria-label', (t.dest ? 'En la hoja ' + t.dest : 'Sin hoja propia') + (EXTRA.length ? '. Tocar para pasar a ' + (sig || 'ninguna hoja') : '') + ': ' + t.text);
+    pase.setAttribute('aria-pressed', dest ? 'true' : 'false');
+    var sig = siguienteHoja(dest);
+    pase.setAttribute('aria-label', (pend ? 'Elegida: ' + (dest || 'ninguna hoja') + ', falta confirmar' : (actual ? 'En la hoja ' + actual : 'Sin hoja propia')) + (EXTRA.length ? '. Tocar para elegir ' + (sig || 'ninguna hoja') : '') + ': ' + t.text);
     pase.addEventListener('click', function () {
       if (!EXTRA.length) { avisar('Creá una hoja con el botón + de arriba', null); return; }
-      var antes = t.dest || '', ahora = siguienteHoja(antes);
-      cambiarTarea(t.id, { dest: ahora });
-      avisar(ahora ? 'Agregada a ' + ahora : 'Quitada de ' + antes, function () { cambiarTarea(t.id, { dest: antes }); });
+      var nuevo = siguienteHoja(dest);
+      if (nuevo === actual) delete PASEP[t.id]; else PASEP[t.id] = nuevo;
+      render();
     });
-    return pase;
+    caja.appendChild(pase);
+    if (pend) {
+      var ok = document.createElement('button');
+      ok.type = 'button'; ok.className = 'mini primario pase-ok';
+      ok.textContent = dest ? '✓ Pasar' : '✓ Quitar';
+      ok.setAttribute('data-key', t.id + ':pase-ok');
+      ok.setAttribute('aria-label', (dest ? 'Confirmar: pasar a ' + dest : 'Confirmar: quitar de ' + actual) + ': ' + t.text);
+      ok.addEventListener('click', function () {
+        delete PASEP[t.id];
+        cambiarTarea(t.id, { dest: dest });
+        avisar(dest ? 'Pasada a ' + dest : 'Quitada de ' + actual, function () { cambiarTarea(t.id, { dest: actual }); });
+      });
+      caja.appendChild(ok);
+    }
+    return caja;
   }
 
   var solapasClave = null;
