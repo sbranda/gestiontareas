@@ -266,6 +266,15 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 body.panel-abierto { overflow: hidden; }
 .panel #ajuste-tema { margin-left: 0; }
 .respaldo { margin-top: 28px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.aj-barra { margin: 14px 0 0; text-align: right; }
+.aj-sec { margin-top: 12px; padding-top: 4px; padding-bottom: 4px; }
+.aj-sec h2 { margin: 0; }
+.aj-titulo { display: flex; align-items: center; width: 100%; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.aj-titulo::before { content: '▸'; display: inline-block; width: 1.3em; flex: none; color: var(--muted); }
+.aj-titulo[aria-expanded="true"]::before { content: '▾'; }
+.aj-sub { margin: -6px 0 10px 1.3em; font-size: 0.8125rem; color: var(--muted); }
+.aj-sub[hidden], .aj-cuerpo[hidden] { display: none; }
+.aj-cuerpo { padding-bottom: 8px; }
 .respaldo h2 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
 .respaldo p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
 .respaldo .mini { height: 44px; padding: 0 16px; }
@@ -3398,7 +3407,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       vistos[id] = true;
       res.push(limpiar(Object.assign({}, t, { id: id })));
     });
-    if (!res.length) return { error: 'La copia no tiene tareas.' };
+    var otro = !Array.isArray(obj) && obj && ((Array.isArray(obj.hojas) && obj.hojas.some(nombreValido)) || (Array.isArray(obj.modelos) && obj.modelos.length) || (Array.isArray(obj.cumples) && obj.cumples.length) || (Array.isArray(obj.notas) && obj.notas.length));
+    if (!res.length && !otro) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
     return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
   }
@@ -3535,7 +3545,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var r = leerCopia(String(rd.result));
       if (r.error) { ocultarConfirma(); avisoRespaldo(r.error, true); return; }
       PEND = r;
-      $('confirma-texto').textContent = 'El archivo tiene ' + contarCopia(r.tareas).texto + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.cumples && r.cumples.length ? ', ' + r.cumples.length + ' cumpleaños' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
+      $('confirma-texto').textContent = 'El archivo tiene ' + (r.tareas.length ? contarCopia(r.tareas).texto + (r.hojas && r.hojas.length ? ', ' + r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') : '') : (r.hojas && r.hojas.length ? r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') + ' (' + r.hojas.join(', ') + ')' : 'solo datos sueltos, sin tareas')) + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.cumples && r.cumples.length ? ', ' + r.cumples.length + ' cumpleaños' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
       $('respaldo-confirma').hidden = false;
       $('btn-sumar').focus();
     };
@@ -4672,6 +4682,77 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     avisar('Hoja ' + n + ' creada. Con el botón de cada tarea la pasás acá.', null);
   });
   $('btn-hoja-cancelar').addEventListener('click', function () { $('input-hoja').value = ''; mostrarFormHoja(false); });
+  /* ---------- Ajustes: secciones plegables ---------- */
+  (function () {
+    var SUB = {
+      'ap-t': 'Letra, tema y filas',
+      'pf-t': 'Pantalla de inicio y vibración',
+      'sync-t': 'Mismos datos en el celular y la compu',
+      'avisos-t': 'Notificaciones de tareas y cumpleaños',
+      'cumples-t': 'Agenda, grupos y saludos',
+      'modelos-t': 'Tareas con pasos para repetir',
+      'respaldo-t': 'Exportar e importar tus datos',
+      'inst-t': 'Usarla como aplicación',
+      'reset-t': 'Volver a cero'
+    };
+    var secs = Array.prototype.slice.call(document.querySelectorAll('#panel section.respaldo'));
+    if (!secs.length) return;
+    var items = [], listo = false;
+    function etiquetaTodo() {
+      if (!listo) return;
+      var abiertas = items.filter(function (it) { return !it.cuerpo.hidden; }).length;
+      var b = document.getElementById('aj-todo');
+      if (b) b.textContent = abiertas === items.length ? 'Cerrar todo' : 'Abrir todo';
+    }
+    function poner(it, abrir) {
+      it.cuerpo.hidden = !abrir; if (it.sub) it.sub.hidden = abrir;
+      it.btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      etiquetaTodo();
+    }
+    secs.forEach(function (sec, i) {
+      var h = null;
+      Array.prototype.forEach.call(sec.children, function (e) { if (!h && e.tagName === 'H2') h = e; });
+      if (!h) return;
+      sec.classList.add('aj-sec');
+      var cuerpo = document.createElement('div');
+      cuerpo.className = 'aj-cuerpo'; cuerpo.id = 'aj-cuerpo-' + i;
+      while (h.nextSibling) cuerpo.appendChild(h.nextSibling);
+      sec.appendChild(cuerpo);
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'aj-titulo'; b.setAttribute('aria-controls', cuerpo.id);
+      b.textContent = h.textContent; h.textContent = ''; h.appendChild(b);
+      var sub = null;
+      if (SUB[h.id]) {
+        sub = document.createElement('p');
+        sub.className = 'aj-sub'; sub.id = 'aj-sub-' + i; sub.textContent = SUB[h.id];
+        b.setAttribute('aria-describedby', sub.id); sec.insertBefore(sub, cuerpo);
+      }
+      var it = { sec: sec, cuerpo: cuerpo, btn: b, sub: sub };
+      items.push(it);
+      sec.__aj = it;
+      b.addEventListener('click', function () { poner(it, it.cuerpo.hidden); });
+      poner(it, false);
+    });
+    listo = true;
+    var barra = document.createElement('div');
+    barra.className = 'aj-barra';
+    var todo = document.createElement('button');
+    todo.type = 'button'; todo.className = 'mini'; todo.id = 'aj-todo'; todo.textContent = 'Abrir todo';
+    todo.addEventListener('click', function () {
+      var abrir = todo.textContent === 'Abrir todo';
+      items.forEach(function (it) { poner(it, abrir); });
+    });
+    barra.appendChild(todo);
+    secs[0].parentNode.insertBefore(barra, secs[0]);
+    /* si el código enfoca algo que está en una sección cerrada, se abre sola */
+    var focoOriginal = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function () {
+      var s = this.closest ? this.closest('section.aj-sec') : null;
+      if (s && s.__aj && s.__aj.cuerpo.hidden) poner(s.__aj, true);
+      return focoOriginal.apply(this, arguments);
+    };
+  })();
+
   var RENFORM = false, RENDE = '';
   function renombrarHoja(viejo, nuevo) {
     var pos = indiceHoja(viejo);
