@@ -4690,6 +4690,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }
   }
 
+  /* Texto de "¿Cómo funciona esta hoja?" en las vistas que no son una lista de tareas. */
+  function ayudaVista(v) {
+    if (v === 'calendario') return 'Tocá un día para ver lo que hay y agendar tareas para esa fecha. Las marcas de cada día muestran si hay tareas pendientes, hechas, repetidas, cumpleaños o recuerdos. Con los botones de arriba filtrás por hoja o ves solo los cumpleaños, y abajo está la lista del mes.';
+    if (v === 'enfoque') return 'Te muestra una sola tarea pendiente a la vez. Elegí 15, 25 o 45 minutos y tocá Iniciar; podés pausar, seguir o reiniciar. Marcar como hecha pasa a la siguiente y Saltar la deja para más tarde.';
+    if (v === 'notas') return 'Acá guardás tus contraseñas: se ven ocultas hasta que tocás Mostrar. Cada una se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Quedan en este dispositivo y sin cifrar.';
+    if (v === 'buscar') return 'Escribí al menos 2 letras. Busca en las tareas de todas las solapas, en los nombres de tus contraseñas y en los cumpleaños. Tocá un resultado para ir a él.';
+    return '';
+  }
   function render() {
     AHORA = Date.now();
     sincronizarHojas();
@@ -4707,7 +4715,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (enCal) pintarFinDia($('fin-dia'), false);
     pintarOrdenar(false);
     pintarEstilo(false);
-    ['form-nueva', 'solapas', 'ayuda', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
+    ['form-nueva', 'solapas', 'planilla'].forEach(function (id) { $(id).hidden = enCal; });
+    var ayV = ayudaVista(VISTA);
+    if (enCal) $('ayuda').textContent = ayV;
+    $('ayuda').hidden = false; $('como').hidden = enCal && !ayV;
     if (esHoy) { $('form-nueva').hidden = true; $('solapas').hidden = true; }
     var propia = indiceHoja(S.hoja) >= 0;
     $('form-hoja').hidden = enCal || esHoy || !HOJAFORM;
