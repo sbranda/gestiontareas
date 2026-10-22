@@ -103,6 +103,8 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .cuando-chip:disabled { opacity: 0.5; cursor: default; }
 .cuando-nota { margin: 0 2px; font-size: 0.8125rem; color: var(--muted); }
 .cuando-nota:empty { display: none; }
+.cuando-nota.escrita { color: var(--text); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.cuando-nota.escrita[hidden] { display: none; }
 .mas-opciones summary { display: flex; align-items: center; min-height: 44px; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
 .mas-opciones[open] .repetir-fila { margin-top: 10px; }
 .mas-opciones summary::before { content: '▸'; display: inline-block; width: 1.1em; color: var(--muted); }
@@ -237,6 +239,7 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .fila.proyectada { opacity: 0.85; }
 
 .instalar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; padding: 8px 12px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; }
+.instalar[hidden] { display: none; }
 .instalar-ico { border-radius: 10px; flex: none; }
 .instalar-txt { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.875rem; }
 .instalar-txt strong { font-size: 1rem; }
@@ -404,6 +407,14 @@ body.panel-abierto { overflow: hidden; }
 .form-hoja .mini { height: 44px; }
 /* ---------- Anotaciones ---------- */
 .notas-h { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.375rem; }
+.clave-zona { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+.clave-zona p { margin: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.clave-zona form { display: flex; flex-direction: column; gap: 8px; }
+.clave-zona input[type="password"] { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+.clave-zona .mini { min-height: 44px; padding: 0 14px; }
+.clave-zona .mini.peligro { color: var(--danger); border-color: var(--danger); }
+.clave-fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.clave-zona .nota-ver { align-items: flex-start; padding-top: 4px; }
 .notas-ayuda { margin: 0 0 14px; color: var(--muted); font-size: 0.9375rem; }
 .nota-form, .nota-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .nota-form input, .nota-form textarea, .nota-editor input, .nota-editor textarea, .nota-buscar input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; box-sizing: border-box; }
@@ -746,6 +757,26 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       <button type="button" class="mini" id="btn-instalar-no">Ahora no</button>
     </div>
   </div>
+  <div class="instalar" id="version-nueva" role="status" data-no-print hidden>
+    <div class="instalar-txt">
+      <strong>Hay una versión nueva</strong>
+      <span>Tocá Actualizar para usarla ahora. Tus datos no se tocan.</span>
+    </div>
+    <div class="instalar-bot">
+      <button type="button" class="mini primario" id="btn-version-ok">Actualizar</button>
+      <button type="button" class="mini" id="btn-version-no">Después</button>
+    </div>
+  </div>
+  <div class="instalar" id="aviso-copia" role="status" data-no-print hidden>
+    <div class="instalar-txt">
+      <strong id="aviso-copia-t">Hace tiempo que no hacés una copia de seguridad</strong>
+      <span>Guardá una copia para no perder tus tareas si cambiás de celu o se borran los datos.</span>
+    </div>
+    <div class="instalar-bot">
+      <button type="button" class="mini primario" id="btn-copia-ok">Exportar ahora</button>
+      <button type="button" class="mini" id="btn-copia-no">Después</button>
+    </div>
+  </div>
   <header>
     <div class="barra-sup">
       <div class="barra-izq">
@@ -810,6 +841,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       <input type="time" id="input-hora" aria-label="Hora límite" hidden>
     </div>
     <p class="cuando-nota" id="cuando-nota"></p>
+    <p class="cuando-nota escrita" id="fecha-escrita" role="status" hidden></p>
     <details class="mas-opciones" id="mas-opciones">
     <summary id="mas-resumen">Más opciones</summary>
     <input type="text" class="input-nota" id="input-nota" maxlength="300" placeholder="Detalle (opcional)" aria-label="Detalle de la tarea (opcional)">
@@ -871,7 +903,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   </section>
   <section id="vista-notas" hidden aria-label="Contraseñas">
     <h2 class="notas-h">Contraseñas</h2>
-    <p class="notas-ayuda">Guardá acá tus contraseñas. Se ven ocultas hasta que toques <strong>Mostrar</strong>. Quedan solo en este dispositivo, no se sincronizan con GitHub y <strong>no están cifradas</strong>: cualquiera que use este dispositivo desbloqueado podría verlas.</p>
+    <p class="notas-ayuda">Guardá acá tus contraseñas. Se ven ocultas hasta que toques <strong>Mostrar</strong>. Quedan solo en este dispositivo y no se sincronizan con GitHub. <strong id="notas-cifrado"></strong></p>
+    <div class="clave-zona" id="clave-zona"></div>
     <form class="nota-form" id="form-nota" autocomplete="off">
       <label for="nota-titulo" class="sr-only">Sitio o cuenta</label>
       <input type="text" id="nota-titulo" maxlength="60" placeholder="Sitio o cuenta (ej. Gmail)">
@@ -1756,16 +1789,119 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var id = typeof n.id === 'string' ? n.id.slice(0, 40) : '';
       var tit = String(n.titulo == null ? '' : n.titulo).replace(/\s+/g, ' ').trim().slice(0, 60);
       var tx = String(n.texto == null ? '' : n.texto).replace(/\r\n?/g, '\n').trim().slice(0, 2000);
-      if (!id || vistos[id] || (!tit && !tx)) return;
+      var cf = typeof n.cif === 'string' && n.cif.length <= 4000 && /^[A-Za-z0-9+\/=]*\.[A-Za-z0-9+\/=]*$/.test(n.cif) ? n.cif : '';
+      if (!id || vistos[id] || (!tit && !tx && !cf)) return;
       vistos[id] = true;
       var cr = isFinite(+n.creada) ? +n.creada : 0;
-      r.push({ id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: isFinite(+n.editada) && +n.editada ? +n.editada : cr });
+      var o = { id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: isFinite(+n.editada) && +n.editada ? +n.editada : cr };
+      if (cf) o.cif = cf;
+      r.push(o);
     });
     return r;
   }
   var NOTAS = [];
   try { NOTAS = limpiarListaNotas(JSON.parse(lsLeer(LS_NOTAS) || '[]')); } catch (e) {}
-  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); }
+
+  /* ---------- Clave maestra (opcional): cifra las contraseñas con AES-GCM; la clave sale de PBKDF2 ---------- */
+  var LS_CLAVE = 'tareasdiarias.clave';
+  var CLAVE = { cfg: null, key: null, seq: 0, pend: null };
+  function validarCfgClave(c) {
+    if (!c || typeof c !== 'object' || Array.isArray(c) || c.v !== 1) return null;
+    if (typeof c.salt !== 'string' || typeof c.ver !== 'string' || c.salt.length > 40 || c.ver.length > 200) return null;
+    var it = +c.it; if (!(it >= 100000 && it <= 2000000)) return null;
+    return { v: 1, it: Math.floor(it), salt: c.salt, ver: c.ver };
+  }
+  try { CLAVE.cfg = validarCfgClave(JSON.parse(lsLeer(LS_CLAVE) || 'null')); } catch (e) {}
+  function sub() { try { return (window.crypto && window.crypto.subtle) || null; } catch (e) { return null; } }
+  function aB64(buf) { var u = new Uint8Array(buf), s = ''; for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+  function deB64(t) { var b = atob(t), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function derivarClave(pass, salt, it) {
+    var sb = sub();
+    return sb.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (k) {
+      return sb.deriveKey({ name: 'PBKDF2', salt: salt, iterations: it, hash: 'SHA-256' }, k, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    });
+  }
+  function cifrarTxt(key, txt) {
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    return sub().encrypt({ name: 'AES-GCM', iv: iv }, key, new TextEncoder().encode(txt)).then(function (ct) { return aB64(iv) + '.' + aB64(ct); });
+  }
+  function descifrarTxt(key, t) {
+    var p = String(t).split('.');
+    if (p.length !== 2) return Promise.reject(new Error('formato'));
+    return sub().decrypt({ name: 'AES-GCM', iv: deB64(p[0]) }, key, deB64(p[1])).then(function (b) { return new TextDecoder().decode(b); });
+  }
+  function cifrarNotas(key, lista) {
+    return Promise.all(lista.map(function (n) { return n.texto ? cifrarTxt(key, n.texto) : Promise.resolve(''); })).then(function (cs) {
+      return lista.map(function (n, i) { return { id: n.id, titulo: n.titulo, cif: cs[i], fijada: n.fijada, creada: n.creada, editada: n.editada }; });
+    });
+  }
+  function notasGuardadas() { try { return limpiarListaNotas(JSON.parse(lsLeer(LS_NOTAS) || '[]')); } catch (e) { return []; } }
+  function claveBloqueada() { return !!(CLAVE.cfg && !CLAVE.key); }
+  function guardarNotas() {
+    if (!CLAVE.cfg) { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS.map(function (n) { var o = Object.assign({}, n); delete o.cif; return o; }))); return; }
+    if (!CLAVE.key) return;
+    var mi = ++CLAVE.seq, key = CLAVE.key, copia = NOTAS.slice();
+    CLAVE.pend = cifrarNotas(key, copia).then(function (arr) {
+      if (mi === CLAVE.seq) lsEscribir(LS_NOTAS, JSON.stringify(arr));
+    }).catch(function () { avisar('No se pudieron guardar las contraseñas cifradas.', null); });
+  }
+  function activarClave(pass) {
+    var salt = window.crypto.getRandomValues(new Uint8Array(16)), it = 250000, cfg, key;
+    CLAVE.seq++;
+    return derivarClave(pass, salt, it).then(function (k) {
+      key = k;
+      return cifrarTxt(key, 'ok');
+    }).then(function (ver) {
+      cfg = { v: 1, it: it, salt: aB64(salt), ver: ver };
+      return cifrarNotas(key, NOTAS);
+    }).then(function (arr) {
+      lsEscribir(LS_NOTAS, JSON.stringify(arr));
+      lsEscribir(LS_CLAVE, JSON.stringify(cfg));
+      CLAVE.cfg = cfg; CLAVE.key = key;
+    });
+  }
+  function desbloquearClave(pass) {
+    var cfg = CLAVE.cfg, key;
+    return (CLAVE.pend || Promise.resolve()).then(function () {
+      return derivarClave(pass, deB64(cfg.salt), cfg.it);
+    }).then(function (k) {
+      key = k;
+      return descifrarTxt(key, cfg.ver);
+    }).then(function (v) {
+      if (v !== 'ok') throw new Error('clave');
+      var guardadas = notasGuardadas();
+      return Promise.all(guardadas.map(function (n) { return n.cif ? descifrarTxt(key, n.cif) : Promise.resolve(n.texto); })).then(function (ts) {
+        NOTAS = guardadas.map(function (n, i) { return { id: n.id, titulo: n.titulo, texto: ts[i], fijada: n.fijada, creada: n.creada, editada: n.editada }; });
+        CLAVE.key = key; CLAVE.vistoEn = Date.now();
+      });
+    });
+  }
+  function bloquearClave() {
+    if (!CLAVE.cfg || !CLAVE.key) return;
+    CLAVE.key = null; NOTAUI.ver = {}; NOTAUI.edit = null; CLAVEUI.modo = '';
+    NOTAS = NOTAS.map(function (n) { return { id: n.id, titulo: n.titulo, texto: '', fijada: n.fijada, creada: n.creada, editada: n.editada }; });
+    (CLAVE.pend || Promise.resolve()).then(function () { NOTAS = notasGuardadas(); if (VISTA === 'notas') renderNotas(); });
+    renderNotas();
+  }
+  function quitarClave() {
+    CLAVE.seq++; CLAVE.cfg = null; CLAVE.key = null;
+    try { localStorage.removeItem(LS_CLAVE); } catch (e) {}
+    guardarNotas();
+  }
+  function olvidarClave() {
+    CLAVE.seq++; CLAVE.cfg = null; CLAVE.key = null; NOTAS = [];
+    try { localStorage.removeItem(LS_CLAVE); } catch (e) {}
+    guardarNotas();
+  }
+  /* Se bloquea sola si la app estuvo en segundo plano más de 2 minutos. */
+  (function () {
+    var oculto = 0;
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { oculto = Date.now(); return; }
+      if (oculto && CLAVE.key && Date.now() - oculto > 120000) bloquearClave();
+      oculto = 0;
+    });
+  })();
   var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
   try {
     var oe = JSON.parse(lsLeer(LS_ENF) || 'null');
@@ -2873,6 +3009,111 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (f === mananaStr()) return 'manana';
     return 'otro';
   }
+
+  /* --- Fechas escritas en la tarea: "mañana", "el lunes", "15/11", "a las 15:30" --- */
+  var DSEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var DSEM_RE = '(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)';
+  function idxDia(n) {
+    n = n.toLowerCase().replace('é', 'e').replace('á', 'a');
+    for (var i = 0; i < 7; i++) if (DSEM[i].replace('é', 'e').replace('á', 'a') === n) return i;
+    return -1;
+  }
+  function interpretarCuando(texto, hoy) {
+    var t = String(texto), quitar = [], fecha = '', hora = '', m, c, hd = aFecha(hoy);
+    function marca(m0, extra) { quitar.push([m0.index, m0.index + m0[0].length]); }
+    /* hora */
+    var PER = '(?:\\s+de\\s+la\\s+(ma[nñ]ana|tarde|noche))?';
+    var RH = [
+      new RegExp('\\b(?:a|para)\\s+las?\\s+(\\d{1,2})(?:[:.h](\\d{2}))?(?:\\s*(?:hs?\\b|horas\\b))?' + PER, 'i'),
+      new RegExp('(?:^|[^\\d/:.])(\\d{1,2}):(\\d{2})(?:\\s*(?:hs?\\b|horas\\b))?' + PER, 'i'),
+      new RegExp('(?:^|[^\\d/:.])(\\d{1,2})()\\s*(?:hs?\\b|horas\\b)' + PER, 'i')
+    ], mh = null;
+    for (var q = 0; q < RH.length && !mh; q++) {
+      c = RH[q].exec(t);
+      if (!c) continue;
+      var hh = +c[1], mm = c[2] ? +c[2] : 0, pe = (c[3] || '').toLowerCase().replace('ñ', 'n');
+      if (pe === 'tarde' || pe === 'noche') { if (hh < 12) hh += 12; }
+      else if (pe === 'manana' && hh === 12) hh = 0;
+      if (hh > 23 || mm > 59) continue;
+      var ini = c.index + (/^[^\d]/.test(c[0]) && q > 0 ? 1 : 0);
+      mh = { index: ini, 0: c[0].slice(ini - c.index) }; hora = dos(hh) + ':' + dos(mm);
+    }
+    if (mh) marca(mh);
+    /* fecha */
+    var rf = /\b(?:para\s+(?:el\s+)?|el\s+)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/i;
+    m = rf.exec(t);
+    if (m && !(mh && m.index < mh.index + mh[0].length && m.index + m[0].length > mh.index)) {
+      var dd = +m[1], mo = +m[2], aa = m[3] ? +m[3] : hd.getFullYear();
+      if (aa < 100) aa += 2000;
+      var dt = new Date(aa, mo - 1, dd);
+      if (dt.getFullYear() === aa && dt.getMonth() === mo - 1 && dt.getDate() === dd) {
+        if (!m[3] && dt < hd) dt = new Date(aa + 1, mo - 1, dd);
+        fecha = claveDia(dt.getTime()); marca(m);
+      }
+    }
+    if (!fecha) {
+      m = /\b(?:para\s+)?pasado\s+ma[nñ]ana\b/i.exec(t);
+      if (m) { fecha = sumarDias(hoy, 2); marca(m); }
+    }
+    if (!fecha) {
+      m = /\b(?:para\s+)?ma[nñ]ana\b(?!\s+(?:de\s+la\s+)?(?:tarde|noche))/i.exec(t);
+      if (m && !(mh && /ma[nñ]ana/i.test(mh[0]) && m.index >= mh.index && m.index < mh.index + mh[0].length)) { fecha = sumarDias(hoy, 1); marca(m); }
+    }
+    if (!fecha) {
+      m = /\b(?:para\s+)?hoy\b/i.exec(t);
+      if (m) { fecha = hoy; marca(m); }
+    }
+    if (!fecha) {
+      m = /\ben\s+(\d{1,2})\s+d[ií]as?\b/i.exec(t);
+      if (m && +m[1] >= 1 && +m[1] <= 60) { fecha = sumarDias(hoy, +m[1]); marca(m); }
+    }
+    if (!fecha) {
+      m = new RegExp('\\b(?:para\\s+)?(?:(?:el|este)\\s+)?(?:pr[oó]ximo\\s+)?' + DSEM_RE + '\\b', 'i').exec(t);
+      if (m) {
+        var obj = idxDia(m[1]), dif = (obj - hd.getDay() + 7) % 7;
+        if (dif === 0) dif = 7;
+        fecha = sumarDias(hoy, dif); marca(m);
+      }
+    }
+    if (!fecha && !hora) return null;
+    if (!fecha) fecha = hoy;
+    quitar.sort(function (a, b) { return b[0] - a[0]; });
+    var r = t;
+    quitar.forEach(function (q) { r = r.slice(0, q[0]) + ' ' + r.slice(q[1]); });
+    r = r.replace(/\s+/g, ' ').replace(/\s+([,.;:])/g, '$1').trim();
+    for (var i = 0; i < 3; i++) r = r.replace(/(^|\s)(para|el|la|de|del|a|al|en|y|,|;)$/i, '').replace(/^(para|el|a las|,)\s+/i, '').trim();
+    r = r.replace(/[,;:\s]+$/, '').replace(/^[,;:\s]+/, '');
+    if (!r) return null;
+    return { texto: r, fecha: fecha, hora: hora };
+  }
+  var IGN_FECHA = '';
+  function fechaEscrita() {
+    if (diasElegidos().length || inFecha.value || inHora.value || S.hoja === 'repetidas') return null;
+    var r = interpretarCuando(input.value, hoyStr());
+    if (!r || r.texto === IGN_FECHA) return null;
+    return r;
+  }
+  function textoFechaEscrita(r) {
+    var f = r.fecha, d = aFecha(f), h = hoyStr(), txt;
+    if (f === h) txt = 'hoy';
+    else if (f === sumarDias(h, 1)) txt = 'mañana';
+    else txt = DSEM[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+    return txt + (r.hora ? ' a las ' + r.hora : '');
+  }
+  function pintarEscrita() {
+    var p = $('fecha-escrita'), r = fechaEscrita();
+    if (!r) { if (!p.hidden) { p.hidden = true; p.textContent = ''; } return; }
+    var msg = 'Se guarda para ' + textoFechaEscrita(r) + '. Título: “' + r.texto + '”.';
+    if (p.hidden || p.getAttribute('data-m') !== msg) {
+      p.hidden = false; p.setAttribute('data-m', msg); p.textContent = '';
+      p.appendChild(document.createTextNode(msg));
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'mini'; b.textContent = 'Dejar todo en el título';
+      b.addEventListener('click', function () { IGN_FECHA = r.texto; pintarEscrita(); input.focus(); });
+      p.appendChild(b);
+    }
+  }
+  input.addEventListener('input', pintarEscrita);
   function pintarMas() {
     var partes = [];
     if ($('input-nota').value.trim()) partes.push('con detalle');
@@ -2892,6 +3133,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('rotulo-limite').textContent = k === 'rep' ? 'Hora de cada vez (opcional)' : (k === 'otro' ? 'Fecha y hora límite (opcional)' : 'Hora límite (opcional)');
     $('cuando-nota').textContent = k === 'rep' ? 'Se repite: ' + diasTexto(diasElegidos()) + '. Para ponerle fecha, sacá los días en Más opciones.' : '';
     pintarMas();
+    pintarEscrita();
   }
   Array.prototype.forEach.call(document.querySelectorAll('.cuando-chip'), function (b) {
     b.addEventListener('click', function () {
@@ -3433,7 +3675,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
   function fotoCompleta() {
-    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES, notas: NOTAS }));
+    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES, notas: claveBloqueada() ? notasGuardadas() : NOTAS, clave: CLAVE.cfg }));
   }
   function restaurarFoto(f) {
     EXTRA = f.extra; guardarHojas();
@@ -3443,7 +3685,12 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     RACH = limpiarRach(f.rach); guardarRach();
     aplicarPrefs(f.prefs);
     CUMPLES = limpiarListaCumples(f.cumples || []); guardarCumples(); pintarCumples();
-    NOTAS = limpiarListaNotas(f.notas || []); guardarNotas();
+    NOTAS = limpiarListaNotas(f.notas || []);
+    var cfgAntes = validarCfgClave(f.clave);
+    if (!cfgAntes && CLAVE.cfg) { CLAVE.seq++; CLAVE.cfg = null; CLAVE.key = null; try { localStorage.removeItem(LS_CLAVE); } catch (e) {} }
+    else if (cfgAntes && (!CLAVE.cfg || CLAVE.cfg.salt !== cfgAntes.salt)) { CLAVE.cfg = cfgAntes; CLAVE.key = null; lsEscribir(LS_CLAVE, JSON.stringify(cfgAntes)); }
+    if (claveBloqueada()) lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); else guardarNotas();
+    if (typeof VISTA !== 'undefined' && VISTA === 'notas') renderNotas();
   }
 
   function armarCopia(tareas, hojas, hist, modelos, estilos, extra) {
@@ -3452,6 +3699,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (extra && extra.preferencias) o.preferencias = extra.preferencias;
     if (extra && Array.isArray(extra.cumples)) o.cumples = extra.cumples;
     if (extra && Array.isArray(extra.notas) && extra.notas.length) o.notas = extra.notas;
+    if (extra && extra.clave && o.notas) o.clave = extra.clave;
     o.tareas = tareas;
     return JSON.stringify(o, null, 2);
   }
@@ -3474,7 +3722,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var otro = !Array.isArray(obj) && obj && ((Array.isArray(obj.hojas) && obj.hojas.some(nombreValido)) || (Array.isArray(obj.modelos) && obj.modelos.length) || (Array.isArray(obj.cumples) && obj.cumples.length) || (Array.isArray(obj.notas) && obj.notas.length));
     if (!res.length && !otro) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, clave: (!Array.isArray(obj) && obj.clave) ? validarCfgClave(obj.clave) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
   }
 
   function contarCopia(arr) {
@@ -3544,8 +3792,58 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     el.textContent = 'Última copia: ' + textoDia(claveDia(ult)) + ' · ' + dos(d.getHours()) + ':' + dos(d.getMinutes()) + (viejo ? '. Conviene hacer una nueva.' : '');
   }
 
+  /* Recordatorio de copia: pasados 14 días desde la última copia (o desde el primer uso), si hay datos. */
+  var LS_PRIMER = 'tareasdiarias.primeruso', LS_POSP = 'tareasdiarias.copiaposp';
+  function pintarAvisoCopia() {
+    var b = $('aviso-copia'); if (!b) return;
+    var ahora = Date.now();
+    var ult = parseInt(lsLeer(LS_COPIA) || '', 10);
+    var prim = parseInt(lsLeer(LS_PRIMER) || '', 10);
+    if (!prim) { prim = ahora; lsEscribir(LS_PRIMER, String(prim)); }
+    var ref = ult || prim;
+    var posp = parseInt(lsLeer(LS_POSP) || '', 10) || 0;
+    var hay = S.tareas.length > 0 || (typeof NOTAS !== 'undefined' && NOTAS.length > 0) || (typeof CUMPLES !== 'undefined' && CUMPLES.length > 0);
+    b.hidden = !(hay && ahora - ref > 14 * 86400000 && ahora - posp > 7 * 86400000);
+  }
+  $('btn-copia-ok').addEventListener('click', function () { $('btn-exportar').click(); });
+  $('btn-copia-no').addEventListener('click', function () { lsEscribir(LS_POSP, String(Date.now())); $('aviso-copia').hidden = true; });
+
   function ocultarConfirma() { PEND = null; $('respaldo-confirma').hidden = true; }
 
+
+  /* Contraseñas de una copia: respetan la clave maestra (una copia protegida sigue cifrada). */
+  function importarNotasCopia(modo) {
+    var pn = PEND.notas && PEND.notas.length ? PEND.notas : null;
+    if (!pn) return '';
+    var NO = ' Las contraseñas de la copia no se importaron: ';
+    if (!PEND.clave) {
+      pn = pn.filter(function (n) { return !n.cif; });
+      if (!pn.length) return '';
+      if (claveBloqueada()) return NO + 'desbloqueá las contraseñas y volvé a importar.';
+      NOTAS = modo === 'reemplazar' ? pn.slice() : mezclarNotas(NOTAS, pn); guardarNotas();
+      return '';
+    }
+    if (!CLAVE.cfg) {
+      if (NOTAS.length && modo !== 'reemplazar') return NO + 'están protegidas con una clave maestra y las tuyas no.';
+      CLAVE.seq++; CLAVE.cfg = PEND.clave; CLAVE.key = null; CLAVEUI.modo = '';
+      lsEscribir(LS_CLAVE, JSON.stringify(PEND.clave));
+      NOTAS = pn.slice(); lsEscribir(LS_NOTAS, JSON.stringify(NOTAS));
+      return ' Las contraseñas quedaron bloqueadas: usá la clave maestra de la copia para verlas.';
+    }
+    if (CLAVE.cfg.salt !== PEND.clave.salt) return NO + 'están protegidas con otra clave maestra.';
+    if (!CLAVE.key) {
+      NOTAS = modo === 'reemplazar' ? pn.slice() : mezclarNotas(NOTAS, pn);
+      lsEscribir(LS_NOTAS, JSON.stringify(NOTAS));
+      return '';
+    }
+    var key = CLAVE.key;
+    Promise.all(pn.map(function (n) { return n.cif ? descifrarTxt(key, n.cif) : Promise.resolve(n.texto || ''); })).then(function (ts) {
+      var dec = pn.map(function (n, i) { return { id: n.id, titulo: n.titulo, texto: ts[i], fijada: n.fijada, creada: n.creada, editada: n.editada }; });
+      NOTAS = modo === 'reemplazar' ? dec : mezclarNotas(NOTAS, dec); guardarNotas();
+      if (VISTA === 'notas') renderNotas();
+    }).catch(function () { avisoRespaldo('No se pudieron leer las contraseñas de la copia.', true); });
+    return '';
+  }
   function aplicarCopia(modo) {
     if (!PEND || !S.listo) return;
     var previo = S.tareas.slice();
@@ -3568,13 +3866,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       guardarRach();
     }
     if (modo === 'reemplazar') aplicarPrefs(PEND.preferencias);
-    if (PEND.notas && PEND.notas.length) { NOTAS = modo === 'reemplazar' ? PEND.notas.slice() : mezclarNotas(NOTAS, PEND.notas); guardarNotas(); }
+    var msgNotas = importarNotasCopia(modo);
     if (PEND.cumples) { CUMPLES = modo === 'reemplazar' ? PEND.cumples.slice() : mezclarCumples(CUMPLES, PEND.cumples); guardarCumples(); pintarCumples(); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
       ? 'Se reemplazaron tus tareas por las de la copia (' + total + ').'
       : 'Copia importada: ' + nuevas + (nuevas === 1 ? ' nueva' : ' nuevas') + ' y ' + (total - nuevas) + (total - nuevas === 1 ? ' actualizada.' : ' actualizadas.');
+    msg += msgNotas;
     avisar(msg, function () { restaurarFoto(foto); volcarEstado(previo); });
     avisoRespaldo(msg);
     setTimeout(generarRepetidas, 500);
@@ -3582,10 +3881,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES, notas: NOTAS });
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES, notas: CLAVE.cfg ? notasGuardadas() : NOTAS, clave: CLAVE.cfg });
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
+      pintarAvisoCopia();
       avisoRespaldo('Copia guardada: ' + n.texto + '.');
     }).catch(function (e) {
       if (e && e.code === 'declined') return;
@@ -3653,7 +3953,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       MODELOS = []; guardarModelos(); pintarListaModelos();
       RACH = { ok: {}, vis: {} }; guardarRach();
       CUMPLES = []; guardarCumples(); pintarCumples();
-      NOTAS = []; guardarNotas();
+      olvidarClave(); CLAVEUI.modo = '';
       aparienciaDeFabrica();
       try { localStorage.removeItem('tareasdiarias.instalar'); } catch (e) {}
       INICIO = 'ultima'; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO;
@@ -4390,7 +4690,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (q.length < 2) { $('busq-cuenta').textContent = ''; var p0 = document.createElement('p'); p0.className = 'busq-vacio'; p0.textContent = 'Escribí al menos 2 letras para buscar.'; cont.appendChild(p0); return; }
     var ts = S.tareas.filter(function (t) { return pajarBusq((t.text || '') + ' ' + (t.nota || '') + ' ' + (t.pasos || []).map(function (p) { return p.text; }).join(' '), q); });
     ts.sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (b.created || 0) - (a.created || 0); });
-    var ns = NOTAS.filter(function (n) { return pajarBusq(n.titulo, q); });
+    var ns = claveBloqueada() ? [] : NOTAS.filter(function (n) { return pajarBusq(n.titulo, q); });
     var cs = CUMPLES.filter(function (c) { return pajarBusq(c.nombre + ' ' + (c.grupo || '') + ' ' + (c.nota || ''), q); });
     var total = ts.length + ns.length + cs.length;
     $('busq-cuenta').textContent = total ? total + (total === 1 ? ' resultado' : ' resultados') : '';
@@ -4515,9 +4815,116 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     f.appendChild(ti); f.appendChild(tx); f.appendChild(vl); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
     return li;
   }
+
+  /* --- Pantalla de la clave maestra --- */
+  var CLAVEUI = { modo: '', sig: '' };
+  function cEl(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt) e.textContent = txt; return e; }
+  function cBtn(txt, cls, dat, fn) { var b = cEl('button', 'mini' + (cls ? ' ' + cls : ''), txt); b.type = 'button'; b.setAttribute('data-clave', dat); b.addEventListener('click', fn); return b; }
+  function cCampo(id, etiqueta, nuevo) {
+    var l = cEl('label', 'sr-only', etiqueta); l.htmlFor = id;
+    var i = cEl('input'); i.type = 'password'; i.id = id; i.maxLength = 100; i.placeholder = etiqueta; i.autocomplete = nuevo ? 'new-password' : 'current-password'; i.setAttribute('autocapitalize', 'off'); i.spellcheck = false;
+    var f = document.createDocumentFragment(); f.appendChild(l); f.appendChild(i); return f;
+  }
+  function cForm(campos, aviso, boton, peligro, alEnviar) {
+    var f = cEl('form'); f.autocomplete = 'off';
+    campos.forEach(function (c) { f.appendChild(cCampo(c[0], c[1], c[2])); });
+    var chk = null;
+    if (aviso) {
+      var lb = cEl('label', 'nota-ver'); chk = cEl('input'); chk.type = 'checkbox'; chk.id = 'clave-ok';
+      lb.appendChild(chk); lb.appendChild(document.createTextNode(' ' + aviso)); f.appendChild(lb);
+    }
+    var er = cEl('p', 'editor-error'); er.setAttribute('role', 'alert'); er.hidden = true; f.appendChild(er);
+    var fila = cEl('div', 'clave-fila');
+    var ok = cEl('button', 'mini ' + (peligro ? 'peligro' : 'primario'), boton); ok.type = 'submit'; ok.setAttribute('data-clave', 'ok');
+    fila.appendChild(ok);
+    fila.appendChild(cBtn('Cancelar', '', 'cancelar', function () { CLAVEUI.modo = ''; renderNotas(); }));
+    f.appendChild(fila);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (ok.disabled) return;
+      var ver = function (m) { errorNota(er, m); };
+      ver('');
+      alEnviar({ val: function (id) { return $(id).value; }, chk: chk, err: ver, ocupado: function (si, t) { ok.disabled = si; ok.textContent = si ? t : boton; } });
+    });
+    return f;
+  }
+  function pintarClave() {
+    var z = $('clave-zona'), bloq = claveBloqueada();
+    var sig = (CLAVE.cfg ? 'c' : 'n') + (CLAVE.key ? 'k' : 'b') + CLAVEUI.modo + (sub() ? 's' : 'x');
+    $('form-nota').hidden = bloq; $('notas-lista').hidden = bloq; $('notas-cuenta').hidden = bloq;
+    document.querySelector('#vista-notas .nota-buscar').hidden = bloq;
+    $('notas-cifrado').textContent = CLAVE.cfg ? 'Están cifradas con tu clave maestra.' : 'No están cifradas: cualquiera que use este dispositivo desbloqueado podría verlas.';
+    if (sig === CLAVEUI.sig) return;
+    CLAVEUI.sig = sig; z.textContent = '';
+    var m = CLAVEUI.modo, foco = null;
+    if (!CLAVE.cfg) {
+      if (!sub()) { z.appendChild(cEl('p', '', 'Este navegador no permite cifrar, así que no se puede usar clave maestra.')); return; }
+      if (m === 'crear') {
+        z.appendChild(cEl('p', '', 'Elegí una clave maestra (mínimo 6 caracteres). Se te va a pedir para ver tus contraseñas.'));
+        z.appendChild(cForm([['clave-1', 'Clave maestra', true], ['clave-2', 'Repetir la clave', true]], 'Entiendo que si me olvido de la clave no hay forma de recuperar las contraseñas.', 'Proteger', false, function (c) { crearOCambiar(c, 'Clave maestra activada'); }));
+        foco = 'clave-1';
+      } else {
+        z.appendChild(cEl('p', '', 'Protegé tus contraseñas con una clave maestra: se guardan cifradas y hay que escribirla para verlas.'));
+        z.appendChild(cBtn('Proteger con clave maestra', 'primario', 'crear', function () { CLAVEUI.modo = 'crear'; renderNotas(); var e = $('clave-1'); if (e) e.focus(); }));
+      }
+    } else if (bloq) {
+      if (m === 'olvide') {
+        z.appendChild(cEl('p', '', 'Si te olvidaste la clave, no se pueden recuperar las contraseñas. Lo único posible es borrarlas todas y empezar de cero.'));
+        var fo = cEl('div', 'clave-fila');
+        fo.appendChild(cBtn('Borrar todo y quitar la clave', 'peligro', 'borrar', function () { olvidarClave(); CLAVEUI.modo = ''; renderNotas(); avisar('Contraseñas borradas', null); }));
+        fo.appendChild(cBtn('Cancelar', '', 'cancelar', function () { CLAVEUI.modo = ''; renderNotas(); }));
+        z.appendChild(fo);
+      } else {
+        z.appendChild(cEl('p', '', '🔒 Tus contraseñas están bloqueadas. Escribí la clave maestra para verlas.'));
+        z.appendChild(cForm([['clave-pass', 'Clave maestra', false]], '', 'Desbloquear', false, function (c) {
+          var p = c.val('clave-pass');
+          if (!p) { c.err('Escribí la clave.'); return; }
+          c.ocupado(true, 'Desbloqueando…');
+          desbloquearClave(p).then(function () { CLAVEUI.modo = ''; renderNotas(); var t = $('nota-titulo'); if (t) t.focus(); }).catch(function () {
+            c.ocupado(false); c.err('La clave no es correcta.'); var e = $('clave-pass'); if (e) { e.value = ''; e.focus(); }
+          });
+        }));
+        var cn = z.querySelector('[data-clave="cancelar"]'); if (cn) cn.remove();
+        z.appendChild(cBtn('Me olvidé la clave', '', 'olvide', function () { CLAVEUI.modo = 'olvide'; renderNotas(); }));
+        foco = 'clave-pass';
+      }
+    } else {
+      if (m === 'cambiar') {
+        z.appendChild(cEl('p', '', 'Elegí la clave nueva (mínimo 6 caracteres).'));
+        z.appendChild(cForm([['clave-1', 'Clave nueva', true], ['clave-2', 'Repetir la clave nueva', true]], 'Entiendo que si me olvido de la clave no hay forma de recuperar las contraseñas.', 'Cambiar clave', false, function (c) { crearOCambiar(c, 'Clave cambiada'); }));
+        foco = 'clave-1';
+      } else if (m === 'quitar') {
+        z.appendChild(cEl('p', '', 'Se va a quitar la clave maestra y tus contraseñas quedarán guardadas sin cifrar en este dispositivo.'));
+        var fq = cEl('div', 'clave-fila');
+        fq.appendChild(cBtn('Quitar la clave', 'peligro', 'confirmar-quitar', function () { quitarClave(); CLAVEUI.modo = ''; renderNotas(); avisar('Clave maestra quitada', null); }));
+        fq.appendChild(cBtn('Cancelar', '', 'cancelar', function () { CLAVEUI.modo = ''; renderNotas(); }));
+        z.appendChild(fq);
+      } else {
+        z.appendChild(cEl('p', '', '🔓 Contraseñas desbloqueadas. Se bloquean solas si dejás la app en segundo plano más de 2 minutos.'));
+        var fa = cEl('div', 'clave-fila');
+        fa.appendChild(cBtn('Bloquear ahora', 'primario', 'bloquear', function () { bloquearClave(); }));
+        fa.appendChild(cBtn('Cambiar clave', '', 'cambiar', function () { CLAVEUI.modo = 'cambiar'; renderNotas(); var e = $('clave-1'); if (e) e.focus(); }));
+        fa.appendChild(cBtn('Quitar clave', '', 'quitar', function () { CLAVEUI.modo = 'quitar'; renderNotas(); }));
+        z.appendChild(fa);
+      }
+    }
+    if (foco && $(foco) && VISTA === 'notas' && m) $(foco).focus();
+  }
+  function crearOCambiar(c, okMsg) {
+    var a = c.val('clave-1'), b = c.val('clave-2');
+    if (a.length < 6) { c.err('La clave tiene que tener al menos 6 caracteres.'); return; }
+    if (a !== b) { c.err('Las dos claves no coinciden.'); return; }
+    if (!c.chk.checked) { c.err('Tildá la casilla para confirmar que entendés que no se puede recuperar.'); return; }
+    c.ocupado(true, 'Protegiendo…');
+    activarClave(a).then(function () { CLAVEUI.modo = ''; NOTAUI.ver = {}; renderNotas(); avisar(okMsg, null); }).catch(function () {
+      c.ocupado(false); c.err('No se pudo activar la clave en este navegador.');
+    });
+  }
   function renderNotas() {
     document.title = 'Contraseñas · Al toque';
+    pintarClave();
     var ul = $('notas-lista'); ul.textContent = '';
+    if (claveBloqueada()) { $('notas-cuenta').textContent = ''; return; }
     var q = NOTAUI.q.trim().toLowerCase();
     var orden = NOTAS.slice().sort(function (a, b) { return (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || (b.editada || 0) - (a.editada || 0); });
     var vis = q ? orden.filter(function (n) { return n.titulo.toLowerCase().indexOf(q) >= 0; }) : orden;
@@ -4893,6 +5300,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     input.value = input.value.replace(/\s*[\r\n]+\s*/g, ' ');
     var texto = input.value.trim();
     if (!texto || !S.listo) return;
+    var esc = fechaEscrita();
+    if (esc) { texto = esc.texto; inFecha.value = esc.fecha; if (esc.hora) inHora.value = esc.hora; }
+    IGN_FECHA = '';
     var nota = $('input-nota').value.trim().slice(0, 300);
     var dias = diasElegidos();
     if (dias.length) {
@@ -5313,6 +5723,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* ---------- Arranque ---------- */
   function habilitar() {
     S.listo = true;
+    pintarAvisoCopia();
     setTimeout(generarRepetidas, 300);
     input.disabled = false; btnAgregar.disabled = false;
     mostrarEstado(); render();
@@ -6203,6 +6614,24 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     });
+    /* Aviso de versión nueva: cuando un service worker nuevo toma el control y la app ya estaba abierta con otro. */
+    (function () {
+      var tenia = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!tenia) { tenia = true; return; }
+        var b = $('version-nueva');
+        if (b && b.hidden) { b.hidden = false; }
+      });
+      $('btn-version-ok').addEventListener('click', function () { try { location.reload(); } catch (e) {} });
+      $('btn-version-no').addEventListener('click', function () { $('version-nueva').hidden = true; });
+      /* Al volver a la app, buscar si hay una versión nueva (el navegador solo lo hace de vez en cuando). */
+      var ult = 0;
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden || Date.now() - ult < 600000) return;
+        ult = Date.now();
+        try { navigator.serviceWorker.getRegistration().then(function (r) { if (r) r.update().catch(function () {}); }); } catch (e) {}
+      });
+    })();
   }
 })();
 </script>
