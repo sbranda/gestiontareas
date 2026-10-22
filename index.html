@@ -316,6 +316,8 @@ body.panel-abierto { overflow: hidden; }
 .respaldo .respaldo-estado.error { color: var(--danger); font-weight: 600; }
 .respaldo-confirma { margin-top: 14px; padding: 14px; background: var(--accent-soft); border-radius: 8px; }
 .respaldo-confirma p { color: var(--ink); }
+.mini.peligro { color: var(--danger); border-color: var(--danger); }
+#hoja-borrar-confirma { text-align: left; }
 
 /* Splash: fondo del mismo color que el ícono (#192C33), el ícono recortado a su mosaico y una barra de 3 segundos. */
 #splash { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #192C33; color: #E6EDF2; text-align: center; }
@@ -976,6 +978,13 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       <button type="button" class="mini" id="btn-renombrar">✎ Cambiar nombre</button>
     </div>
     <button type="button" class="btn-limpiar" id="btn-borrar-hoja">Eliminar esta hoja</button>
+    <div class="respaldo-confirma" id="hoja-borrar-confirma" role="alertdialog" aria-labelledby="hoja-borrar-txt" hidden>
+      <p id="hoja-borrar-txt"></p>
+      <div class="hoja-ops">
+        <button type="button" class="mini" id="btn-hoja-no">Cancelar</button>
+        <button type="button" class="mini peligro" id="btn-hoja-si">Sí, eliminar</button>
+      </div>
+    </div>
   </div>
 
   <section id="vista-cal" hidden aria-label="Calendario mensual">
@@ -5138,6 +5147,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     pintarModelos(!enCal && !esHoy && S.hoja !== 'repetidas');
     $('filtros-tareas').hidden = enCal || (!esHoy && S.hoja === 'repetidas');
     if (propia) $('btn-borrar-hoja').textContent = 'Eliminar la hoja ' + S.hoja;
+    if (!propia || $('hoja-borrar-confirma').getAttribute('data-h') !== S.hoja) { $('hoja-borrar-confirma').hidden = true; }
     document.querySelector('.progreso').hidden = enCal;
     Array.prototype.forEach.call(document.querySelectorAll('.vista'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-vista') === VISTA ? 'true' : 'false');
@@ -5477,7 +5487,18 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (nuevo === viejo) return;
     avisar('Hoja renombrada: ' + viejo + ' → ' + nuevo, function () { renombrarHoja(nuevo, viejo); });
   });
+  function cerrarConfirmaHoja() { $('hoja-borrar-confirma').hidden = true; }
   $('btn-borrar-hoja').addEventListener('click', function () {
+    var h = S.hoja, n = S.tareas.filter(function (t) { return t.dest === h; }).length;
+    if (indiceHoja(h) < 0) return;
+    $('hoja-borrar-txt').textContent = '¿Eliminar la hoja «' + h + '»? ' + (n ? (n === 1 ? 'Su tarea' : 'Sus ' + n + ' tareas') + ' no se borra' + (n === 1 ? '' : 'n') + ': vuelve' + (n === 1 ? '' : 'n') + ' a Diarias.' : 'No tiene tareas.') + ' Después podés deshacerlo desde el aviso.';
+    $('hoja-borrar-confirma').setAttribute('data-h', h); $('hoja-borrar-confirma').hidden = false;
+    $('btn-hoja-no').focus();
+  });
+  $('btn-hoja-no').addEventListener('click', function () { cerrarConfirmaHoja(); $('btn-borrar-hoja').focus(); });
+  $('hoja-borrar-confirma').addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); cerrarConfirmaHoja(); $('btn-borrar-hoja').focus(); } });
+  $('btn-hoja-si').addEventListener('click', function () {
+    cerrarConfirmaHoja();
     var h = S.hoja, pos = indiceHoja(h);
     if (pos < 0) return;
     var ids = S.tareas.filter(function (t) { return t.dest === h; }).map(function (t) { return t.id; });
