@@ -1,6 +1,6 @@
 {
-  "name": "Tareas Diarias",
-  "short_name": "Tareas",
+  "name": "Al toque",
+  "short_name": "Al toque",
   "description": "Planilla de tareas diarias con hojas propias, calendario e historial. Funciona sin conexión.",
   "lang": "es-AR",
   "start_url": "./",

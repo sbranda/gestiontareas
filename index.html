@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tareas Diarias</title>
+<title>Al toque</title>
 <meta name="description" content="Planilla de tareas diarias con hojas propias (Instituto, Casa, Proyectos…). Funciona sin conexión.">
 <meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E161C" media="(prefers-color-scheme: dark)">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Tareas">
+<meta name="apple-mobile-web-app-title" content="Al toque">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 /* Layout: una planilla con solapas (Diarias / Instituto), como las hojas de una planilla de cálculo.
@@ -693,9 +693,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 </style>
 </head>
 <body>
-<div id="splash" role="status" aria-label="Cargando Tareas Diarias">
+<div id="splash" role="status" aria-label="Cargando Al toque">
   <div class="splash-ico"><img src="icon-512.png" alt="" width="512" height="512"></div>
-  <p class="splash-nombre">Tareas Diarias</p>
+  <p class="splash-nombre">Al toque</p>
   <div class="splash-barra" role="progressbar" aria-label="Cargando" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="splash-relleno"></div></div>
 </div>
 <script>
@@ -733,7 +733,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   <div class="instalar" id="instalar" role="region" aria-labelledby="instalar-t" data-no-print hidden>
     <img src="icon-192.png" alt="" width="36" height="36" class="instalar-ico">
     <div class="instalar-txt">
-      <strong id="instalar-t">Instalá Tareas Diarias</strong>
+      <strong id="instalar-t">Instalá Al toque</strong>
       <span id="instalar-msg">Abre como una app y funciona sin conexión.</span>
     </div>
     <div class="instalar-bot">
@@ -760,7 +760,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       </div>
     </div>
     <div class="sr-only" id="sync-aviso" role="status" aria-live="polite"></div>
-    <h1>Tareas Diarias</h1>
+    <h1>Al toque</h1>
     <div class="progreso">
       <div class="progreso-linea">
         <div class="progreso-texto" id="progreso-texto" aria-live="polite"></div>
@@ -1576,7 +1576,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* Archivo .ics: eventos de todo el día que se repiten cada año. */
   function armarICSCumples(lista, ahora, antes) {
     var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas Diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Cumpleaños'];
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Al toque//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Cumpleaños'];
     var y = new Date(ahora).getFullYear();
     lista.forEach(function (c) {
       var ini = claveCumple(c, 2001), fin = sumarDias(ini, 1);
@@ -2315,7 +2315,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function armarICS(tareas, ahora) {
     var sello = new Date(ahora).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tareas Diarias//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Tareas Diarias'];
+    var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Al toque//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Al toque'];
     var n = 0;
     tareas.forEach(function (t) {
       if (t.done || t.plantilla || t.due == null || t.due < ahora) return;
@@ -3438,7 +3438,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var obj;
     try { obj = JSON.parse(texto); } catch (e) { return { error: 'El archivo no es una copia válida.' }; }
     var arr = Array.isArray(obj) ? obj : (obj && obj.app === 'tareas-diarias' && Array.isArray(obj.tareas) ? obj.tareas : null);
-    if (!arr) return { error: 'El archivo no parece una copia de Tareas Diarias.' };
+    if (!arr) return { error: 'El archivo no parece una copia de Al toque.' };
     if (arr.length > 5000) return { error: 'La copia tiene demasiadas tareas (el máximo es 5000).' };
     var vistos = {}, res = [];
     arr.forEach(function (t) {
@@ -4073,7 +4073,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var lun = lunesImpresion(), sem = semanaImpresa(S.tareas, lun), box = $('impresion');
     box.textContent = '';
     function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
-    box.appendChild(el('h1', '', 'Tareas Diarias · ' + textoSemana(lun)));
+    box.appendChild(el('h1', '', 'Al toque · ' + textoSemana(lun)));
     function fila(t) {
       var li = el('li', '');
       var txt = (t.done ? '☑ ' : '☐ ') + (t.urgente ? '★ ' : '') + t.text;
@@ -4362,7 +4362,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var li = document.querySelector('[data-nota="' + n.id + '"]'); if (li && li.scrollIntoView) li.scrollIntoView({ block: 'center' });
   }
   function renderBuscar() {
-    document.title = 'Buscar · Tareas Diarias';
+    document.title = 'Buscar · Al toque';
     var cont = $('busq-res'), q = BUSQ.q.trim(); cont.textContent = '';
     if (q.length < 2) { $('busq-cuenta').textContent = ''; var p0 = document.createElement('p'); p0.className = 'busq-vacio'; p0.textContent = 'Escribí al menos 2 letras para buscar.'; cont.appendChild(p0); return; }
     var ts = S.tareas.filter(function (t) { return pajarBusq((t.text || '') + ' ' + (t.nota || '') + ' ' + (t.pasos || []).map(function (p) { return p.text; }).join(' '), q); });
@@ -4479,7 +4479,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     return li;
   }
   function renderNotas() {
-    document.title = 'Anotaciones · Tareas Diarias';
+    document.title = 'Anotaciones · Al toque';
     var ul = $('notas-lista'); ul.textContent = '';
     var q = NOTAUI.q.trim().toLowerCase();
     var orden = NOTAS.slice().sort(function (a, b) { return (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || (b.editada || 0) - (a.editada || 0); });
@@ -4514,7 +4514,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function pintarReloj() {
     var r = restanteEnf();
     $('enf-reloj').textContent = formatoTemp(r);
-    if (ENF.fin && VISTA === 'enfoque') document.title = formatoTemp(r) + ' · Enfoque · Tareas Diarias';
+    if (ENF.fin && VISTA === 'enfoque') document.title = formatoTemp(r) + ' · Enfoque · Al toque';
   }
   function programarEnf() {
     clearInterval(ENF_T); ENF_T = null;
@@ -4552,7 +4552,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('enf-card').hidden = !cur;
     $('enf-vacio').hidden = !!cur || !S.listo;
     pintarFinDia($('enf-fin'), S.listo && !cur && (HIST[hoyStr()] || 0) > 0);
-    if (!cur) { document.title = 'Enfoque · Tareas Diarias'; return; }
+    if (!cur) { document.title = 'Enfoque · Al toque'; return; }
     var pos = q.todas.indexOf(cur) + 1, partes = [];
     if (cur.urgente) partes.push('★ Urgente');
     if (cur.due != null && cur.due < AHORA) partes.push('Atrasada'); else if (fechaDe(cur) === hoyStr()) partes.push('Para hoy');
@@ -4655,7 +4655,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function render() {
     AHORA = Date.now();
     sincronizarHojas();
-    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Tareas Diarias';
+    document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Al toque';
     pintarRespaldo();
     var esHoy = VISTA === 'hoy';
     var enCal = VISTA !== 'lista' && !esHoy;
@@ -4715,7 +4715,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
         p.textContent = 'Escribí una tarea, elegí los días en Repetir y tocá Agregar.';
       } else if (S.hoja === 'diarias' && S.tareas.length === 0 && Object.keys(HIST).length === 0) {
         li.className = 'vacio bienvenida';
-        st.textContent = '¡Bienvenido a Tareas Diarias!';
+        st.textContent = '¡Bienvenido a Al toque!';
         p.textContent = 'Anotá lo que tenés que hacer hoy: escribís, tocás Agregar y listo.';
         li.appendChild(st); li.appendChild(p);
         var primera = document.createElement('button');
@@ -5296,7 +5296,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
         btnI.hidden = true;
         msg.textContent = esIOS ? 'Tocá el botón Compartir de Safari y elegí «Agregar a pantalla de inicio».'
           : (esAndroid ? 'Abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a pantalla de inicio».'
-            : 'Buscá el ícono de instalar en la barra de direcciones del navegador, o en su menú: «Instalar Tareas Diarias».');
+            : 'Buscá el ícono de instalar en la barra de direcciones del navegador, o en su menú: «Instalar Al toque».');
       }
       caja.hidden = false;
       if (estI) estI.textContent = 'El aviso de instalación volvió a aparecer arriba.';
