@@ -416,6 +416,9 @@ body.panel-abierto { overflow: hidden; }
 .nota { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .nota.fijada { border-left: 4px solid var(--accent); }
 .nota-titulo { margin: 0 0 4px; font-size: 1.0625rem; font-weight: 700; overflow-wrap: anywhere; }
+.nota-ver { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.9375rem; }
+.nota-ver input { width: 20px; height: 20px; min-height: 0; flex: none; }
+.nota-clave { margin: 0 0 6px; font-family: var(--font-mono); overflow-wrap: anywhere; line-height: 1.45; }
 .nota-texto { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
 .nota-fecha { margin: 0 0 8px; color: var(--muted); font-size: 0.8125rem; }
 .nota .mini { min-height: 44px; padding: 0 12px; }
@@ -857,7 +860,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   <section id="vista-buscar" hidden aria-label="Buscar en todo">
     <h2 class="busq-h">Buscar en todo</h2>
-    <p class="notas-ayuda">Busca en las tareas de todas las solapas, en las notas y en los cumpleaños.</p>
+    <p class="notas-ayuda">Busca en las tareas de todas las solapas, en los nombres de tus contraseñas y en los cumpleaños.</p>
     <div class="nota-buscar">
       <label for="busq-q" class="sr-only">Qué buscar</label>
       <input type="search" id="busq-q" placeholder="Escribí al menos 2 letras" maxlength="60" autocomplete="off">
@@ -866,23 +869,24 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <div id="busq-res"></div>
     <button type="button" class="mini" id="busq-volver">Volver</button>
   </section>
-  <section id="vista-notas" hidden aria-label="Hoja de anotaciones">
-    <h2 class="notas-h">Anotaciones</h2>
-    <p class="notas-ayuda">Guardá acá datos importantes: números, direcciones, códigos de aula. Quedan en este dispositivo y, si activaste la sincronización con GitHub, también en tu gist privado. No están cifradas, así que evitá contraseñas.</p>
+  <section id="vista-notas" hidden aria-label="Contraseñas">
+    <h2 class="notas-h">Contraseñas</h2>
+    <p class="notas-ayuda">Guardá acá tus contraseñas. Se ven ocultas hasta que toques <strong>Mostrar</strong>. Quedan solo en este dispositivo, no se sincronizan con GitHub y <strong>no están cifradas</strong>: cualquiera que use este dispositivo desbloqueado podría verlas.</p>
     <form class="nota-form" id="form-nota" autocomplete="off">
-      <label for="nota-titulo" class="sr-only">Título de la nota (opcional)</label>
-      <input type="text" id="nota-titulo" maxlength="60" placeholder="Título (opcional)">
-      <label for="nota-texto" class="sr-only">Texto de la nota</label>
-      <textarea id="nota-texto" rows="4" maxlength="2000" placeholder="Escribí el dato importante"></textarea>
+      <label for="nota-titulo" class="sr-only">Sitio o cuenta</label>
+      <input type="text" id="nota-titulo" maxlength="60" placeholder="Sitio o cuenta (ej. Gmail)">
+      <label for="nota-texto" class="sr-only">Contraseña</label>
+      <input type="password" id="nota-texto" maxlength="200" placeholder="Contraseña" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+      <label class="nota-ver"><input type="checkbox" id="nota-ver-nueva"> Mostrar lo que escribo</label>
       <p class="editor-error" id="nota-error" role="alert" hidden></p>
-      <button type="submit" class="mini primario">Guardar nota</button>
+      <button type="submit" class="mini primario">Guardar contraseña</button>
     </form>
     <div class="nota-buscar">
-      <label for="nota-buscar" class="sr-only">Buscar en las notas</label>
-      <input type="search" id="nota-buscar" placeholder="Buscar en las notas" maxlength="60">
+      <label for="nota-buscar" class="sr-only">Buscar una contraseña por su nombre</label>
+      <input type="search" id="nota-buscar" placeholder="Buscar por nombre" maxlength="60">
     </div>
     <p class="notas-cuenta" id="notas-cuenta" role="status"></p>
-    <ul class="notas-lista" id="notas-lista" aria-label="Notas guardadas"></ul>
+    <ul class="notas-lista" id="notas-lista" aria-label="Contraseñas guardadas"></ul>
   </section>
 
   <section id="vista-enfoque" hidden aria-label="Modo enfoque">
@@ -1748,7 +1752,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   var NOTAS = [];
   try { NOTAS = limpiarListaNotas(JSON.parse(lsLeer(LS_NOTAS) || '[]')); } catch (e) {}
-  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); if (typeof tocarMod === 'function') tocarMod('notas'); }
+  function guardarNotas() { lsEscribir(LS_NOTAS, JSON.stringify(NOTAS)); }
   var ENF = { id: null, saltadas: [], dur: 25 * 60000, fin: null, pausa: null, msg: '' };
   try {
     var oe = JSON.parse(lsLeer(LS_ENF) || 'null');
@@ -2530,7 +2534,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       modelos: Array.isArray(o.modelos) ? limpiarListaModelos(o.modelos) : [],
       estilos: limpiarEstilos(o.estilos),
       cumples: Array.isArray(o.cumples) ? limpiarListaCumples(o.cumples) : [],
-      notas: Array.isArray(o.notas) ? limpiarListaNotas(o.notas) : []
+      notas: [],
+      hayNotas: Array.isArray(o.notas) && o.notas.length > 0
     };
   }
   /* --- fin funciones puras --- */
@@ -4369,7 +4374,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (q.length < 2) { $('busq-cuenta').textContent = ''; var p0 = document.createElement('p'); p0.className = 'busq-vacio'; p0.textContent = 'Escribí al menos 2 letras para buscar.'; cont.appendChild(p0); return; }
     var ts = S.tareas.filter(function (t) { return pajarBusq((t.text || '') + ' ' + (t.nota || '') + ' ' + (t.pasos || []).map(function (p) { return p.text; }).join(' '), q); });
     ts.sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (b.created || 0) - (a.created || 0); });
-    var ns = NOTAS.filter(function (n) { return pajarBusq(n.titulo + ' ' + n.texto, q); });
+    var ns = NOTAS.filter(function (n) { return pajarBusq(n.titulo, q); });
     var cs = CUMPLES.filter(function (c) { return pajarBusq(c.nombre + ' ' + (c.grupo || '') + ' ' + (c.nota || ''), q); });
     var total = ts.length + ns.length + cs.length;
     $('busq-cuenta').textContent = total ? total + (total === 1 ? ' resultado' : ' resultados') : '';
@@ -4378,8 +4383,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var donde = t.plantilla ? 'Repetidas' : (esFutura(t) ? 'Programada para el ' + fechaCorta(fechaDe(t)) : (t.dest || 'Diarias') + (t.done ? ' · Hecha' : ''));
       return itemBusq(t.text, donde, function () { irATarea(t); });
     }), ts.length);
-    grupoBusq(cont, 'Notas', ns.slice(0, BUSQ_MAX).map(function (n) {
-      return itemBusq(n.titulo || n.texto.split('\n')[0].slice(0, 60), n.titulo ? n.texto.split('\n')[0].slice(0, 80) : 'Nota', function () { irANota(n); });
+    grupoBusq(cont, 'Contraseñas', ns.slice(0, BUSQ_MAX).map(function (n) {
+      return itemBusq(n.titulo, 'Contraseña guardada (oculta)', function () { irANota(n); });
     }), ns.length);
     grupoBusq(cont, 'Cumpleaños', cs.slice(0, BUSQ_MAX).map(function (c) {
       return itemBusq(c.nombre, c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
@@ -4397,7 +4402,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   });
   $('vista-buscar').addEventListener('keydown', function (e) { if (e.key === 'Escape') $('busq-volver').click(); });
   /* ---------- Anotaciones ---------- */
-  var NOTAUI = { edit: null, q: '' };
+  var NOTAUI = { edit: null, q: '', ver: {} };
   function nuevoIdNota() { return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function mezclarNotas(a, b) {
     var ids = {}, r = a.slice();
@@ -4430,23 +4435,35 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var li = document.createElement('li'); li.className = 'nota' + (n.fijada ? ' fijada' : ''); li.setAttribute('data-nota', n.id);
     var nom = n.titulo || 'sin título';
     if (n.titulo) { var h = document.createElement('h3'); h.className = 'nota-titulo'; h.textContent = n.titulo; li.appendChild(h); }
-    if (n.texto) { var p = document.createElement('p'); p.className = 'nota-texto'; p.textContent = n.texto; li.appendChild(p); }
+    if (n.texto) {
+      var visible = !!NOTAUI.ver[n.id], p = document.createElement('p'); p.className = 'nota-clave';
+      p.textContent = visible ? n.texto : '••••••••';
+      if (!visible) p.setAttribute('aria-label', 'Contraseña oculta');
+      li.appendChild(p);
+    }
     var f = document.createElement('p'); f.className = 'nota-fecha';
     f.textContent = (n.editada && n.editada !== n.creada ? 'Editada ' : 'Creada ') + textoFechaNota(n.editada || n.creada);
     li.appendChild(f);
     var ac = document.createElement('div'); ac.className = 'nota-acciones';
-    var fj = crearBotonNota(n.fijada ? '📌 Fijada' : '📌 Fijar', 'Fijar arriba la nota ' + nom, function () {
+    var fj = crearBotonNota(n.fijada ? '📌 Fijada' : '📌 Fijar', 'Fijar arriba la contraseña de ' + nom, function () {
       NOTAS = NOTAS.map(function (x) { return x.id === n.id ? Object.assign({}, x, { fijada: !x.fijada }) : x; });
       guardarNotas(); renderNotas(); var b = document.querySelector('[data-nota="' + n.id + '"] [data-acc="fijar"]'); if (b) b.focus();
     });
     fj.setAttribute('aria-pressed', n.fijada ? 'true' : 'false'); fj.setAttribute('data-acc', 'fijar'); ac.appendChild(fj);
-    var ed = crearBotonNota('✎ Editar', 'Editar la nota ' + nom, function () { NOTAUI.edit = n.id; renderNotas(); var t = $('nota-edit-texto'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } });
+    if (n.texto) {
+      var vr = crearBotonNota(NOTAUI.ver[n.id] ? 'Ocultar' : 'Mostrar', (NOTAUI.ver[n.id] ? 'Ocultar' : 'Mostrar') + ' la contraseña de ' + nom, function () {
+        if (NOTAUI.ver[n.id]) delete NOTAUI.ver[n.id]; else NOTAUI.ver[n.id] = true;
+        renderNotas(); var b = document.querySelector('[data-nota="' + n.id + '"] [data-acc="ver"]'); if (b) b.focus();
+      });
+      vr.setAttribute('aria-pressed', NOTAUI.ver[n.id] ? 'true' : 'false'); vr.setAttribute('data-acc', 'ver'); ac.appendChild(vr);
+    }
+    var ed = crearBotonNota('✎ Editar', 'Editar la contraseña de ' + nom, function () { NOTAUI.edit = n.id; renderNotas(); var t = $('nota-edit-texto'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } });
     ac.appendChild(ed);
-    ac.appendChild(crearBotonNota('Copiar', 'Copiar el texto de la nota ' + nom, function () { copiarNota((n.titulo ? n.titulo + '\n' : '') + n.texto, 'Nota copiada'); }));
-    ac.appendChild(crearBotonNota('Borrar', 'Borrar la nota ' + nom, function () {
+    if (n.texto) ac.appendChild(crearBotonNota('Copiar', 'Copiar la contraseña de ' + nom, function () { copiarNota(n.texto, 'Contraseña copiada'); }));
+    ac.appendChild(crearBotonNota('Borrar', 'Borrar la contraseña de ' + nom, function () {
       var pos = NOTAS.findIndex(function (x) { return x.id === n.id; });
       NOTAS = NOTAS.filter(function (x) { return x.id !== n.id; }); guardarNotas(); renderNotas();
-      avisar('Nota borrada', function () { if (!NOTAS.some(function (x) { return x.id === n.id; })) { NOTAS.splice(Math.min(pos, NOTAS.length), 0, n); guardarNotas(); renderNotas(); } });
+      avisar('Contraseña borrada', function () { if (!NOTAS.some(function (x) { return x.id === n.id; })) { NOTAS.splice(Math.min(pos, NOTAS.length), 0, n); guardarNotas(); renderNotas(); } });
     }));
     li.appendChild(ac);
     return li;
@@ -4454,8 +4471,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function crearEditorAnot(n) {
     var li = document.createElement('li'); li.className = 'nota'; li.setAttribute('data-nota', n.id);
     var f = document.createElement('form'); f.className = 'nota-editor'; f.autocomplete = 'off';
-    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = 60; ti.value = n.titulo; ti.id = 'nota-edit-titulo'; ti.setAttribute('aria-label', 'Título de la nota');
-    var tx = document.createElement('textarea'); tx.rows = 5; tx.maxLength = 2000; tx.value = n.texto; tx.id = 'nota-edit-texto'; tx.setAttribute('aria-label', 'Texto de la nota');
+    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = 60; ti.value = n.titulo; ti.id = 'nota-edit-titulo'; ti.setAttribute('aria-label', 'Sitio o cuenta');
+    var tx = document.createElement('input'); tx.type = 'password'; tx.maxLength = 200; tx.value = n.texto.replace(/\s*\n+\s*/g, ' '); tx.id = 'nota-edit-texto'; tx.setAttribute('aria-label', 'Contraseña'); tx.autocomplete = 'new-password'; tx.setAttribute('autocapitalize', 'off'); tx.spellcheck = false;
+    var vl = document.createElement('label'); vl.className = 'nota-ver'; var vc = document.createElement('input'); vc.type = 'checkbox'; vl.appendChild(vc); vl.appendChild(document.createTextNode(' Mostrar lo que escribo'));
+    vc.addEventListener('change', function () { tx.type = vc.checked ? 'text' : 'password'; });
     var er = document.createElement('p'); er.className = 'editor-error'; er.setAttribute('role', 'alert'); er.hidden = true;
     var ac = document.createElement('div'); ac.className = 'nota-acciones';
     var g = document.createElement('button'); g.type = 'submit'; g.className = 'mini primario'; g.textContent = 'Guardar';
@@ -4468,44 +4487,45 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     });
     f.addEventListener('submit', function (e) {
       e.preventDefault();
-      var tit = ti.value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = tx.value.replace(/\r\n?/g, '\n').trim().slice(0, 2000);
-      if (!tit && !txt) { errorNota(er, 'Escribí algo para guardar la nota.'); return; }
+      var tit = ti.value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = tx.value.trim().slice(0, 200);
+      if (!tit && !txt) { errorNota(er, 'Escribí un nombre o una contraseña.'); return; }
       if (tit === n.titulo && txt === n.texto) { cerrar(); return; }
       var antes = n;
       NOTAS = NOTAS.map(function (x) { return x.id === n.id ? Object.assign({}, x, { titulo: tit, texto: txt, editada: Date.now() }) : x; });
       guardarNotas(); NOTAUI.edit = null; renderNotas();
-      avisar('Nota modificada', function () { NOTAS = NOTAS.map(function (x) { return x.id === antes.id ? antes : x; }); guardarNotas(); renderNotas(); });
+      avisar('Contraseña modificada', function () { NOTAS = NOTAS.map(function (x) { return x.id === antes.id ? antes : x; }); guardarNotas(); renderNotas(); });
     });
     ac.appendChild(g); ac.appendChild(c);
-    f.appendChild(ti); f.appendChild(tx); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
+    f.appendChild(ti); f.appendChild(tx); f.appendChild(vl); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
     return li;
   }
   function renderNotas() {
-    document.title = 'Anotaciones · Al toque';
+    document.title = 'Contraseñas · Al toque';
     var ul = $('notas-lista'); ul.textContent = '';
     var q = NOTAUI.q.trim().toLowerCase();
     var orden = NOTAS.slice().sort(function (a, b) { return (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || (b.editada || 0) - (a.editada || 0); });
-    var vis = q ? orden.filter(function (n) { return (n.titulo + '\n' + n.texto).toLowerCase().indexOf(q) >= 0; }) : orden;
-    $('notas-cuenta').textContent = !NOTAS.length ? '' : (q ? vis.length + ' de ' + NOTAS.length + (NOTAS.length === 1 ? ' nota' : ' notas') : NOTAS.length + (NOTAS.length === 1 ? ' nota' : ' notas'));
+    var vis = q ? orden.filter(function (n) { return n.titulo.toLowerCase().indexOf(q) >= 0; }) : orden;
+    $('notas-cuenta').textContent = !NOTAS.length ? '' : (q ? vis.length + ' de ' + NOTAS.length + (NOTAS.length === 1 ? ' contraseña' : ' contraseñas') : NOTAS.length + (NOTAS.length === 1 ? ' contraseña' : ' contraseñas'));
     if (!NOTAS.length) {
-      var li = document.createElement('li'); li.className = 'notas-vacio'; li.textContent = 'Todavía no hay notas. Escribí la primera arriba.'; ul.appendChild(li); return;
+      var li = document.createElement('li'); li.className = 'notas-vacio'; li.textContent = 'Todavía no guardaste contraseñas. Agregá la primera arriba.'; ul.appendChild(li); return;
     }
-    if (!vis.length) { var l2 = document.createElement('li'); l2.className = 'notas-vacio'; l2.textContent = 'Ninguna nota coincide con la búsqueda.'; ul.appendChild(l2); return; }
+    if (!vis.length) { var l2 = document.createElement('li'); l2.className = 'notas-vacio'; l2.textContent = 'Ninguna contraseña coincide con la búsqueda.'; ul.appendChild(l2); return; }
     vis.forEach(function (n) { ul.appendChild(n.id === NOTAUI.edit ? crearEditorAnot(n) : crearNota(n)); });
   }
   $('form-nota').addEventListener('submit', function (e) {
     e.preventDefault();
     var er = $('nota-error');
-    var tit = $('nota-titulo').value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = $('nota-texto').value.replace(/\r\n?/g, '\n').trim().slice(0, 2000);
-    if (!tit && !txt) { errorNota(er, 'Escribí algo para guardar la nota.'); $('nota-texto').focus(); return; }
-    if (NOTAS.length >= MAX_NOTAS) { errorNota(er, 'Llegaste al máximo de ' + MAX_NOTAS + ' notas. Borrá alguna para agregar otra.'); return; }
+    var tit = $('nota-titulo').value.replace(/\s+/g, ' ').trim().slice(0, 60), txt = $('nota-texto').value.trim().slice(0, 200);
+    if (!tit && !txt) { errorNota(er, 'Escribí un nombre o una contraseña.'); $('nota-titulo').focus(); return; }
+    if (NOTAS.length >= MAX_NOTAS) { errorNota(er, 'Llegaste al máximo de ' + MAX_NOTAS + ' contraseñas. Borrá alguna para agregar otra.'); return; }
     errorNota(er, '');
     var ahora = Date.now(), nota = { id: nuevoIdNota(), titulo: tit, texto: txt, fijada: false, creada: ahora, editada: ahora };
     NOTAS.unshift(nota); guardarNotas();
-    $('nota-titulo').value = ''; $('nota-texto').value = ''; NOTAUI.q = ''; $('nota-buscar').value = '';
+    $('nota-titulo').value = ''; $('nota-texto').value = ''; $('nota-texto').type = 'password'; $('nota-ver-nueva').checked = false; NOTAUI.q = ''; $('nota-buscar').value = '';
     renderNotas(); $('nota-titulo').focus();
-    avisar('Nota guardada', function () { NOTAS = NOTAS.filter(function (x) { return x.id !== nota.id; }); guardarNotas(); renderNotas(); });
+    avisar('Contraseña guardada', function () { NOTAS = NOTAS.filter(function (x) { return x.id !== nota.id; }); guardarNotas(); renderNotas(); });
   });
+  $('nota-ver-nueva').addEventListener('change', function () { $('nota-texto').type = this.checked ? 'text' : 'password'; });
   $('nota-titulo').addEventListener('input', function () { errorNota($('nota-error'), ''); });
   $('nota-texto').addEventListener('input', function () { errorNota($('nota-error'), ''); });
   $('nota-buscar').addEventListener('input', function () { NOTAUI.q = this.value; renderNotas(); });
@@ -4666,6 +4686,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
     $('vista-notas').hidden = VISTA !== 'notas';
     $('vista-buscar').hidden = VISTA !== 'buscar';
+    if (VISTA !== 'notas') NOTAUI.ver = {};
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
     pintarOrdenar(false);
@@ -5113,10 +5134,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }).then(function (r) { SYNC.enCurso = false; return r; }, function (e) { SYNC.enCurso = false; throw e; });
   }
   function estadoLocal() {
-    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES, notas: NOTAS };
+    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES, notas: [] };
   }
   function armarSync(m) {
-    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples, notas: m.notas || [] });
+    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples, notas: [] });
   }
   function aplicarSync(m) {
     SYNC.aplicando = true;
@@ -5127,7 +5148,6 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       MODELOS = m.modelos; guardarModelos(); pintarListaModelos();
       ESTILOS = m.estilos; guardarEstilos();
       if (CUM_SYNC) { CUMPLES = m.cumples; guardarCumples(); pintarCumples(); }
-      NOTAS = (m.notas || []).slice(); guardarNotas(); if (typeof renderNotas === 'function') renderNotas();
       MODS = CUM_SYNC ? m.mods : Object.assign({}, m.mods, { cumples: MODS.cumples }); lsEscribir(LS_MODS, JSON.stringify(MODS));
       SNAP = null; guardarLocal();
       SNAP = {};
@@ -5167,7 +5187,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       if (rem) {
         m = fusionarSync(loc, rem, Date.now());
         if (estable(canonSync(m)) !== estable(canonSync(loc))) { aplicarSync(m); trajo = true; m = CUM_SYNC ? estadoLocal() : sinCumples(estadoLocal()); }
-        cambiaRemoto = estable(canonSync(m)) !== estable(canonSync(rem));
+        cambiaRemoto = estable(canonSync(m)) !== estable(canonSync(rem)) || !!rem.hayNotas;
       }
       if (r.id && !cambiaRemoto) return r.id;
       var cont = armarSync(!CUM_SYNC && r.rem ? conCumplesDe(m, r.rem) : m);
