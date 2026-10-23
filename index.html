@@ -821,7 +821,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   <form class="nueva" id="form-nueva" autocomplete="off">
     <div class="nueva-fila">
-      <textarea id="input-tarea" aria-label="Nueva tarea" maxlength="300" rows="1" enterkeyhint="send" disabled></textarea>
+      <textarea id="input-tarea" aria-label="Nueva tarea" maxlength="1000" rows="1" enterkeyhint="send" disabled></textarea>
       <button type="button" class="btn-voz" id="btn-voz" aria-label="Dictar por voz" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
       <button type="submit" class="btn-agregar" id="btn-agregar" disabled>Agregar</button>
     </div>
@@ -1006,7 +1006,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <div class="cal-panel">
       <h3 id="cal-dia-titulo"></h3>
       <form class="nueva-fila cal-form" id="cal-form" autocomplete="off">
-        <input type="text" id="cal-input" aria-label="Nueva tarea para este día" placeholder="Nueva tarea para este día" maxlength="300">
+        <input type="text" id="cal-input" aria-label="Nueva tarea para este día" placeholder="Nueva tarea para este día" maxlength="1000">
         <button type="submit" class="btn-agregar">Agregar</button>
       </form>
       <section class="planilla"><ul class="lista" id="cal-lista"></ul></section>
@@ -2100,7 +2100,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function limpiar(t) {
     var r = {
       id: t.id,
-      text: typeof t.text === 'string' ? t.text.slice(0, 300) : '',
+      text: typeof t.text === 'string' ? t.text.slice(0, 1000) : '',
       done: !!t.done,
       urgente: t.urgente === true,
       hechaEn: typeof t.hechaEn === 'number' && isFinite(t.hechaEn) ? t.hechaEn : null,
@@ -2612,7 +2612,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var texto = lineas.shift() || title || url, extras = lineas;
     if (title && title !== texto && cuerpo) extras.push(title);
     if (url && texto.indexOf(url) < 0 && extras.join('\n').indexOf(url) < 0) extras.push(url);
-    if (texto.length > 300) { extras.unshift(texto.slice(300)); texto = texto.slice(0, 300); }
+    if (texto.length > 1000) { extras.unshift(texto.slice(1000)); texto = texto.slice(0, 1000); }
     return { texto: texto, nota: extras.join('\n').slice(0, 300) };
   }
   /* Semana para imprimir: los 7 días con sus tareas, y lo pendiente sin fecha */
@@ -2916,14 +2916,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var box = document.createElement('div');
     box.className = 'editor';
     var ta = document.createElement('textarea');
-    ta.rows = 2; ta.maxLength = 300; ta.value = EDT.txt;
+    ta.rows = 2; ta.maxLength = 1000; ta.value = EDT.txt;
     ta.setAttribute('aria-label', 'Texto de la tarea');
     ta.setAttribute('data-key', t.id + ':textoedit');
     var err = document.createElement('p');
     err.className = 'editor-error'; err.setAttribute('role', 'alert'); err.textContent = EDT.err; err.hidden = !EDT.err;
     ta.addEventListener('input', function () { EDT.txt = ta.value; if (EDT.err) { EDT.err = ''; err.hidden = true; err.textContent = ''; } });
     var guardar = boton('Guardar', 'primario', function () {
-      var nuevo = EDT.txt.replace(/\s+/g, ' ').trim().slice(0, 300), antes = t.text;
+      var nuevo = EDT.txt.replace(/\s+/g, ' ').trim().slice(0, 1000), antes = t.text;
       if (!nuevo) { EDT.err = 'Escribí el texto de la tarea para guardarla.'; err.textContent = EDT.err; err.hidden = false; ta.focus(); return; }
       if (nuevo === antes) { cerrarTexto(t.id); return; }
       cambiarTarea(t.id, { text: nuevo });
@@ -4371,7 +4371,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var s = '';
       for (var i = 0; i < e.results.length; i++) s += e.results[i][0].transcript;
       VOZ.texto = s;
-      input.value = ((VOZ.base ? VOZ.base + ' ' : '') + limpiarDictado(s, !VOZ.base)).slice(0, 300); crecerCampo();
+      input.value = ((VOZ.base ? VOZ.base + ' ' : '') + limpiarDictado(s, !VOZ.base)).slice(0, 1000); crecerCampo();
     };
     rec.onerror = function (e) { VOZ.error = e && e.error ? e.error : 'error'; };
     rec.onend = function () {
