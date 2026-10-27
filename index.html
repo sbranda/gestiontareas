@@ -1783,7 +1783,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   var S = { tareas: [], hoja: 'diarias', listo: false, error: false };
 
   var $ = function (id) { return document.getElementById(id); };
-  var AHORA = Date.now();
+  var AHORA = Date.now(), FIRMA_T = '';
   var EDIT = { id: null, f: '', h: '' };
   var NOTA = { id: null, txt: '' };
   var EDT = { id: null, txt: '', err: '' };
@@ -5135,6 +5135,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function render() {
     AHORA = Date.now();
+    FIRMA_T = firmaTiempo();
     sincronizarHojas();
     document.title = (VISTA === 'hoy' ? 'Hoy' : VISTA === 'calendario' ? 'Calendario' : (VISTA === 'historial' ? 'Historial' : VISTA === 'enfoque' ? 'Enfoque' : nombreHoja(S.hoja))) + ' · Al toque';
     pintarRespaldo();
@@ -5891,7 +5892,24 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   })();
 
   /* Refresca las vencidas cada minuto y al volver a la app */
-  setInterval(function () { generarRepetidas(); if (!EDIT.id && !REP.id) render(); }, 60000);
+  /* Solo se redibuja si algo dependiente de la hora cambió (una tarea pasó a vencida, otro día u otra hora), y se conserva
+     la posición de la pantalla y el foco, para que no se pierda lo que se estaba leyendo. */
+  function firmaTiempo() {
+    var n = Date.now(), d = new Date(n);
+    return claveDia(n) + '|' + d.getHours() + '|' + S.tareas.filter(function (t) { return !t.done && t.due != null && t.due < n; }).map(function (t) { return t.id; }).join(',');
+  }
+  function refrescarTiempo() {
+    generarRepetidas();
+    if (EDIT.id || REP.id) return;
+    var f = firmaTiempo();
+    if (f === FIRMA_T) return;
+    FIRMA_T = f;
+    var y = window.pageYOffset, ae = document.activeElement, clave = ae && ae.getAttribute ? ae.getAttribute('data-key') : null;
+    render();
+    if (Math.abs(window.pageYOffset - y) > 2) window.scrollTo(0, y);
+    if (clave && document.activeElement !== ae) { var nx = document.querySelector('[data-key="' + clave + '"]'); if (nx) { try { nx.focus({ preventScroll: true }); } catch (e) {} } }
+  }
+  setInterval(refrescarTiempo, 60000);
 
   /* --- avisos del teléfono y calendario --- */
   var LS_AVISOS = 'tareasdiarias.avisos', LS_AVISADOS = 'tareasdiarias.avisados';
@@ -6644,7 +6662,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (e.key === 'Escape' && hayFiltro()) { e.preventDefault(); limpiarFiltro(); }
   });
   $('buscar-borrar').addEventListener('click', function () { limpiarFiltro(); $('buscar').focus(); });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) { generarRepetidas(); if (!EDIT.id && !REP.id) render(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refrescarTiempo(); });
 
   modoLocal();
   pintarSync('');
