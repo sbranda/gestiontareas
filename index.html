@@ -117,6 +117,11 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 /* En el celular, si el campo se achica de más, el navegador corta el ícono del calendario/reloj y el formato: se fija un mínimo. */
 input[type="date"], input[type="time"] { min-width: 9.5rem; min-height: 44px; box-sizing: border-box; font-size: 1rem; -webkit-appearance: auto; appearance: auto; }
 input[type="date"] { min-width: 11rem; }
+/* Si el celular no muestra el formato del campo vacío (dd/mm/aaaa, --:--), se dibuja uno propio. */
+input[type="date"].vacio:not(:focus), input[type="time"].vacio:not(:focus) { background-repeat: no-repeat; background-position: 12px center; background-size: auto 20px; }
+input[type="date"].vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='90'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3Edd/mm/aaaa%3C/text%3E%3C/svg%3E"); }
+input[type="time"].vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3E--:--%3C/text%3E%3C/svg%3E"); }
+input[type="date"].vacio:not(:focus)::-webkit-datetime-edit, input[type="time"].vacio:not(:focus)::-webkit-datetime-edit { color: transparent; }
 input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 1; min-width: 24px; min-height: 24px; cursor: pointer; }
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
 .btn-quitar-limite { min-height: 44px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
@@ -3100,6 +3105,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (!r) return null;
     return { texto: r, fecha: fecha, hora: hora };
   }
+
+  /* Marca los campos de fecha/hora vacíos para mostrarles el formato (ver CSS ".vacio"). */
+  function marcarVacios() {
+    Array.prototype.forEach.call(document.querySelectorAll('input[type="date"], input[type="time"]'), function (i) { i.classList.toggle('vacio', !i.value); });
+  }
+  ['input', 'change', 'blur'].forEach(function (ev) { document.addEventListener(ev, function (e) { var t = e.target; if (t && t.type && (t.type === 'date' || t.type === 'time')) t.classList.toggle('vacio', !t.value); }, true); });
+  new MutationObserver(function () { try { marcarVacios(); } catch (e) {} }).observe(document.body, { childList: true, subtree: true });
+  marcarVacios();
   var IGN_FECHA = '';
   function fechaEscrita() {
     if (diasElegidos().length || inFecha.value || inHora.value || S.hoja === 'repetidas') return null;
@@ -3137,6 +3150,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function pintarCuando() {
     var k = cuandoActual();
+    marcarVacios();
     Array.prototype.forEach.call(document.querySelectorAll('.cuando-chip'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-cuando') === k ? 'true' : 'false');
       b.disabled = k === 'rep';
