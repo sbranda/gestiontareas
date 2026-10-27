@@ -111,9 +111,14 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 .mas-opciones[open] summary::before { content: '▾'; }
 .limite-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .limite-rotulo { flex-basis: 100%; font-size: 0.8125rem; color: var(--muted); }
-.limite-fila input { min-height: 44px; padding: 0 10px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
-#input-fecha { flex: 1 1 150px; }
-#input-hora { flex: 0 1 120px; }
+.limite-fila input { min-height: 44px; padding: 0 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+#input-fecha { flex: 1 1 11rem; }
+#input-hora { flex: 1 1 9rem; }
+/* En el celular, si el campo se achica de más, el navegador corta el ícono del calendario/reloj y el formato: se fija un mínimo. */
+input[type="date"], input[type="time"] { min-width: 9.5rem; min-height: 44px; box-sizing: border-box; font-size: 1rem; -webkit-appearance: auto; appearance: auto; }
+input[type="date"] { min-width: 11rem; }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 1; min-width: 24px; min-height: 24px; cursor: pointer; }
+input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
 .btn-quitar-limite { min-height: 44px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
 .repetir-fila { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -586,7 +591,7 @@ button.limite { cursor: pointer; text-decoration: underline; text-decoration-sty
 .limite.agregar { text-decoration: none; }
 .limite.vencida { color: var(--danger); font-weight: 600; }
 .editor { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; padding: 4px 0 6px; }
-.editor input { flex: 1 1 130px; min-width: 0; min-height: 44px; padding: 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.editor input { flex: 1 1 9.5rem; min-height: 44px; padding: 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .mini { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; font-weight: 500; }
 .mini.primario { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 
