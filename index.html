@@ -496,7 +496,9 @@ body.panel-abierto { overflow: hidden; }
 .fila[data-hecha="true"] .texto { color: var(--muted); }
 .fila[data-hecha="true"] .t { text-decoration: line-through; text-decoration-thickness: 1px; }
 .fila[data-urgente="true"] { background: var(--warn-soft); box-shadow: inset 4px 0 0 var(--warn); }
-.texto > .t, .texto > .nota, .texto > .editor { flex: 0 0 100%; }
+.texto > .t, .texto > .nota, .texto > .editor, .texto > .enlaces-fila { flex: 0 0 100%; }
+.enlace { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.enlaces-fila { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.875rem; padding: 2px 0; }
 .corte { display: none; }
 .nota { margin: 0; padding: 0 0 4px; border: 0; background: transparent; font: inherit; font-size: 0.8125rem; line-height: 1.4; color: var(--muted); text-align: left; white-space: pre-wrap; }
 button.nota { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; cursor: pointer; }
@@ -2810,7 +2812,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       cb.setAttribute('aria-label', 'Paso hecho: ' + p.text);
       cb.addEventListener('change', function () { marcarPaso(t.id, i, cb.checked); });
       var sp = document.createElement('span');
-      sp.textContent = p.text;
+      escribirConEnlaces(sp, p.text, false);
       lab.appendChild(cb); lab.appendChild(sp);
       fila.appendChild(lab);
       if (!t.done) {
@@ -2910,6 +2912,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }
     n.className = 'nota'; n.textContent = t.nota;
     tx.appendChild(n);
+    var fe = filaEnlaces(t.nota); if (fe) tx.appendChild(fe);
   }
   function crearChipNota(t) {
     var b = document.createElement('button');
@@ -5048,16 +5051,16 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (cur.due != null && cur.due < AHORA) partes.push('Atrasada'); else if (fechaDe(cur) === hoyStr()) partes.push('Para hoy');
     partes.push('Tarea ' + pos + ' de ' + q.todas.length);
     $('enf-etiqueta').textContent = partes.join(' · ');
-    $('enf-titulo').textContent = cur.text;
+    $('enf-titulo').textContent = ''; escribirConEnlaces($('enf-titulo'), cur.text, false);
     $('enf-nota').hidden = !cur.nota;
-    $('enf-nota').textContent = cur.nota || '';
+    $('enf-nota').textContent = ''; escribirConEnlaces($('enf-nota'), cur.nota || '', false);
     var ul = $('enf-pasos');
     ul.textContent = '';
     cur.pasos.forEach(function (p, i) {
       var li = document.createElement('li'), lab = document.createElement('label'), cb = document.createElement('input');
       cb.type = 'checkbox'; cb.id = 'enf-paso-' + i; cb.checked = !!p.done;
       cb.addEventListener('change', function () { marcarPaso(cur.id, i, cb.checked); });
-      var sp = document.createElement('span'); sp.textContent = p.text;
+      var sp = document.createElement('span'); escribirConEnlaces(sp, p.text, false);
       lab.appendChild(cb); lab.appendChild(sp); li.appendChild(lab); ul.appendChild(li);
     });
     ul.hidden = !cur.pasos.length;
@@ -6630,18 +6633,54 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     return li;
   }
   /* Rotula con otro color las palabras que empiezan con #. */
-  function escribirTitulo(el, texto) {
-    var re = /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,30})/gu, ult = 0, m;
+  /* Parte un texto en trozos: texto común, #etiquetas, enlaces web, correos y teléfonos. */
+  var RE_ENLACE = /(^|[^\p{L}\p{N}_#])(#[\p{L}\p{N}_]{1,30})|(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)|([\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+)|(^|[^\d+])(\+?\d[\d ()\-]{6,}\d)(?!\d)/gu;
+  function trozosTexto(texto, conEtiquetas) {
+    var r = [], ult = 0, m, re = new RegExp(RE_ENLACE.source, 'gu');
+    function txt(a, b) { if (b > a) r.push({ k: 'txt', s: texto.slice(a, b) }); }
     while ((m = re.exec(texto))) {
-      var ini = m.index + m[1].length;
-      if (ini > ult) el.appendChild(document.createTextNode(texto.slice(ult, ini)));
-      var s = document.createElement('span');
-      s.className = 'etiqueta'; s.textContent = '#' + m[2];
-      el.appendChild(s);
-      ult = ini + 1 + m[2].length;
-      re.lastIndex = ult;
+      if (m[2]) {
+        if (!conEtiquetas) { continue; }
+        var ini = m.index + m[1].length;
+        txt(ult, ini); r.push({ k: 'tag', s: m[2] }); ult = ini + m[2].length; re.lastIndex = ult;
+      } else if (m[3]) {
+        var u = m[3].replace(/[.,;:!?)\]]+$/, '');
+        txt(ult, m.index); r.push({ k: 'url', s: u, href: /^www\./i.test(u) ? 'https://' + u : u }); ult = m.index + u.length; re.lastIndex = ult;
+      } else if (m[4]) {
+        txt(ult, m.index); r.push({ k: 'mail', s: m[4], href: 'mailto:' + m[4] }); ult = m.index + m[4].length;
+      } else if (m[6]) {
+        var dig = m[6].replace(/\D/g, '');
+        if (dig.length < 8 || dig.length > 15) continue;
+        var pi = m.index + m[5].length;
+        txt(ult, pi); r.push({ k: 'tel', s: m[6], href: 'tel:' + (m[6].charAt(0) === '+' ? '+' : '') + dig }); ult = pi + m[6].length; re.lastIndex = ult;
+      }
     }
-    if (ult < texto.length) el.appendChild(document.createTextNode(texto.slice(ult)));
+    txt(ult, texto.length);
+    return r;
+  }
+  function crearEnlace(z) {
+    var a = document.createElement('a');
+    a.className = 'enlace'; a.href = z.href; a.textContent = z.s;
+    if (z.k === 'url') { a.target = '_blank'; a.rel = 'noopener noreferrer'; a.setAttribute('aria-label', 'Abrir enlace: ' + z.s); }
+    else a.setAttribute('aria-label', (z.k === 'tel' ? 'Llamar al ' : 'Escribir a ') + z.s);
+    return a;
+  }
+  /* Escribe el texto en el elemento: con #etiquetas (opcional) y enlaces tocables. */
+  function escribirConEnlaces(el, texto, conEtiquetas) {
+    trozosTexto(texto, conEtiquetas).forEach(function (z) {
+      if (z.k === 'txt') el.appendChild(document.createTextNode(z.s));
+      else if (z.k === 'tag') { var sp = document.createElement('span'); sp.className = 'etiqueta'; sp.textContent = z.s; el.appendChild(sp); }
+      else el.appendChild(crearEnlace(z));
+    });
+  }
+  function escribirTitulo(el, texto) { escribirConEnlaces(el, texto, true); }
+  /* La nota de una tarea pendiente es un botón (tocarla la edita): sus enlaces van en una fila aparte. */
+  function filaEnlaces(texto) {
+    var zs = trozosTexto(texto, false).filter(function (z) { return z.k !== 'txt'; });
+    if (!zs.length) return null;
+    var d = document.createElement('div'); d.className = 'enlaces-fila';
+    zs.slice(0, 5).forEach(function (z) { d.appendChild(crearEnlace(z)); });
+    return d;
   }
   function limpiarFiltro() {
     FILT.q = ''; FILT.tag = '';
