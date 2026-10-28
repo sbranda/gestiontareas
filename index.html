@@ -338,6 +338,14 @@ body.panel-abierto { overflow: hidden; }
 .respaldo .respaldo-estado.error { color: var(--danger); font-weight: 600; }
 .respaldo-confirma { margin-top: 14px; padding: 14px; background: var(--accent-soft); border-radius: 8px; }
 .respaldo-confirma p { color: var(--ink); }
+.compartir { margin: 0 0 10px; }
+.compartir .mini, .compartir-bot .mini { min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; text-decoration: none; }
+.compartir-panel { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.compartir-panel[hidden] { display: none; }
+.compartir-panel p { margin: 0 0 8px; font-size: 0.9375rem; }
+.compartir-panel textarea { width: 100%; min-height: 160px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; font-size: 0.875rem; line-height: 1.4; resize: vertical; }
+.compartir-bot a.mini { color: inherit; }
+.compartir-bot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .mini.peligro { color: var(--danger); border-color: var(--danger); }
 #hoja-borrar-confirma { text-align: left; }
 
@@ -976,6 +984,21 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <div class="vacio" id="enf-vacio" hidden><strong>Nada para enfocar</strong><span>No tenés tareas pendientes. Agregá una desde Lista.</span></div>
     <div class="fin-dia" id="enf-fin" role="status" hidden></div>
   </section>
+
+  <div class="compartir" id="compartir" data-no-print hidden>
+    <button type="button" class="mini" id="btn-compartir" aria-expanded="false" aria-controls="compartir-panel">Compartir lo de hoy</button>
+    <div class="compartir-panel" id="compartir-panel" role="group" aria-labelledby="compartir-t" hidden>
+      <p id="compartir-t">Así queda el texto. Podés cambiarlo antes de enviarlo.</p>
+      <textarea id="compartir-texto" rows="9" aria-labelledby="compartir-t"></textarea>
+      <div class="compartir-bot">
+        <button type="button" class="mini primario" id="btn-comp-nav" hidden>Compartir…</button>
+        <a class="mini" id="btn-comp-wa" href="https://wa.me/" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        <a class="mini" id="btn-comp-mail" href="mailto:">Email</a>
+        <button type="button" class="mini" id="btn-comp-copiar">Copiar</button>
+        <button type="button" class="mini" id="btn-comp-cerrar">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <section class="planilla" id="planilla" aria-label="Planilla de tareas">
     <div class="cols" aria-hidden="true"><span id="col-1">Hecha</span><span>Tarea</span><span>Hoja</span><span></span></div>
@@ -4791,6 +4814,49 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(listo, viejo); else viejo();
   }
+
+  /* --- Compartir lo de hoy: arma el texto de lo pendiente para WhatsApp, mail, etc. --- */
+  function textoCompartir() {
+    var ahora = Date.now(), g = agruparHoy(S.tareas, ahora), L = [];
+    function hhmm(t) { var d = new Date(t.due); return dos(d.getHours()) + ':' + dos(d.getMinutes()); }
+    function linea(t, conHora, atras) {
+      var x = '• ' + (conHora && t.due != null && t.hora ? hhmm(t) + ' ' : '') + t.text + (t.urgente ? ' ★' : '');
+      if (atras && t.due != null) { var d = new Date(t.due); x += ' (era para el ' + dos(d.getDate()) + '/' + dos(d.getMonth() + 1) + (t.hora ? ' ' + hhmm(t) : '') + ')'; }
+      return x;
+    }
+    L.push('📋 Pendientes de hoy, ' + new Date(ahora).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }));
+    if (g.atrasadas.length) { L.push('', '⚠️ Atrasadas'); g.atrasadas.forEach(function (t) { L.push(linea(t, false, true)); }); }
+    if (g.hoy.length) { L.push('', '📅 Para hoy'); g.hoy.forEach(function (t) { L.push(linea(t, true, false)); }); }
+    if (g.urgentes.length) { L.push('', '★ Urgentes'); g.urgentes.forEach(function (t) { L.push(linea(t, false, false)); }); }
+    var n = g.atrasadas.length + g.hoy.length + g.urgentes.length;
+    if (!n) L.push('', 'No hay nada pendiente. ¡Todo al día!');
+    L.push('', 'Enviado desde Al toque');
+    return L.join('\n');
+  }
+  function actualizarEnlacesComp() {
+    var t = $('compartir-texto').value;
+    $('btn-comp-wa').href = 'https://wa.me/?text=' + encodeURIComponent(t);
+    $('btn-comp-mail').href = 'mailto:?subject=' + encodeURIComponent('Pendientes de hoy') + '&body=' + encodeURIComponent(t);
+  }
+  function cerrarCompartir(foco) {
+    $('compartir-panel').hidden = true; $('btn-compartir').setAttribute('aria-expanded', 'false');
+    if (foco) $('btn-compartir').focus();
+  }
+  $('btn-compartir').addEventListener('click', function () {
+    var abierto = !$('compartir-panel').hidden;
+    if (abierto) { cerrarCompartir(false); return; }
+    $('compartir-texto').value = textoCompartir(); actualizarEnlacesComp();
+    $('btn-comp-nav').hidden = typeof navigator.share !== 'function';
+    $('compartir-panel').hidden = false; this.setAttribute('aria-expanded', 'true');
+    $('compartir-texto').focus(); $('compartir-texto').scrollTop = 0; try { $('compartir-texto').setSelectionRange(0, 0); } catch (e) {}
+  });
+  $('compartir-texto').addEventListener('input', actualizarEnlacesComp);
+  $('compartir-panel').addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); cerrarCompartir(true); } });
+  $('btn-comp-cerrar').addEventListener('click', function () { cerrarCompartir(true); });
+  $('btn-comp-copiar').addEventListener('click', function () { copiarNota($('compartir-texto').value, 'Lista copiada'); });
+  $('btn-comp-nav').addEventListener('click', function () {
+    try { navigator.share({ title: 'Pendientes de hoy', text: $('compartir-texto').value }).catch(function () {}); } catch (e) {}
+  });
   function crearBotonNota(txt, aria, fn) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'mini'; b.textContent = txt;
     b.setAttribute('aria-label', aria); b.addEventListener('click', fn); return b;
@@ -5129,6 +5195,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     pintarBarraBusqueda(todasHoy, g.atrasadas.length + g.hoy.length + g.urgentes.length + g.hechas.length);
     pie.hidden = true;
     pintarFinDia($('fin-dia'), S.listo && pend === 0 && gAll.hechas.length > 0);
+    $('compartir').hidden = !(S.listo && pend > 0);
     $('col-1').textContent = 'Hecha';
     $('ayuda').textContent = 'Junta de todas tus hojas lo atrasado, lo que vence hoy y lo urgente. Se usa igual que la lista: tildá para hacerla. Lo que tildás queda en "Hechas hoy".';
     if (clave) {
@@ -5166,6 +5233,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
     $('vista-notas').hidden = VISTA !== 'notas';
     $('vista-buscar').hidden = VISTA !== 'buscar';
+    if (VISTA !== 'hoy') { $('compartir').hidden = true; cerrarCompartir(false); }
     if (VISTA !== 'notas') NOTAUI.ver = {};
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
