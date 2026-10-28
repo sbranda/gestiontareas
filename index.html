@@ -117,12 +117,15 @@ h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: c
 /* En el celular, si el campo se achica de más, el navegador corta el ícono del calendario/reloj y el formato: se fija un mínimo. */
 input[type="date"], input[type="time"] { min-width: 9.5rem; min-height: 44px; box-sizing: border-box; font-size: 1rem; -webkit-appearance: auto; appearance: auto; }
 input[type="date"] { min-width: 11rem; }
-/* Si el celular no muestra el formato del campo vacío (dd/mm/aaaa, --:--), se dibuja uno propio. */
-input[type="date"].vacio:not(:focus), input[type="time"].vacio:not(:focus) { background-repeat: no-repeat; background-position: 12px center; background-size: auto 20px; }
-input[type="date"].vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='90'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3Edd/mm/aaaa%3C/text%3E%3C/svg%3E"); }
-input[type="time"].vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3E--:--%3C/text%3E%3C/svg%3E"); }
-input[type="date"].vacio:not(:focus)::-webkit-datetime-edit, input[type="time"].vacio:not(:focus)::-webkit-datetime-edit { color: transparent; }
-input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 1; min-width: 24px; min-height: 24px; cursor: pointer; }
+/* Si el celular no dibuja el formato ni el ícono (dd/mm/aaaa, --:--, calendario, reloj), se dibujan acá. El del navegador, si existe, queda encima y transparente para seguir abriendo el selector. */
+html input[type="date"], html input[type="time"] { background-repeat: no-repeat; background-position: right 10px center; background-size: 20px 20px; }
+html input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='5'%20width='18'%20height='16'%20rx='2'/%3E%3Cpath%20d='M3%2010h18M8%203v4M16%203v4'/%3E%3C/svg%3E"); }
+html input[type="time"] { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='9'/%3E%3Cpath%20d='M12%207v5l3%202'/%3E%3C/svg%3E"); }
+html input[type="date"].fmt-vacio:not(:focus), html input[type="time"].fmt-vacio:not(:focus) { background-position: right 10px center, 12px center; background-size: 20px 20px, auto 20px; }
+html input[type="date"].fmt-vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='5'%20width='18'%20height='16'%20rx='2'/%3E%3Cpath%20d='M3%2010h18M8%203v4M16%203v4'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='90'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3Edd/mm/aaaa%3C/text%3E%3C/svg%3E"); }
+html input[type="time"].fmt-vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='9'/%3E%3Cpath%20d='M12%207v5l3%202'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3E--:--%3C/text%3E%3C/svg%3E"); }
+input[type="date"].fmt-vacio:not(:focus)::-webkit-datetime-edit, input[type="time"].fmt-vacio:not(:focus)::-webkit-datetime-edit { color: transparent; }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0; min-width: 24px; min-height: 24px; cursor: pointer; }
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
 .btn-quitar-limite { min-height: 44px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
@@ -3108,9 +3111,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   /* Marca los campos de fecha/hora vacíos para mostrarles el formato (ver CSS ".vacio"). */
   function marcarVacios() {
-    Array.prototype.forEach.call(document.querySelectorAll('input[type="date"], input[type="time"]'), function (i) { i.classList.toggle('vacio', !i.value); });
+    Array.prototype.forEach.call(document.querySelectorAll('input[type="date"], input[type="time"]'), function (i) { i.classList.toggle('fmt-vacio', !i.value); });
   }
-  ['input', 'change', 'blur'].forEach(function (ev) { document.addEventListener(ev, function (e) { var t = e.target; if (t && t.type && (t.type === 'date' || t.type === 'time')) t.classList.toggle('vacio', !t.value); }, true); });
+  ['input', 'change', 'blur'].forEach(function (ev) { document.addEventListener(ev, function (e) { var t = e.target; if (t && t.type && (t.type === 'date' || t.type === 'time')) t.classList.toggle('fmt-vacio', !t.value); }, true); });
   new MutationObserver(function () { try { marcarVacios(); } catch (e) {} }).observe(document.body, { childList: true, subtree: true });
   marcarVacios();
   var IGN_FECHA = '';
