@@ -36,6 +36,13 @@
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
+/* Contraste alto (se activa en Ajustes → Apariencia, o solo si el sistema lo pide) */
+:root[data-contraste="alto"] {
+  --bg: #FFFFFF; --surface: #FFFFFF; --tab: #E4E8EB; --ink: #000000; --muted: #26333D; --line: #4A5964;
+  --accent: #00506B; --accent-ink: #FFFFFF; --accent-soft: #D4EAF2; --danger: #8F0F08; --danger-soft: #FCE3E1; --warn: #6E3F00; --warn-soft: #FDEBC8;
+}
+:root[data-contraste="alto"] :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+body.sin-mov *, body.sin-mov *::before, body.sin-mov *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
@@ -47,6 +54,16 @@
   --bg: #0E161C; --surface: #17222A; --tab: #111B21; --ink: #E6EDF2; --muted: #92A3B0;
   --line: #2A3944; --accent: #4FB6D6; --accent-ink: #05222C; --accent-soft: #163541; --danger: #F2867E; --danger-soft: #3B2224; --warn: #F2B45A; --warn-soft: #33290F;
   color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-contraste="alto"]:not([data-theme="light"]) {
+    --bg: #000000; --surface: #0B1013; --tab: #000000; --ink: #FFFFFF; --muted: #DCE5EB; --line: #8EA2B0;
+    --accent: #7FD3EE; --accent-ink: #00222D; --accent-soft: #12394A; --danger: #FFA39C; --danger-soft: #4A1C1F; --warn: #FFCB75; --warn-soft: #3F300A;
+  }
+}
+:root[data-contraste="alto"][data-theme="dark"] {
+  --bg: #000000; --surface: #0B1013; --tab: #000000; --ink: #FFFFFF; --muted: #DCE5EB; --line: #8EA2B0;
+  --accent: #7FD3EE; --accent-ink: #00222D; --accent-soft: #12394A; --danger: #FFA39C; --danger-soft: #4A1C1F; --warn: #FFCB75; --warn-soft: #3F300A;
 }
 
 * { box-sizing: border-box; }
@@ -1124,6 +1141,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
           <button type="button" class="ajuste" id="ajuste-mas" aria-label="A+, agrandar letra">A+</button>
           <button type="button" class="ajuste" id="ajuste-tema">Tema: automático</button>
           <button type="button" class="ajuste" id="ajuste-compacto">Filas: amplias</button>
+          <button type="button" class="ajuste" id="ajuste-contraste">Contraste: normal</button>
+          <button type="button" class="ajuste" id="ajuste-mov">Animaciones: automáticas</button>
         </div>
       </section>
       <section class="respaldo" aria-labelledby="pf-t">
@@ -2118,6 +2137,42 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   };
   try { window.matchMedia('(max-width: 600px)').addEventListener('change', function () { pintarCompacto(false); }); } catch (e) {}
   pintarCompacto(false);
+
+  /* Contraste alto y menos animaciones */
+  var LS_CONTRASTE = 'tareasdiarias.contraste', LS_MOV = 'tareasdiarias.movimiento';
+  var CONTR = lsLeer(LS_CONTRASTE); if (CONTR !== 'si' && CONTR !== 'no') CONTR = 'auto';
+  var MOV = lsLeer(LS_MOV) === 'reducidas' ? 'reducidas' : 'auto';
+  function contrasteAlto() {
+    if (CONTR === 'si') return true;
+    if (CONTR === 'no') return false;
+    try { return window.matchMedia('(prefers-contrast: more)').matches; } catch (e) { return false; }
+  }
+  function pintarContraste(avisar) {
+    var alto = contrasteAlto(), b = document.getElementById('ajuste-contraste');
+    if (alto) document.documentElement.setAttribute('data-contraste', 'alto'); else document.documentElement.removeAttribute('data-contraste');
+    if (b) {
+      b.textContent = 'Contraste: ' + (alto ? 'alto' : 'normal');
+      b.setAttribute('aria-label', 'Contraste ' + (alto ? 'alto' : 'normal') + '. Tocar para cambiar a ' + (alto ? 'normal' : 'alto'));
+    }
+    if (avisar) document.getElementById('ajuste-aviso').textContent = 'Contraste ' + (alto ? 'alto' : 'normal');
+  }
+  function pintarMov(avisar) {
+    var red = MOV === 'reducidas', b = document.getElementById('ajuste-mov');
+    document.body.classList.toggle('sin-mov', red);
+    if (b) {
+      b.textContent = 'Animaciones: ' + (red ? 'reducidas' : 'automáticas');
+      b.setAttribute('aria-label', red ? 'Animaciones reducidas. Tocar para volver a automáticas, que siguen la configuración del celular' : 'Animaciones automáticas, siguen la configuración del celular. Tocar para reducirlas');
+    }
+    if (avisar) document.getElementById('ajuste-aviso').textContent = 'Animaciones ' + (red ? 'reducidas' : 'automáticas');
+  }
+  document.getElementById('ajuste-contraste').onclick = function () {
+    CONTR = contrasteAlto() ? 'no' : 'si'; lsEscribir(LS_CONTRASTE, CONTR); pintarContraste(true);
+  };
+  document.getElementById('ajuste-mov').onclick = function () {
+    MOV = MOV === 'reducidas' ? 'auto' : 'reducidas'; lsEscribir(LS_MOV, MOV); pintarMov(true);
+  };
+  try { window.matchMedia('(prefers-contrast: more)').addEventListener('change', function () { pintarContraste(false); }); } catch (e) {}
+  pintarContraste(false); pintarMov(false);
 
   function guardarHojas() { lsEscribir(LS_HOJAS, JSON.stringify(EXTRA)); HOJAS_DEF = false; tocarMod('hojas'); }
   function agregarHoja(n) {
@@ -3756,7 +3811,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   var PEND = null;
 
   /* Preferencias que viajan en la copia. Los avisos no: dependen del permiso del navegador en cada dispositivo. */
-  function prefsActuales() { return { tema: tema, letra: letraPct, inicio: INICIO, feedback: FEED }; }
+  function prefsActuales() { return { tema: tema, letra: letraPct, inicio: INICIO, feedback: FEED, contraste: CONTR, movimiento: MOV }; }
   function limpiarPrefs(p) {
     if (!p || typeof p !== 'object') return null;
     var r = {};
@@ -3764,6 +3819,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (LETRAS.indexOf(p.letra) >= 0) r.letra = p.letra;
     if (INICIOS.indexOf(p.inicio) >= 0) r.inicio = p.inicio;
     if (FEEDS.indexOf(p.feedback) >= 0) r.feedback = p.feedback;
+    if (p.contraste === 'si' || p.contraste === 'no' || p.contraste === 'auto') r.contraste = p.contraste;
+    if (p.movimiento === 'reducidas' || p.movimiento === 'auto') r.movimiento = p.movimiento;
     return Object.keys(r).length ? r : null;
   }
   function aplicarPrefs(p) {
@@ -3772,6 +3829,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (p.letra) { letraPct = p.letra; lsEscribir(LS_LETRA, String(letraPct)); }
     if (p.inicio) { INICIO = p.inicio; lsEscribir(LS_INICIO, INICIO); $('sel-inicio').value = INICIO; }
     if (p.feedback) { FEED = p.feedback; lsEscribir(LS_FEED, FEED); pintarFeed(); }
+    if (p.contraste) { CONTR = p.contraste; lsEscribir(LS_CONTRASTE, CONTR); pintarContraste(false); }
+    if (p.movimiento) { MOV = p.movimiento; lsEscribir(LS_MOV, MOV); pintarMov(false); }
     aplicarApariencia('');
   }
   /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
@@ -4037,7 +4096,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function aparienciaDeFabrica() {
     ESTILOS = {}; guardarEstilos();
     tema = 'automático'; letraPct = 100; lsEscribir(LS_TEMA, tema); lsEscribir(LS_LETRA, '100');
-    try { localStorage.removeItem(LS_COMPACTO); } catch (e) {}
+    try { localStorage.removeItem(LS_COMPACTO); localStorage.removeItem(LS_CONTRASTE); localStorage.removeItem(LS_MOV); } catch (e) {}
+    CONTR = 'auto'; MOV = 'auto'; pintarContraste(false); pintarMov(false);
     aplicarApariencia(''); pintarCompacto(false);
   }
   function aplicarReset() {
