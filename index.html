@@ -1129,6 +1129,16 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
             <option value="enfoque">Enfoque</option>
           </select>
         </label>
+        <label for="sel-limpieza">Limpiar tareas hechas hace más de
+          <select id="sel-limpieza">
+            <option value="0">No limpiar nunca</option>
+            <option value="30">30 días</option>
+            <option value="60">60 días</option>
+            <option value="90">90 días</option>
+            <option value="180">6 meses</option>
+          </select>
+        </label>
+        <p class="prefs-nota" id="limpieza-nota">Las tareas hechas hace más tiempo se sacan de la lista. El conteo del Historial y las rachas se conservan, pero ya no se ve el nombre de cada tarea de esos días. Se puede deshacer desde el aviso.</p>
         <button type="button" class="ajuste" id="btn-feed">Al tildar: nada</button>
         <p class="prefs-nota">Al tildar una tarea podés sentir una vibración suave o escuchar un sonido corto. La vibración no funciona en iPhone.</p>
       </div>
@@ -5639,6 +5649,28 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   recibirCompartido();
 
   $('btn-estilo').addEventListener('click', function () { EST.abierto = !EST.abierto; render(); });
+
+  /* --- Limpieza automática de tareas hechas hace mucho (opcional; por defecto está apagada) --- */
+  var LS_LIMPIEZA = 'tareasdiarias.limpieza';
+  function diasLimpieza() { var n = parseInt(lsLeer(LS_LIMPIEZA) || '0', 10); return [30, 60, 90, 180].indexOf(n) >= 0 ? n : 0; }
+  function limpiezaAuto() {
+    var dias = diasLimpieza();
+    if (!dias || !S.listo) return;
+    var lim = Date.now() - dias * 86400000;
+    var viejas = S.tareas.filter(function (t) { return t.done && !t.plantilla && typeof t.hechaEn === 'number' && t.hechaEn < lim; });
+    if (!viejas.length) return;
+    var ids = {}; viejas.forEach(function (t) { ids[t.id] = true; });
+    S.tareas = S.tareas.filter(function (t) { return !ids[t.id]; });
+    guardarLocal(); render();
+    avisar('Se limpiaron ' + viejas.length + (viejas.length === 1 ? ' tarea hecha' : ' tareas hechas') + ' hace más de ' + (dias === 180 ? '6 meses' : dias + ' días') + '.', function () { viejas.forEach(restaurarTarea); });
+  }
+  $('sel-limpieza').value = String(diasLimpieza());
+  $('sel-limpieza').addEventListener('change', function () {
+    var v = parseInt($('sel-limpieza').value, 10) || 0;
+    lsEscribir(LS_LIMPIEZA, String(v));
+    anunciar(v ? 'Se van a limpiar las tareas hechas hace más de ' + $('sel-limpieza').options[$('sel-limpieza').selectedIndex].textContent : 'No se limpiarán tareas hechas');
+    limpiezaAuto();
+  });
   $('sel-inicio').value = INICIO;
   $('sel-inicio').addEventListener('change', function () {
     var v = $('sel-inicio').value;
@@ -5854,6 +5886,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     S.listo = true;
     pintarAvisoCopia();
     setTimeout(generarRepetidas, 300);
+    setTimeout(limpiezaAuto, 1500);
     input.disabled = false; btnAgregar.disabled = false;
     mostrarEstado(); render();
   }
@@ -5988,6 +6021,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   function refrescarTiempo() {
     generarRepetidas();
+    limpiezaAuto();
     if (EDIT.id || REP.id) return;
     var f = firmaTiempo();
     if (f === FIRMA_T) return;
