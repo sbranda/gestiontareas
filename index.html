@@ -340,6 +340,8 @@ body.panel-abierto { overflow: hidden; }
 .respaldo-confirma p { color: var(--ink); }
 .compartir { margin: 0 0 10px; }
 .compartir .mini, .compartir-bot .mini { min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; text-decoration: none; }
+#sem-volver { margin-top: 14px; }
+#btn-semana { margin-right: 8px; margin-bottom: 8px; }
 .compartir-panel { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .compartir-panel[hidden] { display: none; }
 .compartir-panel p { margin: 0 0 8px; font-size: 0.9375rem; }
@@ -985,7 +987,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <div class="fin-dia" id="enf-fin" role="status" hidden></div>
   </section>
 
+  <section id="vista-semana" hidden aria-label="Resumen de la semana">
+    <h2 class="busq-h" id="sem-titulo" tabindex="-1">Resumen de la semana</h2>
+    <p class="hist-total" id="sem-hechas" role="status"></p>
+    <div id="sem-res"></div>
+    <button type="button" class="mini" id="sem-volver">Volver</button>
+  </section>
+
   <div class="compartir" id="compartir" data-no-print hidden>
+    <button type="button" class="mini" id="btn-semana">Resumen de la semana</button>
     <button type="button" class="mini" id="btn-compartir" aria-expanded="false" aria-controls="compartir-panel">Compartir lo de hoy</button>
     <div class="compartir-panel" id="compartir-panel" role="group" aria-labelledby="compartir-t" hidden>
       <p id="compartir-t">Así queda el texto. Podés cambiarlo antes de enviarlo.</p>
@@ -3348,6 +3358,16 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   var LS_VISTA = 'tareasdiarias.vista';
   var VISTA = INICIO !== 'ultima' ? INICIO : ((lsLeer(LS_VISTA) === 'hoy' || lsLeer(LS_VISTA) === 'calendario' || lsLeer(LS_VISTA) === 'historial' || lsLeer(LS_VISTA) === 'enfoque' || lsLeer(LS_VISTA) === 'notas') ? lsLeer(LS_VISTA) : 'lista');
   var CAL = { y: new Date().getFullYear(), m: new Date().getMonth(), sel: hoyStr(), filtro: 'todas' };
+  /* Accesos rápidos del ícono: ?vista=hoy|semana|... y ?accion=nueva */
+  var ACCION_NUEVA = false;
+  (function () {
+    var p;
+    try { p = new URLSearchParams(location.search); } catch (e) { return; }
+    var v = p.get('vista'), a = p.get('accion');
+    if (v && ['hoy', 'lista', 'calendario', 'historial', 'enfoque', 'notas', 'semana', 'buscar'].indexOf(v) >= 0) VISTA = v;
+    if (a === 'nueva') { VISTA = 'lista'; ACCION_NUEVA = true; }
+    if (v || a) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+  })();
 
   function crearCeldaDia(d, res, hoy) {
     var c = CAL.y + '-' + dos(CAL.m + 1) + '-' + dos(d);
@@ -4787,6 +4807,53 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       return itemBusq(c.nombre, (esFallec(c) ? 'Fallecimiento: ' : '') + c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
     }), cs.length);
   }
+  /* ---------- Resumen de la semana ---------- */
+  var SEM = { antes: 'hoy' };
+  function resumenDeLaSemana(tareas, ahora, hist, cumples) {
+    var hoy = claveDia(ahora), lun = lunesDe(hoy), hechas = 0, i;
+    for (i = 0; i < 7; i++) hechas += hist[sumarDias(lun, i)] || 0;
+    var pend = tareas.filter(function (t) { return !t.plantilla && !t.done; });
+    var atrasadas = pend.filter(function (t) { var f = fechaDe(t); return (t.due != null && t.due < ahora) || (f && f < hoy); })
+      .sort(function (a, b) { return (a.due != null ? a.due : aFecha(fechaDe(a)).getTime()) - (b.due != null ? b.due : aFecha(fechaDe(b)).getTime()); });
+    var viene = [];
+    for (i = 1; i <= 7; i++) {
+      var dia = sumarDias(hoy, i);
+      pend.filter(function (t) { return fechaDe(t) === dia; }).sort(ordenTareas).forEach(function (t) { viene.push({ t: t, dia: dia }); });
+    }
+    var sinFecha = pend.filter(function (t) { return t.urgente && !fechaDe(t); }).sort(ordenTareas);
+    return { lunes: lun, hechas: hechas, atrasadas: atrasadas, viene: viene, urgentes: sinFecha, cumples: proximosCumples(cumples, hoy, 7) };
+  }
+  function renderSemana() {
+    document.title = 'Resumen de la semana · Al toque';
+    var r = resumenDeLaSemana(S.tareas, Date.now(), HIST, CUMPLES), cont = $('sem-res'), MAXS = 30;
+    cont.textContent = '';
+    $('sem-hechas').textContent = textoSemana(r.lunes) + ': ' + (r.hechas ? 'hiciste ' + r.hechas + (r.hechas === 1 ? ' tarea.' : ' tareas.') : 'todavía no marcaste tareas como hechas.');
+    function hh(t) { return t.due != null && t.hora ? ' · ' + hora(t.due) : ''; }
+    grupoBusq(cont, 'Quedó atrasado', r.atrasadas.slice(0, MAXS).map(function (t) {
+      var f = fechaDe(t);
+      return itemBusq(t.text, (f ? 'Era para el ' + fechaCorta(f).slice(0, 5) : 'Atrasada') + hh(t) + (t.urgente ? ' · Urgente' : ''), function () { irATarea(t); });
+    }), r.atrasadas.length);
+    grupoBusq(cont, 'Lo que viene en 7 días', r.viene.slice(0, MAXS).map(function (x) {
+      return itemBusq(x.t.text, titulodia(x.dia) + hh(x.t) + (x.t.urgente ? ' · Urgente' : ''), function () { irATarea(x.t); });
+    }), r.viene.length);
+    grupoBusq(cont, 'Urgentes sin fecha', r.urgentes.slice(0, MAXS).map(function (t) {
+      return itemBusq(t.text, 'Sin fecha · ' + (t.dest || 'Diarias'), function () { irATarea(t); });
+    }), r.urgentes.length);
+    grupoBusq(cont, 'Cumpleaños de la semana', r.cumples.slice(0, MAXS).map(function (p) {
+      return itemBusq(p.c.nombre, (esFallec(p.c) ? 'Aniversario de fallecimiento · ' : '') + titulodia(p.clave), function () { irACumple(p.c); });
+    }), r.cumples.length);
+    if (!r.atrasadas.length && !r.viene.length && !r.urgentes.length && !r.cumples.length) {
+      var p = document.createElement('p'); p.className = 'busq-vacio';
+      p.textContent = 'Todo al día: no hay nada atrasado ni agendado para los próximos 7 días.'; cont.appendChild(p);
+    }
+  }
+  $('btn-semana').addEventListener('click', function () {
+    SEM.antes = VISTA; VISTA = 'semana'; render(); $('sem-titulo').focus();
+  });
+  $('sem-volver').addEventListener('click', function () {
+    VISTA = SEM.antes && SEM.antes !== 'semana' ? SEM.antes : 'hoy'; render();
+  });
+  $('vista-semana').addEventListener('keydown', function (e) { if (e.key === 'Escape') $('sem-volver').click(); });
   $('btn-buscar').addEventListener('click', function () {
     if (VISTA !== 'buscar') BUSQ.antes = VISTA;
     VISTA = 'buscar'; render();
@@ -5243,7 +5310,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-enfoque').hidden = VISTA !== 'enfoque';
     $('vista-notas').hidden = VISTA !== 'notas';
     $('vista-buscar').hidden = VISTA !== 'buscar';
+    $('vista-semana').hidden = VISTA !== 'semana';
     if (VISTA !== 'hoy') { $('compartir').hidden = true; cerrarCompartir(false); }
+    var domNoche = new Date(AHORA); $('btn-semana').classList.toggle('primario', domNoche.getDay() === 0 && domNoche.getHours() >= 18);
     if (VISTA !== 'notas') NOTAUI.ver = {};
     marcarUrgVis(); pintarRacha();
     if (enCal) pintarFinDia($('fin-dia'), false);
@@ -5275,6 +5344,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (VISTA === 'enfoque') { renderEnfoque(); return; }
     if (VISTA === 'notas') { renderNotas(); return; }
     if (VISTA === 'buscar') { renderBuscar(); return; }
+    if (VISTA === 'semana') { renderSemana(); return; }
     if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
@@ -5889,6 +5959,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     setTimeout(limpiezaAuto, 1500);
     input.disabled = false; btnAgregar.disabled = false;
     mostrarEstado(); render();
+    if (ACCION_NUEVA) { ACCION_NUEVA = false; input.focus(); }
+    else if (VISTA === 'buscar') { $('busq-q').focus(); }
   }
 
   function modoLocal() {
