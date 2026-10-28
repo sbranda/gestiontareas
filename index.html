@@ -125,7 +125,8 @@ html input[type="date"].fmt-vacio:not(:focus), html input[type="time"].fmt-vacio
 html input[type="date"].fmt-vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='5'%20width='18'%20height='16'%20rx='2'/%3E%3Cpath%20d='M3%2010h18M8%203v4M16%203v4'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='90'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3Edd/mm/aaaa%3C/text%3E%3C/svg%3E"); }
 html input[type="time"].fmt-vacio:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%238593A0'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='12'%20cy='12'%20r='9'/%3E%3Cpath%20d='M12%207v5l3%202'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50'%20height='20'%3E%3Ctext%20x='0'%20y='15'%20font-family='sans-serif'%20font-size='15'%20fill='%238593A0'%3E--:--%3C/text%3E%3C/svg%3E"); }
 input[type="date"].fmt-vacio:not(:focus)::-webkit-datetime-edit, input[type="time"].fmt-vacio:not(:focus)::-webkit-datetime-edit { color: transparent; }
-input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0; min-width: 24px; min-height: 24px; cursor: pointer; }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+input[type="date"], input[type="time"] { cursor: pointer; }
 input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { min-height: 1.5em; text-align: left; }
 .btn-quitar-limite { min-height: 44px; padding: 0 10px; border: 0; background: transparent; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
 
@@ -3114,6 +3115,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     Array.prototype.forEach.call(document.querySelectorAll('input[type="date"], input[type="time"]'), function (i) { i.classList.toggle('fmt-vacio', !i.value); });
   }
   ['input', 'change', 'blur'].forEach(function (ev) { document.addEventListener(ev, function (e) { var t = e.target; if (t && t.type && (t.type === 'date' || t.type === 'time')) t.classList.toggle('fmt-vacio', !t.value); }, true); });
+  /* El ícono nativo se oculta (para que no se superponga con el dibujado): al tocar el campo se abre el selector. */
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && (t.type === 'date' || t.type === 'time') && !t.disabled && !t.readOnly && typeof t.showPicker === 'function') { try { t.showPicker(); } catch (er) {} }
+  });
   new MutationObserver(function () { try { marcarVacios(); } catch (e) {} }).observe(document.body, { childList: true, subtree: true });
   marcarVacios();
   var IGN_FECHA = '';
