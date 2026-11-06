@@ -480,7 +480,7 @@ body.panel-abierto { overflow: hidden; }
 .nota-titulo { margin: 0 0 4px; font-size: 1.0625rem; font-weight: 700; overflow-wrap: anywhere; }
 .nota-ver { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.9375rem; }
 .nota-ver input { width: 20px; height: 20px; min-height: 0; flex: none; }
-.nota-detalle { margin: 0 0 6px; color: var(--muted); font-size: 0.9375rem; overflow-wrap: anywhere; }
+.nota-detalle { margin: 0 0 2px; color: var(--muted); font-size: 0.9375rem; overflow-wrap: anywhere; }
 .nota-clave { margin: 0 0 6px; font-family: var(--font-mono); overflow-wrap: anywhere; line-height: 1.45; }
 .nota-texto { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
 .nota-fecha { margin: 0 0 8px; color: var(--muted); font-size: 0.8125rem; }
@@ -960,10 +960,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <p class="notas-ayuda">Guardá acá tus contraseñas. Se ven ocultas hasta que toques <strong>Mostrar</strong>. Quedan solo en este dispositivo y no se sincronizan con GitHub. <strong id="notas-cifrado"></strong></p>
     <div class="clave-zona" id="clave-zona"></div>
     <form class="nota-form" id="form-nota" autocomplete="off">
-      <label for="nota-titulo" class="sr-only">Sitio o cuenta</label>
-      <input type="text" id="nota-titulo" maxlength="60" placeholder="Sitio o cuenta (ej. Gmail)">
       <label for="nota-detalle" class="sr-only">A qué se refiere (opcional)</label>
       <input type="text" id="nota-detalle" maxlength="100" placeholder="A qué se refiere (opcional)">
+      <label for="nota-titulo" class="sr-only">Sitio, cuenta o usuario</label>
+      <input type="text" id="nota-titulo" maxlength="60" placeholder="Sitio, cuenta o usuario (ej. Gmail)">
       <label for="nota-texto" class="sr-only">Contraseña</label>
       <input type="password" id="nota-texto" maxlength="200" placeholder="Contraseña" autocomplete="new-password" autocapitalize="off" spellcheck="false">
       <label class="nota-ver"><input type="checkbox" id="nota-ver-nueva"> Mostrar lo que escribo</label>
@@ -5008,8 +5008,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function crearNota(n) {
     var li = document.createElement('li'); li.className = 'nota' + (n.fijada ? ' fijada' : ''); li.setAttribute('data-nota', n.id);
     var nom = n.titulo || 'sin título';
-    if (n.titulo) { var h = document.createElement('h3'); h.className = 'nota-titulo'; h.textContent = n.titulo; li.appendChild(h); }
     if (n.detalle) { var dt = document.createElement('p'); dt.className = 'nota-detalle'; dt.textContent = n.detalle; li.appendChild(dt); }
+    if (n.titulo) { var h = document.createElement('h3'); h.className = 'nota-titulo'; h.textContent = n.titulo; li.appendChild(h); }
     if (n.texto) {
       var visible = !!NOTAUI.ver[n.id], p = document.createElement('p'); p.className = 'nota-clave';
       p.textContent = visible ? n.texto : '••••••••';
@@ -5046,7 +5046,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function crearEditorAnot(n) {
     var li = document.createElement('li'); li.className = 'nota'; li.setAttribute('data-nota', n.id);
     var f = document.createElement('form'); f.className = 'nota-editor'; f.autocomplete = 'off';
-    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = 60; ti.value = n.titulo; ti.id = 'nota-edit-titulo'; ti.setAttribute('aria-label', 'Sitio o cuenta');
+    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = 60; ti.value = n.titulo; ti.id = 'nota-edit-titulo'; ti.setAttribute('aria-label', 'Sitio, cuenta o usuario');
     var de = document.createElement('input'); de.type = 'text'; de.maxLength = 100; de.value = n.detalle || ''; de.id = 'nota-edit-detalle'; de.setAttribute('aria-label', 'A qué se refiere (opcional)'); de.placeholder = 'A qué se refiere (opcional)';
     var tx = document.createElement('input'); tx.type = 'password'; tx.maxLength = 200; tx.value = n.texto.replace(/\s*\n+\s*/g, ' '); tx.id = 'nota-edit-texto'; tx.setAttribute('aria-label', 'Contraseña'); tx.autocomplete = 'new-password'; tx.setAttribute('autocapitalize', 'off'); tx.spellcheck = false;
     var vl = document.createElement('label'); vl.className = 'nota-ver'; var vc = document.createElement('input'); vc.type = 'checkbox'; vl.appendChild(vc); vl.appendChild(document.createTextNode(' Mostrar lo que escribo'));
@@ -5072,7 +5072,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       avisar('Contraseña modificada', function () { NOTAS = NOTAS.map(function (x) { return x.id === antes.id ? antes : x; }); guardarNotas(); renderNotas(); });
     });
     ac.appendChild(g); ac.appendChild(c);
-    f.appendChild(ti); f.appendChild(de); f.appendChild(tx); f.appendChild(vl); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
+    f.appendChild(de); f.appendChild(ti); f.appendChild(tx); f.appendChild(vl); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
     return li;
   }
 
@@ -5140,7 +5140,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
           var p = c.val('clave-pass');
           if (!p) { c.err('Escribí la clave.'); return; }
           c.ocupado(true, 'Desbloqueando…');
-          desbloquearClave(p).then(function () { CLAVEUI.modo = ''; renderNotas(); var t = $('nota-titulo'); if (t) t.focus(); }).catch(function () {
+          desbloquearClave(p).then(function () { CLAVEUI.modo = ''; renderNotas(); var t = $('nota-detalle'); if (t) t.focus(); }).catch(function () {
             c.ocupado(false); c.err('La clave no es correcta.'); var e = $('clave-pass'); if (e) { e.value = ''; e.focus(); }
           });
         }));
@@ -5206,7 +5206,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (det) nota.detalle = det;
     NOTAS.unshift(nota); guardarNotas();
     $('nota-titulo').value = ''; $('nota-detalle').value = ''; $('nota-texto').value = ''; $('nota-texto').type = 'password'; $('nota-ver-nueva').checked = false; NOTAUI.q = ''; $('nota-buscar').value = '';
-    renderNotas(); $('nota-titulo').focus();
+    renderNotas(); $('nota-detalle').focus();
     avisar('Contraseña guardada', function () { NOTAS = NOTAS.filter(function (x) { return x.id !== nota.id; }); guardarNotas(); renderNotas(); });
   });
   $('nota-ver-nueva').addEventListener('change', function () { $('nota-texto').type = this.checked ? 'text' : 'password'; });
