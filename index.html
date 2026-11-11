@@ -966,7 +966,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   </section>
   <section id="vista-apu" hidden aria-label="Anotaciones">
     <h2 class="notas-h" id="apu-titulo" tabindex="-1">Anotaciones</h2>
-    <p class="notas-ayuda">Escribí lo que quieras: ideas, listas, direcciones, lo que no quieras olvidar. Los enlaces y teléfonos se pueden tocar. Quedan solo en este dispositivo, sin cifrar, y viajan en la copia de seguridad.</p>
+    <p class="notas-ayuda">Escribí lo que quieras: ideas, listas, direcciones, lo que no quieras olvidar. Los enlaces y teléfonos se pueden tocar. Se guardan en este dispositivo y, si activaste la sincronización, también en tu gist privado de GitHub (sin cifrar). Viajan además en la copia de seguridad.</p>
     <button type="button" class="mini" id="apu-volver">Volver</button>
     <form class="nota-form" id="form-apu" autocomplete="off" novalidate>
       <label for="apu-t" class="sr-only">Título (opcional)</label>
@@ -2791,14 +2791,32 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function porId(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); }
   /* Forma comparable: el orden de las listas no cuenta, así dos dispositivos no se "corrigen" entre sí sin parar */
   function canonSync(m) {
-    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos, cumples: m.cumples.slice().sort(porId), notas: (m.notas || []).slice().sort(porId) };
+    return { tareas: m.tareas.slice().sort(porId), borradas: m.borradas, hojas: m.hojas.slice().sort(), mods: m.mods, historial: m.historial, modelos: m.modelos.slice().sort(porId), estilos: m.estilos, cumples: m.cumples.slice().sort(porId), notas: (m.notas || []).slice().sort(porId), anot: (m.anot || []).slice().sort(porId), anotBorradas: m.anotBorradas || {} };
   }
   function unirHojas(a, b) {
     var vistos = {}, r = [];
     a.concat(b).forEach(function (n) { var k = n.toLowerCase(); if (!vistos[k]) { vistos[k] = 1; r.push(n); } });
     return r;
   }
+  /* Anotaciones: cada una gana por su hora de cambio; las borradas se recuerdan 60 días */
+  function fusionarAnot(la, ra, tl, tr, ahora, tope) {
+    var tomb = {};
+    [tr, tl].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { tomb[k] = Math.max(tomb[k] || 0, o[k]); }); });
+    var L = {}, R = {}, orden = [], lista = [];
+    la.forEach(function (n) { L[n.id] = n; orden.push(n.id); });
+    ra.forEach(function (n) { R[n.id] = n; if (!L[n.id]) orden.push(n.id); });
+    orden.forEach(function (id) {
+      var a = L[id], b = R[id], p = !a ? b : (!b ? a : ((b.mod || 0) > (a.mod || 0) ? b : a));
+      if (tomb[id] && tomb[id] >= (p.mod || 0)) return;
+      delete tomb[id]; lista.push(p);
+    });
+    if (lista.length > tope) lista = lista.slice().sort(function (x, y) { return (y.mod || 0) - (x.mod || 0) || porId(x, y); }).slice(0, tope);
+    var lim = (ahora || Date.now()) - 60 * 86400000;
+    Object.keys(tomb).forEach(function (k) { if (tomb[k] < lim) delete tomb[k]; });
+    return { lista: lista, borradas: tomb };
+  }
   function fusionarSync(loc, rem, ahora) {
+    var fa = fusionarAnot(loc.anot || [], rem.anot || [], loc.anotBorradas, rem.anotBorradas, ahora, MAX_APU);
     var tomb = {};
     [rem.borradas, loc.borradas].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { tomb[k] = Math.max(tomb[k] || 0, o[k]); }); });
     var L = {}, Rm = {}, orden = [];
@@ -2821,7 +2839,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       return loc[k];
     }
     return {
-      tareas: tareas, borradas: tomb, mods: mods,
+      tareas: tareas, borradas: tomb, mods: mods, anot: fa.lista, anotBorradas: fa.borradas,
       hojas: elegir('hojas', function () { return unirHojas(loc.hojas, rem.hojas); }),
       historial: mezclarHist(loc.historial, rem.historial),
       modelos: elegir('modelos', function () { return mezclarModelos(loc.modelos, rem.modelos); }),
@@ -2851,6 +2869,12 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       estilos: limpiarEstilos(o.estilos),
       cumples: Array.isArray(o.cumples) ? limpiarListaCumples(o.cumples) : [],
       notas: [],
+      anot: Array.isArray(o.anot) ? limpiarListaApu(o.anot) : [],
+      anotBorradas: (function () {
+        var r = {}, b = o.anotBorradas;
+        if (b && typeof b === 'object' && !Array.isArray(b)) Object.keys(b).forEach(function (k) { if (typeof b[k] === 'number' && isFinite(b[k]) && /^[A-Za-z0-9_.~:@+-]{1,200}$/.test(k)) r[k] = b[k]; });
+        return r;
+      })(),
       hayNotas: Array.isArray(o.notas) && o.notas.length > 0
     };
   }
@@ -4930,13 +4954,29 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       vistos[id] = true;
       var cr = typeof n.creada === 'number' && isFinite(n.creada) ? n.creada : Date.now();
       var ed = typeof n.editada === 'number' && isFinite(n.editada) ? n.editada : cr;
-      r.push({ id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: ed });
+      var md = typeof n.mod === 'number' && isFinite(n.mod) ? n.mod : ed;
+      r.push({ id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: ed, mod: md });
     });
     return r;
   }
-  var APU = [];
+  var APU = [], APUTOMB = {}, SNAPAPU = {}, LS_APUTOMB = 'tareasdiarias.anotborradas';
   try { APU = limpiarListaApu(JSON.parse(lsLeer(LS_APU) || '[]')); } catch (e) {}
+  try { var ot = JSON.parse(lsLeer(LS_APUTOMB) || '{}'); if (ot && typeof ot === 'object') Object.keys(ot).forEach(function (k) { if (typeof ot[k] === 'number' && isFinite(ot[k])) APUTOMB[k] = ot[k]; }); } catch (e) {}
+  function claveApu(n) { var c = Object.assign({}, n); delete c.mod; return JSON.stringify(c); }
+  APU.forEach(function (n) { SNAPAPU[n.id] = claveApu(n); });
+  /* Sella con la hora cada anotación cambiada y recuerda las borradas, para poder unir dos dispositivos */
+  function sellarApu() {
+    var ahora = Date.now(), nuevo = {}, cambio = false;
+    APU.forEach(function (n) {
+      var j = claveApu(n); nuevo[n.id] = j;
+      if (!SYNC.aplicando && SNAPAPU[n.id] !== j) { n.mod = ahora; cambio = true; delete APUTOMB[n.id]; }
+    });
+    if (!SYNC.aplicando) Object.keys(SNAPAPU).forEach(function (id) { if (!(id in nuevo)) { APUTOMB[id] = ahora; cambio = true; } });
+    SNAPAPU = nuevo;
+    if (cambio) { lsEscribir(LS_APUTOMB, JSON.stringify(APUTOMB)); programarSync(); }
+  }
   function guardarApu() {
+    sellarApu();
     if (!lsEscribir(LS_APU, JSON.stringify(APU))) avisar('No se pudo guardar: no hay espacio en el dispositivo. Exportá una copia y borrá anotaciones viejas.', null);
   }
   function ordenarApu(lista) {
@@ -5569,7 +5609,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (v === 'calendario') return 'Tocá un día para ver lo que hay y agendar tareas para esa fecha. Las marcas de cada día muestran si hay tareas pendientes, hechas, repetidas, cumpleaños o recuerdos. Con los botones de arriba filtrás por hoja o ves solo los cumpleaños, y abajo está la lista del mes.';
     if (v === 'enfoque') return 'Te muestra una sola tarea pendiente a la vez. Elegí 15, 25 o 45 minutos y tocá Iniciar; podés pausar, seguir o reiniciar. Marcar como hecha pasa a la siguiente y Saltar la deja para más tarde.';
     if (v === 'notas') return 'Acá guardás tus contraseñas: se ven ocultas hasta que tocás Mostrar. Cada una se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Quedan en este dispositivo y sin cifrar.';
-    if (v === 'apu') return 'Acá anotás lo que quieras. Cada anotación se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Lo que escribís en el cuadro se guarda solo como borrador hasta que tocás Guardar anotación.';
+    if (v === 'apu') return 'Acá anotás lo que quieras. Cada anotación se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Lo que escribís en el cuadro se guarda solo como borrador hasta que tocás Guardar anotación. Con la sincronización activa, se unen entre tus dispositivos.';
     if (v === 'buscar') return 'Escribí al menos 2 letras. Busca en las tareas de todas las solapas, en los nombres de tus contraseñas, en las anotaciones y en los cumpleaños. Tocá un resultado para ir a él.';
     return '';
   }
@@ -6080,10 +6120,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     }).then(function (r) { SYNC.enCurso = false; return r; }, function (e) { SYNC.enCurso = false; throw e; });
   }
   function estadoLocal() {
-    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES, notas: [] };
+    return { tareas: S.tareas.map(limpiar), borradas: TOMB, hojas: (HOJAS_DEF && !MODS.hojas) ? [] : EXTRA.slice(), mods: MODS, historial: HIST, modelos: MODELOS, estilos: ESTILOS, cumples: CUMPLES, notas: [], anot: APU, anotBorradas: APUTOMB };
   }
   function armarSync(m) {
-    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples, notas: [] });
+    return JSON.stringify({ app: 'tareas-diarias-sync', v: 1, actualizado: Date.now(), tareas: m.tareas, borradas: m.borradas, hojas: m.hojas, mods: m.mods, historial: m.historial, modelos: m.modelos, estilos: m.estilos, cumples: m.cumples, notas: [], anot: m.anot || [], anotBorradas: m.anotBorradas || {} });
   }
   function aplicarSync(m) {
     SYNC.aplicando = true;
@@ -6095,6 +6135,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       ESTILOS = m.estilos; guardarEstilos();
       if (CUM_SYNC) { CUMPLES = m.cumples; guardarCumples(); pintarCumples(); }
       MODS = CUM_SYNC ? m.mods : Object.assign({}, m.mods, { cumples: MODS.cumples }); lsEscribir(LS_MODS, JSON.stringify(MODS));
+      APU = limpiarListaApu(m.anot || []); APUTOMB = Object.assign({}, m.anotBorradas || {});
+      lsEscribir(LS_APU, JSON.stringify(APU)); lsEscribir(LS_APUTOMB, JSON.stringify(APUTOMB));
+      SNAPAPU = {}; APU.forEach(function (n) { SNAPAPU[n.id] = claveApu(n); });
+      if (VISTA === 'apu' && !APUUI.edit) renderApu(true);
       SNAP = null; guardarLocal();
       SNAP = {};
       S.tareas.forEach(function (t) { var c = Object.assign({}, t); delete c.mod; SNAP[t.id] = JSON.stringify(c); });
