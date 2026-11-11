@@ -1256,8 +1256,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     </div>
     <form class="modelo-form" id="cumple-form" autocomplete="off">
       <label for="cumple-tipo">Tipo</label>
-      <select id="cumple-tipo"><option value="">Cumpleaños</option><option value="f">Fallecimiento (aniversario)</option></select>
-      <label for="cumple-nombre">Nombre</label>
+      <select id="cumple-tipo"><option value="">Cumpleaños</option><option value="f">Fallecimiento (aniversario)</option><option value="a">Aniversario (boda, trabajo, otro)</option></select>
+      <label for="cumple-nombre" id="cumple-nombre-lbl">Nombre</label>
       <input type="text" id="cumple-nombre" maxlength="60">
       <label for="cumple-grupo">Grupo (opcional)</label>
       <input type="text" id="cumple-grupo" maxlength="30" list="cumple-grupos" aria-describedby="cumple-grupo-ayuda">
@@ -1492,6 +1492,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   /* ---------- Cumpleaños (datos) ---------- */
   var LS_CUMPLES = 'tareasdiarias.cumples', MAX_CUMPLES = 500;
   var SVG_VELA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="12" width="8" height="9" rx="1"/><path d="M12 12v-1.5"/><path d="M12 3c1.6 2 2.4 3 2.4 4.3a2.4 2.4 0 0 1-4.8 0C9.6 6 10.4 5 12 3z"/></svg>';
+  var SVG_ANILLO = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10A4.2 4.2 0 0 1 12 7.9a4.2 4.2 0 0 1 7.5 2.6c0 5.4-7.5 10-7.5 10z"/></svg>';
   var SVG_TORTA = '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M4.5 21v-6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v6"/><path d="M4.5 17.5c2 0 2-1.3 3.8-1.3s1.8 1.3 3.7 1.3 1.8-1.3 3.7-1.3 1.9 1.3 3.8 1.3"/><path d="M12 13V9.5"/><path d="M12 9.5c-1.2-1-1.2-2.4 0-3.5 1.2 1.1 1.2 2.5 0 3.5z"/></svg>';
   var CUMPLES = [];
   var LS_CUMHOY = 'tareasdiarias.cumples.hoy', MAX_GRUPO = 30;
@@ -1545,7 +1546,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (!nombre || !(mes >= 1 && mes <= 12) || !(dia >= 1 && dia <= diasMaxMes(mes))) return null;
     var id = (typeof o.id === 'string' && /^[A-Za-z0-9_.~:@+-]{1,60}$/.test(o.id)) ? o.id : idNuevo();
     var r = { id: id, nombre: nombre, dia: dia, mes: mes };
-    if (o.tipo === 'f') r.tipo = 'f';
+    if (o.tipo === 'f' || o.tipo === 'a') r.tipo = o.tipo;
     var an = parseInt(o.anio, 10);
     if (an >= 1900 && an <= new Date().getFullYear()) r.anio = an;
     var g = limpiarGrupo(o.grupo);
@@ -1602,7 +1603,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (CUMPLES.some(function (c) { return !c.grupo; })) op('sin', 'Sin grupo');
     sel.value = valor;
   }
-  function claveNombreCumple(c) { return (c.tipo === 'f' ? 'f|' : '') + c.nombre.toLowerCase() + '|' + c.mes + '|' + c.dia; }
+  function claveNombreCumple(c) { return (c.tipo === 'f' ? 'f|' : (c.tipo === 'a' ? 'a|' : '')) + c.nombre.toLowerCase() + '|' + c.mes + '|' + c.dia; }
   function limpiarListaCumples(arr) {
     var r = [], ids = {}, ks = {}, gs = {};
     if (!Array.isArray(arr)) return r;
@@ -1653,6 +1654,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   /* Fallecimientos: se guardan como un cumpleaños con tipo 'f'; el año es el del fallecimiento y se avisa cada aniversario. */
   function esFallec(c) { return !!c && c.tipo === 'f'; }
+  /* Aniversarios (boda, trabajo, lo que sea): tipo 'a'; el nombre es el título y el año, cuándo empezó. */
+  function esAniv(c) { return !!c && c.tipo === 'a'; }
+  function textoAnios(n) { return n > 0 ? n + (n === 1 ? ' año' : ' años') : ''; }
+  function sustCumple(c) { return esFallec(c) ? 'el recuerdo' : (esAniv(c) ? 'el aniversario' : 'el cumpleaños'); }
+  function nombreSeccionCumples(l) { return l.some(esAniv) ? 'Cumpleaños y fechas' : (l.some(esFallec) ? 'Cumpleaños y recuerdos' : 'Cumpleaños'); }
   function textoAnivFallec(n) { return n > 0 ? n + (n === 1 ? ' año' : ' años') + ' de su fallecimiento' : ''; }
   function textoEdad(n) { return n > 0 ? n + (n === 1 ? ' año' : ' años') : ''; }
   function textoFechaCumple(c) { return c.dia + ' de ' + MESES[c.mes - 1]; }
@@ -1676,6 +1682,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     String(texto == null ? '' : texto).split(/\r?\n/).forEach(function (linea) {
       var l = linea.trim(), tipoF = '';
       if (/[;,\s]fallecimiento\s*$/i.test(l)) { tipoF = 'f'; l = l.replace(/[;,\s]+fallecimiento\s*$/i, ''); }
+      else if (/[;,\s]aniversario\s*$/i.test(l)) { tipoF = 'a'; l = l.replace(/[;,\s]+aniversario\s*$/i, ''); }
       if (!l) return;
       var m, dia, mes, anio;
       if ((m = /(\d{4})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?!\d)/.exec(l))) { anio = +m[1]; mes = +m[2]; dia = +m[3]; }
@@ -1735,15 +1742,15 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function planCumples(lista, ahora, antes) {
     var r = [], hoy = claveDia(ahora);
     proximosCumples(lista, hoy, 5).forEach(function (p) {
-      var fa = esFallec(p.c);
-      var cuerpo = fa ? (p.edad > 0 ? textoAnivFallec(p.edad) : 'Aniversario de su fallecimiento') : (p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños');
+      var fa = esFallec(p.c), an = esAniv(p.c);
+      var cuerpo = an ? (p.edad > 0 ? 'Cumple ' + textoAnios(p.edad) : 'Es su aniversario') : fa ? (p.edad > 0 ? textoAnivFallec(p.edad) : 'Aniversario de su fallecimiento') : (p.edad > 0 ? 'Cumple ' + textoEdad(p.edad) : 'Es su cumpleaños');
       if (p.faltan <= 4) {
         var f = aFecha(p.clave); f.setHours(AV_MANANA, 0, 0, 0);
-        r.push({ key: 'cu:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: f.getTime(), titulo: (fa ? 'Hoy se recuerda a ' : 'Hoy cumple ') + recortarAv(p.c.nombre), cuerpo: cuerpo });
+        r.push({ key: 'cu:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: f.getTime(), titulo: (an ? 'Hoy es el aniversario: ' : fa ? 'Hoy se recuerda a ' : 'Hoy cumple ') + recortarAv(p.c.nombre), cuerpo: cuerpo });
       }
       if (antes && p.faltan >= 1) {
         var v = aFecha(sumarDias(p.clave, -1)); v.setHours(AV_MANANA, 0, 0, 0);
-        r.push({ key: 'cb:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: v.getTime(), titulo: (fa ? 'Mañana se recuerda a ' : 'Mañana cumple ') + recortarAv(p.c.nombre), cuerpo: (p.c.grupo ? recortarAv(p.c.grupo) + ' · ' : '') + cuerpo });
+        r.push({ key: 'cb:' + p.c.id + ':' + p.clave, id: 'cu:' + p.c.id, at: v.getTime(), titulo: (an ? 'Mañana es el aniversario: ' : fa ? 'Mañana se recuerda a ' : 'Mañana cumple ') + recortarAv(p.c.nombre), cuerpo: (p.c.grupo ? recortarAv(p.c.grupo) + ' · ' : '') + cuerpo });
       }
     });
     return r;
@@ -1755,14 +1762,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Al toque//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Cumpleaños'];
     var y = new Date(ahora).getFullYear();
     lista.forEach(function (c) {
-      var fa = esFallec(c), ini = claveCumple(c, 2001), fin = sumarDias(ini, 1);
+      var fa = esFallec(c), an = esAniv(c), ini = claveCumple(c, 2001), fin = sumarDias(ini, 1);
       ini = y + ini.slice(4); fin = y + fin.slice(4);
       if (fin < ini) fin = (y + 1) + fin.slice(4);
       L.push('BEGIN:VEVENT', 'UID:' + c.id + '@tareas-diarias-cumple', 'DTSTAMP:' + sello,
         'DTSTART;VALUE=DATE:' + ini.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + fin.replace(/-/g, ''),
-        'RRULE:FREQ=YEARLY', 'SUMMARY:' + escICS((fa ? 'Aniversario del fallecimiento de ' : 'Cumpleaños de ') + c.nombre),
-        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS((fa ? 'Aniversario del fallecimiento de ' : 'Cumpleaños de ') + c.nombre), 'TRIGGER;RELATED=START:PT8H', 'END:VALARM');
-      if (antes) L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS((fa ? 'Mañana es el aniversario del fallecimiento de ' : 'Mañana es el cumpleaños de ') + c.nombre), 'TRIGGER;RELATED=START:-PT16H', 'END:VALARM');
+        'RRULE:FREQ=YEARLY', 'SUMMARY:' + escICS((an ? 'Aniversario: ' : fa ? 'Aniversario del fallecimiento de ' : 'Cumpleaños de ') + c.nombre),
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS((an ? 'Aniversario: ' : fa ? 'Aniversario del fallecimiento de ' : 'Cumpleaños de ') + c.nombre), 'TRIGGER;RELATED=START:PT8H', 'END:VALARM');
+      if (antes) L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + escICS((an ? 'Mañana es el aniversario: ' : fa ? 'Mañana es el aniversario del fallecimiento de ' : 'Mañana es el cumpleaños de ') + c.nombre), 'TRIGGER;RELATED=START:-PT16H', 'END:VALARM');
       L.push('END:VEVENT');
     });
     L.push('END:VCALENDAR');
@@ -1771,10 +1778,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function filaCumples(cum) {
     var li = document.createElement('li');
     li.className = 'cumple-dia';
-    var cu = cum.filter(function (x) { return !esFallec(x.c); }), fa = cum.filter(function (x) { return esFallec(x.c); });
-    var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = cu.length ? SVG_TORTA : SVG_VELA;
+    var cu = cum.filter(function (x) { return !x.c.tipo; }), fa = cum.filter(function (x) { return esFallec(x.c); }), an = cum.filter(function (x) { return esAniv(x.c); });
+    var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = cu.length ? SVG_TORTA : (an.length ? SVG_ANILLO : SVG_VELA);
     var tx = document.createElement('span'), partes = [];
     if (cu.length) partes.push('Cumpleaños: ' + cu.map(function (x) { return x.nombre + (x.edad > 0 ? ' (' + x.edad + ')' : ''); }).join(', '));
+    if (an.length) partes.push('Aniversario: ' + an.map(function (x) { return x.nombre + (x.edad > 0 ? ' (' + textoAnios(x.edad) + ')' : ''); }).join(', '));
     if (fa.length) partes.push('Se recuerda: ' + fa.map(function (x) { return x.nombre + (x.edad > 0 ? ' (' + textoAnivFallec(x.edad) + ')' : ''); }).join(', '));
     tx.textContent = partes.join(' · ');
     li.appendChild(ico); li.appendChild(tx);
@@ -1787,7 +1795,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var prox = todos.filter(function (p) { return pasaGrupo(p.c, f); });
     var li = document.createElement('li');
     li.className = 'cumples-card';
-    var h = document.createElement('h2'); h.textContent = (CUMPLES.some(esFallec) ? 'Cumpleaños y recuerdos' : 'Cumpleaños') + (f ? ' · ' + nombreFiltroGrupo(f, grupos) : '');
+    var h = document.createElement('h2'); h.textContent = nombreSeccionCumples(CUMPLES) + (f ? ' · ' + nombreFiltroGrupo(f, grupos) : '');
     li.appendChild(h);
     if (grupos.length) {
       var lb = document.createElement('label'); lb.setAttribute('for', 'cumples-hoy-grupo'); lb.textContent = 'Mostrar';
@@ -1804,13 +1812,13 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     prox.slice(0, 6).forEach(function (p) {
       var d = document.createElement('p');
       d.className = 'cumple-item' + (p.faltan === 0 ? ' hoy' : '');
-      var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = esFallec(p.c) ? SVG_VELA : SVG_TORTA;
+      var ico = document.createElement('span'); ico.className = 'cumple-ico'; ico.setAttribute('aria-hidden', 'true'); ico.innerHTML = esFallec(p.c) ? SVG_VELA : (esAniv(p.c) ? SVG_ANILLO : SVG_TORTA);
       var cuando = p.faltan === 0 ? 'Hoy' : (p.faltan === 1 ? 'Mañana' : 'El ' + titulodia(p.clave));
       var tx = document.createElement('span');
-      tx.textContent = cuando + (esFallec(p.c) ? ' se recuerda a ' : ' cumple ') + p.c.nombre + (p.edad > 0 ? ' · ' + (esFallec(p.c) ? textoAnivFallec(p.edad) : textoEdad(p.edad)) : '') + (p.c.grupo && !(f && f !== 'sin') ? ' · ' + p.c.grupo : '');
+      tx.textContent = cuando + (esAniv(p.c) ? ' es el aniversario: ' : (esFallec(p.c) ? ' se recuerda a ' : ' cumple ')) + p.c.nombre + (p.edad > 0 ? ' · ' + (esAniv(p.c) ? textoAnios(p.edad) : (esFallec(p.c) ? textoAnivFallec(p.edad) : textoEdad(p.edad))) : '') + (p.c.grupo && !(f && f !== 'sin') ? ' · ' + p.c.grupo : '');
       if (p.c.nota) { var nt = document.createElement('span'); nt.className = 'cumple-nota'; nt.textContent = p.c.nota; tx.appendChild(nt); }
       d.appendChild(ico); d.appendChild(tx);
-      if (!esFallec(p.c)) d.appendChild(botonSaludo(p.c, 'cumple-hoy:saludo:'));
+      if (!p.c.tipo) d.appendChild(botonSaludo(p.c, 'cumple-hoy:saludo:'));
       li.appendChild(d);
     });
     if (prox.length > 6) {
@@ -3525,10 +3533,11 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (cumDia.length) {
       var mc = b.querySelector('.cal-marcas');
       if (!mc) { mc = document.createElement('span'); mc.className = 'cal-marcas'; mc.setAttribute('aria-hidden', 'true'); b.appendChild(mc); }
-      var hayF = cumDia.some(function (x) { return esFallec(x.c); }), hayC = cumDia.some(function (x) { return !esFallec(x.c); });
+      var hayF = cumDia.some(function (x) { return esFallec(x.c); }), hayA = cumDia.some(function (x) { return esAniv(x.c); }), hayC = cumDia.some(function (x) { return !x.c.tipo; });
       if (hayC) { var torta = document.createElement('span'); torta.className = 'cal-torta'; torta.innerHTML = SVG_TORTA; mc.appendChild(torta); }
+      if (hayA) { var anillo = document.createElement('span'); anillo.className = 'cal-torta'; anillo.innerHTML = SVG_ANILLO; mc.appendChild(anillo); }
       if (hayF) { var vela = document.createElement('span'); vela.className = 'cal-torta'; vela.innerHTML = SVG_VELA; mc.appendChild(vela); }
-      partes.push(cumDia.length === 1 ? (hayF ? 'se recuerda a ' : 'cumpleaños de ') + cumDia[0].nombre : (hayC ? (hayF ? 'cumpleaños y recuerdos de ' : 'cumpleaños de ') : 'recuerdo de ') + cumDia.length + ' personas');
+      partes.push(cumDia.length === 1 ? (hayA ? 'aniversario: ' : (hayF ? 'se recuerda a ' : 'cumpleaños de ')) + cumDia[0].nombre : (hayC ? (hayA ? 'cumpleaños y otras fechas de ' : (hayF ? 'cumpleaños y recuerdos de ' : 'cumpleaños de ')) : (hayA ? 'fechas especiales de ' : 'recuerdo de ')) + cumDia.length + (hayA ? ' registros' : ' personas'));
     }
     b.setAttribute('aria-label', partes.join(', '));
     b.addEventListener('click', function () { CAL.sel = c; render(); });
@@ -3602,7 +3611,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     sec.hidden = !CUMPLES.length;
     if (!CUMPLES.length) return;
     var mes = MESES[CAL.m];
-    $('cal-cum-t').textContent = (CUMPLES.some(esFallec) ? 'Cumpleaños y recuerdos de ' : 'Cumpleaños de ') + mes + (CAL.y !== new Date().getFullYear() ? ' de ' + CAL.y : '');
+    $('cal-cum-t').textContent = nombreSeccionCumples(CUMPLES) + ' de ' + mes + (CAL.y !== new Date().getFullYear() ? ' de ' + CAL.y : '');
     var grupos = gruposCumples(CUMPLES);
     CALG = filtroGrupoValido(CALG, grupos);
     var caja = $('cal-cum-filtro'), sel = $('cal-cum-grupo');
@@ -3623,7 +3632,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var ul = $('cal-cum-lista');
     ul.textContent = '';
     $('cal-cum-cuenta').textContent = lista.length
-      ? lista.length + (lista.some(function (p) { return esFallec(p.c); }) ? (lista.length === 1 ? ' fecha' : ' fechas') : ' cumpleaños') + ' en ' + mes + (CALG ? ' en este grupo' : '') + '.'
+      ? lista.length + (lista.some(function (p) { return !!p.c.tipo; }) ? (lista.length === 1 ? ' fecha' : ' fechas') : ' cumpleaños') + ' en ' + mes + (CALG ? ' en este grupo' : '') + '.'
       : (CALG ? 'Nadie de este grupo cumple años en ' + mes + '.' : 'Nadie cumple años en ' + mes + '.');
     var dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     lista.forEach(function (p) {
@@ -3634,7 +3643,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var t = document.createElement('span');
       var pasado = p.clave < hoy;
       var fa = esFallec(p.c);
-      t.textContent = (p.clave === hoy ? 'Hoy · ' : '') + (fa ? 'Se recuerda a ' : '') + p.c.nombre + (p.edad > 0 ? ' · ' + (fa ? (pasado ? 'se cumplieron ' : 'se cumplen ') + textoAnivFallec(p.edad) : (pasado ? 'cumplió ' : 'cumple ') + textoEdad(p.edad)) : '') + (p.c.grupo ? ' · ' + p.c.grupo : '');
+      var an = esAniv(p.c);
+      t.textContent = (p.clave === hoy ? 'Hoy · ' : '') + (an ? 'Aniversario: ' : (fa ? 'Se recuerda a ' : '')) + p.c.nombre + (p.edad > 0 ? ' · ' + (an ? (pasado ? 'se cumplieron ' : 'se cumplen ') + textoAnios(p.edad) : fa ? (pasado ? 'se cumplieron ' : 'se cumplen ') + textoAnivFallec(p.edad) : (pasado ? 'cumplió ' : 'cumple ') + textoEdad(p.edad)) : '') + (p.c.grupo ? ' · ' + p.c.grupo : '');
       li.appendChild(d); li.appendChild(t); ul.appendChild(li);
     });
   }
@@ -4935,7 +4945,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       return itemBusq(nombreApu(n), n.titulo && n.texto ? n.texto.replace(/\s+/g, ' ').slice(0, 60) : 'Anotación', function () { irAApu(n); });
     }), ap.length);
     grupoBusq(cont, 'Cumpleaños', cs.slice(0, BUSQ_MAX).map(function (c) {
-      return itemBusq(c.nombre, (esFallec(c) ? 'Fallecimiento: ' : '') + c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
+      return itemBusq(c.nombre, (esFallec(c) ? 'Fallecimiento: ' : (esAniv(c) ? 'Aniversario: ' : '')) + c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
     }), cs.length);
   }
   /* ---------- Anotaciones (notas libres) ---------- */
@@ -5126,7 +5136,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       return itemBusq(t.text, 'Sin fecha · ' + (t.dest || 'Diarias'), function () { irATarea(t); });
     }), r.urgentes.length);
     grupoBusq(cont, 'Cumpleaños de la semana', r.cumples.slice(0, MAXS).map(function (p) {
-      return itemBusq(p.c.nombre, (esFallec(p.c) ? 'Aniversario de fallecimiento · ' : '') + titulodia(p.clave), function () { irACumple(p.c); });
+      return itemBusq(p.c.nombre, (esFallec(p.c) ? 'Aniversario de fallecimiento · ' : (esAniv(p.c) ? 'Aniversario · ' : '')) + titulodia(p.clave), function () { irACumple(p.c); });
     }), r.cumples.length);
     if (!r.atrasadas.length && !r.viene.length && !r.urgentes.length && !r.cumples.length) {
       var p = document.createElement('p'); p.className = 'busq-vacio';
@@ -6606,7 +6616,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var q = ver ? quitarTildes(CUM.q).toLowerCase().trim() : '', orden = ver ? CUM.orden : 'proximo', fg = ver ? CUM.grupo : '';
     var hoy = hoyStr();
     var todos = CUMPLES.map(function (c) { return proximoDe(c, hoy); });
-    var lista = todos.filter(function (p) { return pasaGrupo(p.c, fg) && (!q || quitarTildes(p.c.nombre + ' ' + textoFechaCumple(p.c) + ' ' + (p.c.nota || '') + (esFallec(p.c) ? ' fallecimiento' : '')).toLowerCase().indexOf(q) >= 0); });
+    var lista = todos.filter(function (p) { return pasaGrupo(p.c, fg) && (!q || quitarTildes(p.c.nombre + ' ' + textoFechaCumple(p.c) + ' ' + (p.c.nota || '') + (esFallec(p.c) ? ' fallecimiento' : (esAniv(p.c) ? ' aniversario' : ''))).toLowerCase().indexOf(q) >= 0); });
     var porNombre = function (a, b) { return a.c.nombre.localeCompare(b.c.nombre, 'es', { sensitivity: 'base' }); };
     lista.sort(orden === 'nombre' ? function (a, b) { return porNombre(a, b) || ordenCumples(a, b); }
       : orden === 'mes' ? function (a, b) { return (a.c.mes - b.c.mes) || (a.c.dia - b.c.dia) || porNombre(a, b); }
@@ -6625,8 +6635,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var tx = document.createElement('div'); tx.className = 'modelo-texto';
       var st = document.createElement('strong'); st.textContent = c.nombre;
       var meta = document.createElement('span'); meta.className = 'modelo-meta';
-      var fa = esFallec(c), partes = [(fa ? 'Fallecimiento: ' : '') + textoFechaCumple(c) + (fa && c.anio ? ' de ' + c.anio : '')];
-      if (p.edad > 0) partes.push(fa ? 'se cumplen ' + textoAnivFallec(p.edad) : 'cumple ' + textoEdad(p.edad));
+      var fa = esFallec(c), an = esAniv(c), partes = [(fa ? 'Fallecimiento: ' : (an ? 'Aniversario: ' : '')) + textoFechaCumple(c) + ((fa || an) && c.anio ? ' de ' + c.anio : '')];
+      if (p.edad > 0) partes.push(an ? 'se cumplen ' + textoAnios(p.edad) : (fa ? 'se cumplen ' + textoAnivFallec(p.edad) : 'cumple ' + textoEdad(p.edad)));
       partes.push(p.faltan === 0 ? 'hoy' : (p.faltan === 1 ? 'mañana' : 'en ' + p.faltan + ' días'));
       if (c.grupo) partes.push('grupo ' + c.grupo);
       meta.textContent = partes.join(' · ');
@@ -6634,19 +6644,20 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       if (c.nota) { var nt = document.createElement('span'); nt.className = 'modelo-meta nota-cumple'; nt.textContent = 'Nota: ' + c.nota; tx.appendChild(nt); }
       var edit = boton('Editar', '', function () { abrirEdicionCumple(c); });
       edit.setAttribute('data-key', 'cumple-lista:editar:' + c.id);
-      edit.setAttribute('aria-label', (fa ? 'Editar el recuerdo de ' : 'Editar el cumpleaños de ') + c.nombre);
-      var sal = fa ? null : botonSaludo(c, 'cumple-lista:saludo:');
+      edit.setAttribute('aria-label', 'Editar ' + sustCumple(c) + ' de ' + c.nombre);
+      var sal = c.tipo ? null : botonSaludo(c, 'cumple-lista:saludo:');
       var del = boton('Borrar', '', function () { quitarCumple(c.id); });
       del.setAttribute('data-key', 'cumple-lista:borrar:' + c.id);
-      del.setAttribute('aria-label', (fa ? 'Borrar el recuerdo de ' : 'Borrar el cumpleaños de ') + c.nombre);
+      del.setAttribute('aria-label', 'Borrar ' + sustCumple(c) + ' de ' + c.nombre);
       li.appendChild(tx); li.appendChild(edit); if (sal) li.appendChild(sal); li.appendChild(del);
       ul.appendChild(li);
     });
   }
   function pintarTipoCumple() {
-    var f = $('cumple-tipo').value === 'f';
-    $('cumple-anio-lbl').textContent = f ? 'Año del fallecimiento (opcional)' : 'Año de nacimiento (opcional)';
-    if (!CUM.editando) $('cumple-guardar').textContent = f ? 'Agregar fallecimiento' : 'Agregar cumpleaños';
+    var v = $('cumple-tipo').value, f = v === 'f', a = v === 'a';
+    $('cumple-anio-lbl').textContent = f ? 'Año del fallecimiento (opcional)' : (a ? 'Año en que empezó (opcional)' : 'Año de nacimiento (opcional)');
+    $('cumple-nombre-lbl').textContent = a ? 'Nombre del aniversario (ej. Casamiento con Ana)' : 'Nombre';
+    if (!CUM.editando) $('cumple-guardar').textContent = f ? 'Agregar fallecimiento' : (a ? 'Agregar aniversario' : 'Agregar cumpleaños');
   }
   function cerrarEdicionCumple() {
     CUM.editando = null;
@@ -6657,10 +6668,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   function abrirEdicionCumple(c) {
     CUM.editando = c.id;
     $('cumple-nombre').value = c.nombre; $('cumple-grupo').value = c.grupo || ''; refrescarChips(); $('cumple-nota').value = c.nota || ''; $('cumple-dia').value = String(c.dia); $('cumple-mes').value = String(c.mes); $('cumple-anio').value = c.anio ? String(c.anio) : '';
-    $('cumple-tipo').value = c.tipo === 'f' ? 'f' : ''; pintarTipoCumple();
+    $('cumple-tipo').value = c.tipo === 'f' || c.tipo === 'a' ? c.tipo : ''; pintarTipoCumple();
     $('cumple-guardar').textContent = 'Guardar cambios';
     $('cumple-cancelar').hidden = false;
-    msgCumples('Editando ' + (c.tipo === 'f' ? 'el recuerdo' : 'el cumpleaños') + ' de ' + c.nombre + '.');
+    msgCumples('Editando ' + sustCumple(c) + ' de ' + c.nombre + '.');
     $('cumple-nombre').focus();
     try { $('cumple-form').scrollIntoView({ block: 'nearest' }); } catch (e) {}
   }
@@ -6734,14 +6745,14 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var grupo = grupoCanonico($('cumple-grupo').value, CUM.editando || undefined);
       var c = limpiarCumple({ id: CUM.editando || undefined, nombre: nombre, dia: dia, mes: mes, anio: anio, grupo: grupo, nota: $('cumple-nota').value, tipo: $('cumple-tipo').value });
       var k = claveNombreCumple(c);
-      if (CUMPLES.some(function (x) { return x.id !== c.id && claveNombreCumple(x) === k; })) { msgCumples(c.tipo === 'f' ? 'Esa fecha ya está cargada.' : 'Ese cumpleaños ya está cargado.', true); $('cumple-nombre').focus(); return; }
+      if (CUMPLES.some(function (x) { return x.id !== c.id && claveNombreCumple(x) === k; })) { msgCumples(c.tipo ? 'Esa fecha ya está cargada.' : 'Ese cumpleaños ya está cargado.', true); $('cumple-nombre').focus(); return; }
       var idx = CUM.editando ? CUMPLES.map(function (x) { return x.id; }).indexOf(CUM.editando) : -1;
       if (idx < 0 && CUMPLES.length >= MAX_CUMPLES) { msgCumples('Llegaste al máximo de ' + MAX_CUMPLES + ' cumpleaños.', true); return; }
       if (idx >= 0) CUMPLES[idx] = c; else CUMPLES.push(c);
       cambiaronCumples();
       cerrarEdicionCumple();
       if (idx < 0) { $('cumple-grupo').value = grupo; refrescarChips(); }
-      msgCumples(idx >= 0 ? 'Cambios guardados.' : 'Se agregó ' + (c.tipo === 'f' ? 'el recuerdo' : 'el cumpleaños') + ' de ' + nombre + (grupo ? ' al grupo «' + grupo + '».' : '.'));
+      msgCumples(idx >= 0 ? 'Cambios guardados.' : 'Se agregó ' + sustCumple(c) + ' de ' + nombre + (grupo ? ' al grupo «' + grupo + '».' : '.'));
       $('cumple-nombre').focus();
     });
     $('cumple-tipo').addEventListener('change', pintarTipoCumple);
@@ -6911,8 +6922,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     return /[;"\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   }
   function armarCSVCumples(lista) {
-    var tipo = lista.some(esFallec), L = ['Nombre;Día;Mes;Año;Grupo;Nota' + (tipo ? ';Tipo' : '')];
-    lista.forEach(function (c) { L.push([celdaCSV(c.nombre), c.dia, c.mes, c.anio || '', celdaCSV(c.grupo || ''), celdaCSV(c.nota || '')].concat(tipo ? [esFallec(c) ? 'Fallecimiento' : ''] : []).join(';')); });
+    var tipo = lista.some(function (c) { return !!c.tipo; }), L = ['Nombre;Día;Mes;Año;Grupo;Nota' + (tipo ? ';Tipo' : '')];
+    lista.forEach(function (c) { L.push([celdaCSV(c.nombre), c.dia, c.mes, c.anio || '', celdaCSV(c.grupo || ''), celdaCSV(c.nota || '')].concat(tipo ? [esFallec(c) ? 'Fallecimiento' : (esAniv(c) ? 'Aniversario' : '')] : []).join(';')); });
     return '\ufeff' + L.join('\r\n') + '\r\n';
   }
   function nombreArchivoCumples(grupo) {
@@ -6933,7 +6944,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
         ul = el('ul', ''); box.appendChild(ul);
       }
       var li = el('li', '');
-      li.appendChild(el('span', '', c.dia + ' · ' + c.nombre + (esFallec(c) ? ' (fallecimiento' + (c.anio ? ' ' + c.anio : '') + ')' : (c.anio ? ' (' + c.anio + ')' : '')) + (c.grupo && !info.grupo ? ' · ' + c.grupo : '')));
+      li.appendChild(el('span', '', c.dia + ' · ' + c.nombre + (esAniv(c) ? ' (aniversario' + (c.anio ? ' ' + c.anio : '') + ')' : esFallec(c) ? ' (fallecimiento' + (c.anio ? ' ' + c.anio : '') + ')' : (c.anio ? ' (' + c.anio + ')' : '')) + (c.grupo && !info.grupo ? ' · ' + c.grupo : '')));
       if (c.nota) li.appendChild(el('div', 'nota-imp', c.nota));
       ul.appendChild(li);
     });
