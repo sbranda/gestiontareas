@@ -474,6 +474,11 @@ body.panel-abierto { overflow: hidden; }
 .nota-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .nota-buscar { margin-bottom: 8px; }
 .nota-buscar .mini { margin-top: 8px; min-height: 44px; padding: 0 14px; }
+.apu-texto { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.apu-texto.corto { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.apu-mas { margin: 0 0 6px; min-height: 44px; }
+#apu-x, #apu-ed-texto { min-height: 120px; }
+#apu-volver { margin-bottom: 12px; }
 .notas-cuenta { margin: 0 0 10px; color: var(--muted); font-size: 0.875rem; }
 .notas-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .nota { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
@@ -841,6 +846,9 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
         </button>
       </div>
       <div class="barra-der">
+        <button type="button" class="ajuste btn-engranaje btn-buscar" id="btn-apu" aria-label="Anotaciones" title="Anotaciones">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
         <button type="button" class="ajuste btn-engranaje btn-buscar" id="btn-buscar" aria-label="Buscar en todo" title="Buscar en todo">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
         </button>
@@ -947,7 +955,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   <section id="vista-buscar" hidden aria-label="Buscar en todo">
     <h2 class="busq-h">Buscar en todo</h2>
-    <p class="notas-ayuda">Busca en las tareas de todas las solapas, en los nombres de tus contraseñas y en los cumpleaños.</p>
+    <p class="notas-ayuda">Busca en las tareas de todas las solapas, en los nombres de tus contraseñas, en las anotaciones y en los cumpleaños.</p>
     <div class="nota-buscar">
       <label for="busq-q" class="sr-only">Qué buscar</label>
       <input type="search" id="busq-q" placeholder="Escribí al menos 2 letras" maxlength="60" autocomplete="off">
@@ -955,6 +963,25 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     <p class="notas-cuenta" id="busq-cuenta" role="status"></p>
     <div id="busq-res"></div>
     <button type="button" class="mini" id="busq-volver">Volver</button>
+  </section>
+  <section id="vista-apu" hidden aria-label="Anotaciones">
+    <h2 class="notas-h" id="apu-titulo" tabindex="-1">Anotaciones</h2>
+    <p class="notas-ayuda">Escribí lo que quieras: ideas, listas, direcciones, lo que no quieras olvidar. Los enlaces y teléfonos se pueden tocar. Quedan solo en este dispositivo, sin cifrar, y viajan en la copia de seguridad.</p>
+    <button type="button" class="mini" id="apu-volver">Volver</button>
+    <form class="nota-form" id="form-apu" autocomplete="off" novalidate>
+      <label for="apu-t" class="sr-only">Título (opcional)</label>
+      <input type="text" id="apu-t" maxlength="80" placeholder="Título (opcional)">
+      <label for="apu-x" class="sr-only">Anotación</label>
+      <textarea id="apu-x" rows="5" maxlength="10000" placeholder="Escribí tu anotación"></textarea>
+      <p class="editor-error" id="apu-error" role="alert" hidden></p>
+      <button type="submit" class="mini primario">Guardar anotación</button>
+    </form>
+    <div class="nota-buscar">
+      <label for="apu-buscar" class="sr-only">Buscar en las anotaciones</label>
+      <input type="search" id="apu-buscar" placeholder="Buscar en las anotaciones" maxlength="60">
+    </div>
+    <p class="notas-cuenta" id="apu-cuenta" role="status"></p>
+    <ul class="notas-lista" id="apu-lista" aria-label="Anotaciones guardadas"></ul>
   </section>
   <section id="vista-notas" hidden aria-label="Contraseñas">
     <h2 class="notas-h">Contraseñas</h2>
@@ -3429,6 +3456,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     try { p = new URLSearchParams(location.search); } catch (e) { return; }
     var v = p.get('vista'), a = p.get('accion');
     if (v && ['hoy', 'lista', 'calendario', 'historial', 'enfoque', 'notas', 'semana', 'buscar'].indexOf(v) >= 0) VISTA = v;
+    if (v === 'anotaciones') VISTA = 'apu';
     if (a === 'nueva') { VISTA = 'lista'; ACCION_NUEVA = true; }
     if (v || a) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
   })();
@@ -3846,7 +3874,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
   }
   /* Foto de todo lo que una importación puede pisar, para que "Deshacer" lo devuelva completo. */
   function fotoCompleta() {
-    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES, notas: claveBloqueada() ? notasGuardadas() : NOTAS, clave: CLAVE.cfg }));
+    return JSON.parse(JSON.stringify({ extra: EXTRA, hist: HIST, modelos: MODELOS, estilos: ESTILOS, rach: RACH, prefs: prefsActuales(), cumples: CUMPLES, apu: APU, notas: claveBloqueada() ? notasGuardadas() : NOTAS, clave: CLAVE.cfg }));
   }
   function restaurarFoto(f) {
     EXTRA = f.extra; guardarHojas();
@@ -3856,6 +3884,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     RACH = limpiarRach(f.rach); guardarRach();
     aplicarPrefs(f.prefs);
     CUMPLES = limpiarListaCumples(f.cumples || []); guardarCumples(); pintarCumples();
+    if (f.apu) { APU = limpiarListaApu(f.apu); guardarApu(); if (VISTA === 'apu') renderApu(true); }
     NOTAS = limpiarListaNotas(f.notas || []);
     var cfgAntes = validarCfgClave(f.clave);
     if (!cfgAntes && CLAVE.cfg) { CLAVE.seq++; CLAVE.cfg = null; CLAVE.key = null; try { localStorage.removeItem(LS_CLAVE); } catch (e) {} }
@@ -3868,6 +3897,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var o = { app: 'tareas-diarias', version: 2, exportado: new Date().toISOString(), hojas: hojas || [], historial: hist || {}, modelos: modelos || [], estilos: estilos || {} };
     if (extra && extra.rachas) o.rachas = extra.rachas;
     if (extra && extra.preferencias) o.preferencias = extra.preferencias;
+    if (extra && extra.anotaciones && extra.anotaciones.length) o.anotaciones = extra.anotaciones;
     if (extra && Array.isArray(extra.cumples)) o.cumples = extra.cumples;
     if (extra && Array.isArray(extra.notas) && extra.notas.length) o.notas = extra.notas;
     if (extra && extra.clave && o.notas) o.clave = extra.clave;
@@ -3890,10 +3920,10 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       vistos[id] = true;
       res.push(limpiar(Object.assign({}, t, { id: id })));
     });
-    var otro = !Array.isArray(obj) && obj && ((Array.isArray(obj.hojas) && obj.hojas.some(nombreValido)) || (Array.isArray(obj.modelos) && obj.modelos.length) || (Array.isArray(obj.cumples) && obj.cumples.length) || (Array.isArray(obj.notas) && obj.notas.length));
+    var otro = !Array.isArray(obj) && obj && ((Array.isArray(obj.hojas) && obj.hojas.some(nombreValido)) || (Array.isArray(obj.modelos) && obj.modelos.length) || (Array.isArray(obj.cumples) && obj.cumples.length) || (Array.isArray(obj.notas) && obj.notas.length) || (Array.isArray(obj.anotaciones) && obj.anotaciones.length));
     if (!res.length && !otro) return { error: 'La copia no tiene tareas.' };
     var hojas = (!Array.isArray(obj) && Array.isArray(obj.hojas)) ? obj.hojas.map(nombreValido).filter(Boolean).slice(0, 30) : [];
-    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, clave: (!Array.isArray(obj) && obj.clave) ? validarCfgClave(obj.clave) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
+    return { tareas: res, omitidas: arr.length - res.length, hojas: hojas, historial: (!Array.isArray(obj) && obj.historial) ? limpiarHist(obj.historial) : null, modelos: (!Array.isArray(obj) && Array.isArray(obj.modelos)) ? limpiarListaModelos(obj.modelos) : null, estilos: (!Array.isArray(obj) && obj.estilos) ? limpiarEstilos(obj.estilos) : null, rachas: (!Array.isArray(obj) && obj.rachas) ? limpiarRach(obj.rachas) : null, preferencias: (!Array.isArray(obj) && obj.preferencias) ? limpiarPrefs(obj.preferencias) : null, cumples: (!Array.isArray(obj) && Array.isArray(obj.cumples)) ? limpiarListaCumples(obj.cumples) : null, anotaciones: (!Array.isArray(obj) && Array.isArray(obj.anotaciones)) ? limpiarListaApu(obj.anotaciones) : null, clave: (!Array.isArray(obj) && obj.clave) ? validarCfgClave(obj.clave) : null, notas: (!Array.isArray(obj) && Array.isArray(obj.notas)) ? limpiarListaNotas(obj.notas) : null };
   }
 
   function contarCopia(arr) {
@@ -3973,7 +4003,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (!prim) { prim = ahora; lsEscribir(LS_PRIMER, String(prim)); }
     var ref = ult || prim;
     var posp = parseInt(lsLeer(LS_POSP) || '', 10) || 0;
-    var hay = S.tareas.length > 0 || (typeof NOTAS !== 'undefined' && NOTAS.length > 0) || (typeof CUMPLES !== 'undefined' && CUMPLES.length > 0);
+    var hay = S.tareas.length > 0 || (typeof NOTAS !== 'undefined' && NOTAS.length > 0) || (typeof CUMPLES !== 'undefined' && CUMPLES.length > 0) || (typeof APU !== 'undefined' && APU.length > 0);
     b.hidden = !(hay && ahora - ref > 14 * 86400000 && ahora - posp > 7 * 86400000);
   }
   $('btn-copia-ok').addEventListener('click', function () { $('btn-exportar').click(); });
@@ -4039,6 +4069,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (modo === 'reemplazar') aplicarPrefs(PEND.preferencias);
     var msgNotas = importarNotasCopia(modo);
     if (PEND.cumples) { CUMPLES = modo === 'reemplazar' ? PEND.cumples.slice() : mezclarCumples(CUMPLES, PEND.cumples); guardarCumples(); pintarCumples(); }
+    if (PEND.anotaciones && PEND.anotaciones.length) { APU = limpiarListaApu(calcularImportacion(PEND.anotaciones, modo, APU)); guardarApu(); if (VISTA === 'apu') renderApu(true); }
     volcarEstado(calcularImportacion(PEND.tareas, modo, S.tareas));
     ocultarConfirma();
     var msg = modo === 'reemplazar'
@@ -4052,7 +4083,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
 
   $('btn-exportar').addEventListener('click', function () {
     if (!S.listo) return;
-    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES, notas: CLAVE.cfg ? notasGuardadas() : NOTAS, clave: CLAVE.cfg });
+    var texto = armarCopia(S.tareas, EXTRA, HIST, MODELOS, ESTILOS, { rachas: limpiarRach(RACH), preferencias: prefsActuales(), cumples: CUMPLES, anotaciones: APU, notas: CLAVE.cfg ? notasGuardadas() : NOTAS, clave: CLAVE.cfg });
     var n = contarCopia(S.tareas);
     descargarArchivo('tareas-diarias-' + hoyStr() + '.json', texto).then(function () {
       lsEscribir(LS_COPIA, String(Date.now()));
@@ -4080,7 +4111,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       var r = leerCopia(String(rd.result));
       if (r.error) { ocultarConfirma(); avisoRespaldo(r.error, true); return; }
       PEND = r;
-      $('confirma-texto').textContent = 'El archivo tiene ' + (r.tareas.length ? contarCopia(r.tareas).texto + (r.hojas && r.hojas.length ? ', ' + r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') : '') : (r.hojas && r.hojas.length ? r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') + ' (' + r.hojas.join(', ') + ')' : 'solo datos sueltos, sin tareas')) + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.cumples && r.cumples.length ? ', ' + r.cumples.length + ' cumpleaños' : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
+      $('confirma-texto').textContent = 'El archivo tiene ' + (r.tareas.length ? contarCopia(r.tareas).texto + (r.hojas && r.hojas.length ? ', ' + r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') : '') : (r.hojas && r.hojas.length ? r.hojas.length + (r.hojas.length === 1 ? ' solapa' : ' solapas') + ' (' + r.hojas.join(', ') + ')' : 'solo datos sueltos, sin tareas')) + (r.modelos && r.modelos.length ? ', más ' + r.modelos.length + (r.modelos.length === 1 ? ' plantilla' : ' plantillas') : '') + (r.rachas ? ', tus rachas' : '') + (r.cumples && r.cumples.length ? ', ' + r.cumples.length + ' cumpleaños' : '') + (r.anotaciones && r.anotaciones.length ? ', ' + r.anotaciones.length + (r.anotaciones.length === 1 ? ' anotación' : ' anotaciones') : '') + (r.omitidas ? ' (se ignoraron ' + r.omitidas + ' entradas no válidas)' : '') + '.';
       $('respaldo-confirma').hidden = false;
       $('btn-sumar').focus();
     };
@@ -4100,7 +4131,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     var sync = (typeof SYNC !== 'undefined' && SYNC && SYNC.cfg) ? ' Como tenés la sincronización activada, el cambio también llega a tus otros dispositivos.' : '';
     $('reset-confirma-texto').textContent = modo === 'apariencia'
       ? 'Se quitan los colores e íconos de las hojas, y el tema, el tamaño de letra y las filas compactas vuelven a lo original. No se toca ninguna tarea ni cumpleaños.'
-      : 'Se borra todo: ' + S.tareas.length + (S.tareas.length === 1 ? ' tarea' : ' tareas') + ', ' + EXTRA.length + (EXTRA.length === 1 ? ' hoja' : ' hojas') + ', ' + CUMPLES.length + (CUMPLES.length === 1 ? ' cumpleaños' : ' cumpleaños') + ', el historial, las plantillas y las rachas, y la apariencia vuelve a lo original.' + sync;
+      : 'Se borra todo: ' + S.tareas.length + (S.tareas.length === 1 ? ' tarea' : ' tareas') + ', ' + EXTRA.length + (EXTRA.length === 1 ? ' hoja' : ' hojas') + ', ' + CUMPLES.length + (CUMPLES.length === 1 ? ' cumpleaños' : ' cumpleaños') + ', ' + APU.length + (APU.length === 1 ? ' anotación' : ' anotaciones') + ', el historial, las plantillas y las rachas, y la apariencia vuelve a lo original.' + sync;
     $('reset-confirma').hidden = false;
     $('reset-no').focus();
   }
@@ -4125,6 +4156,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
       MODELOS = []; guardarModelos(); pintarListaModelos();
       RACH = { ok: {}, vis: {} }; guardarRach();
       CUMPLES = []; guardarCumples(); pintarCumples();
+      APU = []; guardarApu(); APUUI.edit = null; APUUI.q = ''; $('apu-buscar').value = '';
       olvidarClave(); CLAVEUI.modo = '';
       aparienciaDeFabrica();
       try { localStorage.removeItem('tareasdiarias.instalar'); } catch (e) {}
@@ -4864,7 +4896,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     ts.sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (b.created || 0) - (a.created || 0); });
     var ns = claveBloqueada() ? [] : NOTAS.filter(function (n) { return pajarBusq(n.titulo + ' ' + (n.detalle || ''), q); });
     var cs = CUMPLES.filter(function (c) { return pajarBusq(c.nombre + ' ' + (c.grupo || '') + ' ' + (c.nota || ''), q); });
-    var total = ts.length + ns.length + cs.length;
+    var ap = APU.filter(function (n) { return pajarBusq((n.titulo || '') + ' ' + n.texto, q); });
+    var total = ts.length + ns.length + cs.length + ap.length;
     $('busq-cuenta').textContent = total ? total + (total === 1 ? ' resultado' : ' resultados') : '';
     if (!total) { var p1 = document.createElement('p'); p1.className = 'busq-vacio'; p1.textContent = 'No se encontró nada para "' + q + '".'; cont.appendChild(p1); $('busq-cuenta').textContent = 'Sin resultados'; return; }
     grupoBusq(cont, 'Tareas', ts.slice(0, BUSQ_MAX).map(function (t) {
@@ -4874,10 +4907,152 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     grupoBusq(cont, 'Contraseñas', ns.slice(0, BUSQ_MAX).map(function (n) {
       return itemBusq(n.titulo, (n.detalle ? n.detalle + ' · ' : '') + 'Contraseña guardada (oculta)', function () { irANota(n); });
     }), ns.length);
+    grupoBusq(cont, 'Anotaciones', ap.slice(0, BUSQ_MAX).map(function (n) {
+      return itemBusq(nombreApu(n), n.titulo && n.texto ? n.texto.replace(/\s+/g, ' ').slice(0, 60) : 'Anotación', function () { irAApu(n); });
+    }), ap.length);
     grupoBusq(cont, 'Cumpleaños', cs.slice(0, BUSQ_MAX).map(function (c) {
       return itemBusq(c.nombre, (esFallec(c) ? 'Fallecimiento: ' : '') + c.dia + ' de ' + MESES[c.mes - 1] + (c.grupo ? ' · ' + c.grupo : ''), function () { irACumple(c); });
     }), cs.length);
   }
+  /* ---------- Anotaciones (notas libres) ---------- */
+  var LS_APU = 'tareasdiarias.anotaciones', LS_APUBORR = 'tareasdiarias.anotborrador', MAX_APU = 500, MAX_APU_TXT = 10000, MAX_APU_TIT = 80;
+  var APUUI = { q: '', edit: null, abiertas: {}, antes: 'lista' };
+  function limpiarListaApu(a) {
+    var r = [], vistos = {};
+    if (!Array.isArray(a)) return r;
+    a.forEach(function (n) {
+      if (!n || typeof n !== 'object' || r.length >= MAX_APU) return;
+      var tit = String(n.titulo == null ? '' : n.titulo).replace(/\s+/g, ' ').trim().slice(0, MAX_APU_TIT);
+      var tx = String(n.texto == null ? '' : n.texto).replace(/\r\n?/g, '\n').trim().slice(0, MAX_APU_TXT);
+      if (!tit && !tx) return;
+      var id = (typeof n.id === 'string' && /^[A-Za-z0-9_.~:@+-]{1,200}$/.test(n.id) && n.id !== '.' && n.id !== '..') ? n.id : idNuevo();
+      while (vistos[id]) id = idNuevo();
+      vistos[id] = true;
+      var cr = typeof n.creada === 'number' && isFinite(n.creada) ? n.creada : Date.now();
+      var ed = typeof n.editada === 'number' && isFinite(n.editada) ? n.editada : cr;
+      r.push({ id: id, titulo: tit, texto: tx, fijada: n.fijada === true, creada: cr, editada: ed });
+    });
+    return r;
+  }
+  var APU = [];
+  try { APU = limpiarListaApu(JSON.parse(lsLeer(LS_APU) || '[]')); } catch (e) {}
+  function guardarApu() {
+    if (!lsEscribir(LS_APU, JSON.stringify(APU))) avisar('No se pudo guardar: no hay espacio en el dispositivo. Exportá una copia y borrá anotaciones viejas.', null);
+  }
+  function ordenarApu(lista) {
+    return lista.slice().sort(function (a, b) { return (b.fijada ? 1 : 0) - (a.fijada ? 1 : 0) || (b.editada || 0) - (a.editada || 0); });
+  }
+  function nombreApu(n) { return n.titulo || (n.texto.split('\n')[0].slice(0, 40) || 'sin título'); }
+  function crearApu(n) {
+    var li = document.createElement('li'); li.className = 'nota' + (n.fijada ? ' fijada' : ''); li.setAttribute('data-apu', n.id);
+    var nom = nombreApu(n);
+    if (n.titulo) { var h = document.createElement('h3'); h.className = 'nota-titulo'; h.textContent = n.titulo; li.appendChild(h); }
+    var larga = n.texto.length > 280 || n.texto.split('\n').length > 5, abierta = !!APUUI.abiertas[n.id];
+    if (n.texto) {
+      var p = document.createElement('p'); p.className = 'apu-texto' + (larga && !abierta ? ' corto' : ''); p.id = 'apu-t-' + n.id;
+      escribirConEnlaces(p, n.texto, false); li.appendChild(p);
+    }
+    if (larga) {
+      var mas = crearBotonNota(abierta ? 'Ver menos' : 'Ver todo', (abierta ? 'Ver menos de ' : 'Ver toda la anotación ') + nom, function () {
+        if (APUUI.abiertas[n.id]) delete APUUI.abiertas[n.id]; else APUUI.abiertas[n.id] = true;
+        renderApu(true); var b = document.querySelector('[data-apu="' + n.id + '"] [data-acc="mas"]'); if (b) b.focus();
+      });
+      mas.setAttribute('aria-expanded', abierta ? 'true' : 'false'); mas.setAttribute('aria-controls', 'apu-t-' + n.id); mas.setAttribute('data-acc', 'mas'); mas.className += ' apu-mas';
+      li.appendChild(mas);
+    }
+    var f = document.createElement('p'); f.className = 'nota-fecha';
+    f.textContent = (n.editada && n.editada !== n.creada ? 'Editada ' : 'Creada ') + textoFechaNota(n.editada || n.creada);
+    li.appendChild(f);
+    var ac = document.createElement('div'); ac.className = 'nota-acciones';
+    var fj = crearBotonNota(n.fijada ? '📌 Fijada' : '📌 Fijar', 'Fijar arriba la anotación ' + nom, function () {
+      APU = APU.map(function (x) { return x.id === n.id ? Object.assign({}, x, { fijada: !x.fijada }) : x; });
+      guardarApu(); renderApu(true); var b = document.querySelector('[data-apu="' + n.id + '"] [data-acc="fijar"]'); if (b) b.focus();
+    });
+    fj.setAttribute('aria-pressed', n.fijada ? 'true' : 'false'); fj.setAttribute('data-acc', 'fijar'); ac.appendChild(fj);
+    ac.appendChild(crearBotonNota('✎ Editar', 'Editar la anotación ' + nom, function () {
+      APUUI.edit = n.id; renderApu(true); var t = $('apu-ed-texto'); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+    }));
+    ac.appendChild(crearBotonNota('Copiar', 'Copiar la anotación ' + nom, function () { copiarNota((n.titulo ? n.titulo + '\n\n' : '') + n.texto, 'Anotación copiada'); }));
+    ac.appendChild(crearBotonNota('Borrar', 'Borrar la anotación ' + nom, function () {
+      var pos = APU.findIndex(function (x) { return x.id === n.id; });
+      APU = APU.filter(function (x) { return x.id !== n.id; }); guardarApu(); renderApu(true);
+      avisar('Anotación borrada', function () { if (!APU.some(function (x) { return x.id === n.id; })) { APU.splice(Math.min(pos, APU.length), 0, n); guardarApu(); renderApu(true); } });
+    }));
+    li.appendChild(ac);
+    return li;
+  }
+  function crearEditorApu(n) {
+    var li = document.createElement('li'); li.className = 'nota'; li.setAttribute('data-apu', n.id);
+    var f = document.createElement('form'); f.className = 'nota-editor'; f.id = 'apu-ed-form'; f.autocomplete = 'off'; f.noValidate = true;
+    var ti = document.createElement('input'); ti.type = 'text'; ti.maxLength = MAX_APU_TIT; ti.value = n.titulo; ti.id = 'apu-ed-titulo'; ti.setAttribute('aria-label', 'Título (opcional)'); ti.placeholder = 'Título (opcional)';
+    var tx = document.createElement('textarea'); tx.maxLength = MAX_APU_TXT; tx.rows = 8; tx.value = n.texto; tx.id = 'apu-ed-texto'; tx.setAttribute('aria-label', 'Anotación');
+    var er = document.createElement('p'); er.className = 'editor-error'; er.setAttribute('role', 'alert'); er.hidden = true;
+    var ac = document.createElement('div'); ac.className = 'nota-acciones';
+    var g = document.createElement('button'); g.type = 'submit'; g.className = 'mini primario'; g.textContent = 'Guardar';
+    var c = document.createElement('button'); c.type = 'button'; c.className = 'mini'; c.textContent = 'Cancelar';
+    function cerrar() { APUUI.edit = null; renderApu(true); var b = document.querySelector('[data-apu="' + n.id + '"] [data-acc="fijar"]'); if (b) b.focus(); }
+    c.addEventListener('click', cerrar);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var tit = ti.value.replace(/\s+/g, ' ').trim().slice(0, MAX_APU_TIT), txt = tx.value.replace(/\r\n?/g, '\n').trim().slice(0, MAX_APU_TXT);
+      if (!tit && !txt) { errorNota(er, 'Escribí un título o una anotación.'); tx.focus(); return; }
+      if (tit === n.titulo && txt === n.texto) { cerrar(); return; }
+      var antes = n;
+      APU = APU.map(function (x) { return x.id === n.id ? Object.assign({}, x, { titulo: tit, texto: txt, editada: Date.now() }) : x; });
+      guardarApu(); APUUI.edit = null; renderApu(true);
+      avisar('Anotación guardada', function () { APU = APU.map(function (x) { return x.id === n.id ? antes : x; }); guardarApu(); renderApu(true); });
+    });
+    f.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
+    });
+    ac.appendChild(g); ac.appendChild(c);
+    f.appendChild(ti); f.appendChild(tx); f.appendChild(er); f.appendChild(ac); li.appendChild(f);
+    return li;
+  }
+  /* force: lo piden las acciones de esta pantalla; un render() de fondo no pisa lo que se está escribiendo en el editor */
+  function renderApu(force) {
+    document.title = 'Anotaciones · Al toque';
+    if (APUUI.edit && !force && $('apu-ed-form')) return;
+    var q = APUUI.q.trim(), lista = $('apu-lista'), cuenta = $('apu-cuenta');
+    var vis = ordenarApu(APU).filter(function (n) { return !q || pajarBusq((n.titulo || '') + ' ' + n.texto, q); });
+    lista.textContent = '';
+    vis.forEach(function (n) { lista.appendChild(APUUI.edit === n.id ? crearEditorApu(n) : crearApu(n)); });
+    if (APUUI.edit && !vis.some(function (n) { return n.id === APUUI.edit; })) APUUI.edit = null;
+    cuenta.textContent = !APU.length ? 'Todavía no hay anotaciones.' : (q ? vis.length + ' de ' + APU.length + (APU.length === 1 ? ' anotación' : ' anotaciones') : APU.length + (APU.length === 1 ? ' anotación' : ' anotaciones'));
+    if (APU.length && !vis.length) cuenta.textContent = 'Ninguna anotación coincide con la búsqueda.';
+  }
+  function irAApu(n) {
+    APUUI.q = BUSQ.q.trim(); APUUI.edit = null; $('apu-buscar').value = APUUI.q;
+    APUUI.antes = 'buscar'; VISTA = 'apu'; render();
+    var li = document.querySelector('[data-apu="' + n.id + '"]'); if (li && li.scrollIntoView) li.scrollIntoView({ block: 'center' });
+  }
+  function borradorApu() { var t = $('apu-t').value, x = $('apu-x').value; if (t || x) lsEscribir(LS_APUBORR, JSON.stringify({ t: t, x: x })); else { try { localStorage.removeItem(LS_APUBORR); } catch (e) {} } }
+  (function () { try { var b = JSON.parse(lsLeer(LS_APUBORR) || 'null'); if (b && typeof b === 'object') { $('apu-t').value = String(b.t || '').slice(0, MAX_APU_TIT); $('apu-x').value = String(b.x || '').slice(0, MAX_APU_TXT); } } catch (e) {} })();
+  $('apu-t').addEventListener('input', borradorApu); $('apu-x').addEventListener('input', borradorApu);
+  $('form-apu').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var er = $('apu-error'), tit = $('apu-t').value.replace(/\s+/g, ' ').trim().slice(0, MAX_APU_TIT), txt = $('apu-x').value.replace(/\r\n?/g, '\n').trim().slice(0, MAX_APU_TXT);
+    if (!tit && !txt) { errorNota(er, 'Escribí un título o una anotación.'); $('apu-x').focus(); return; }
+    if (APU.length >= MAX_APU) { errorNota(er, 'Llegaste al máximo de ' + MAX_APU + ' anotaciones. Borrá alguna para agregar otra.'); return; }
+    errorNota(er, '');
+    var ahora = Date.now(), nueva = { id: idNuevo(), titulo: tit, texto: txt, fijada: false, creada: ahora, editada: ahora };
+    APU.unshift(nueva); guardarApu();
+    $('apu-t').value = ''; $('apu-x').value = ''; borradorApu(); APUUI.q = ''; $('apu-buscar').value = '';
+    renderApu(true); $('apu-t').focus();
+    avisar('Anotación guardada', function () { APU = APU.filter(function (x) { return x.id !== nueva.id; }); guardarApu(); renderApu(true); });
+  });
+  $('form-apu').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('form-apu').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); } });
+  $('apu-buscar').addEventListener('input', function () { APUUI.q = this.value; APUUI.edit = null; renderApu(true); });
+  $('btn-apu').addEventListener('click', function () {
+    if (VISTA !== 'apu') APUUI.antes = VISTA;
+    VISTA = 'apu'; render(); $('apu-titulo').focus();
+  });
+  $('apu-volver').addEventListener('click', function () {
+    VISTA = APUUI.antes && APUUI.antes !== 'apu' ? APUUI.antes : 'lista'; render();
+    $('btn-apu').focus();
+  });
+  $('vista-apu').addEventListener('keydown', function (e) { if (e.key === 'Escape') $('apu-volver').click(); });
   /* ---------- Resumen de la semana ---------- */
   var SEM = { antes: 'hoy' };
   function resumenDeLaSemana(tareas, ahora, hist, cumples) {
@@ -5394,7 +5569,8 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (v === 'calendario') return 'Tocá un día para ver lo que hay y agendar tareas para esa fecha. Las marcas de cada día muestran si hay tareas pendientes, hechas, repetidas, cumpleaños o recuerdos. Con los botones de arriba filtrás por hoja o ves solo los cumpleaños, y abajo está la lista del mes.';
     if (v === 'enfoque') return 'Te muestra una sola tarea pendiente a la vez. Elegí 15, 25 o 45 minutos y tocá Iniciar; podés pausar, seguir o reiniciar. Marcar como hecha pasa a la siguiente y Saltar la deja para más tarde.';
     if (v === 'notas') return 'Acá guardás tus contraseñas: se ven ocultas hasta que tocás Mostrar. Cada una se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Quedan en este dispositivo y sin cifrar.';
-    if (v === 'buscar') return 'Escribí al menos 2 letras. Busca en las tareas de todas las solapas, en los nombres de tus contraseñas y en los cumpleaños. Tocá un resultado para ir a él.';
+    if (v === 'apu') return 'Acá anotás lo que quieras. Cada anotación se puede fijar, editar, copiar o borrar, y siempre queda Deshacer. Lo que escribís en el cuadro se guarda solo como borrador hasta que tocás Guardar anotación.';
+    if (v === 'buscar') return 'Escribí al menos 2 letras. Busca en las tareas de todas las solapas, en los nombres de tus contraseñas, en las anotaciones y en los cumpleaños. Tocá un resultado para ir a él.';
     return '';
   }
   function render() {
@@ -5411,6 +5587,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     $('vista-notas').hidden = VISTA !== 'notas';
     $('vista-buscar').hidden = VISTA !== 'buscar';
     $('vista-semana').hidden = VISTA !== 'semana';
+    $('vista-apu').hidden = VISTA !== 'apu';
     if (VISTA !== 'hoy') { $('compartir').hidden = true; cerrarCompartir(false); }
     var domNoche = new Date(AHORA); $('btn-semana').classList.toggle('primario', domNoche.getDay() === 0 && domNoche.getHours() >= 18);
     if (VISTA !== 'notas') NOTAUI.ver = {};
@@ -5445,6 +5622,7 @@ body.compacto .posponer .mini { min-height: 36px; padding: 0 12px; }
     if (VISTA === 'notas') { renderNotas(); return; }
     if (VISTA === 'buscar') { renderBuscar(); return; }
     if (VISTA === 'semana') { renderSemana(); return; }
+    if (VISTA === 'apu') { renderApu(); return; }
     if (esHoy) { renderHoy(); return; }
     var activo = document.activeElement;
     var clave = activo && activo.getAttribute ? activo.getAttribute('data-key') : null;
